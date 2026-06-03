@@ -30,13 +30,14 @@
 
 ## Epic 4: Inscripcion
 
-- [ ] Crear pagina publica de evento.
-- [ ] Crear formulario de inscripcion.
-- [ ] Validar cupos.
-- [ ] Evitar duplicados por email/evento.
-- [ ] Guardar consentimiento.
-- [ ] Generar token QR.
-- [ ] Mostrar confirmacion y QR.
+- [x] Crear pagina publica de evento.
+- [x] Crear formulario de inscripcion.
+- [x] Validar cupos.
+- [x] Evitar duplicados por email/evento.
+- [x] Guardar consentimiento.
+- [x] Generar token QR.
+- [x] Mostrar confirmacion y QR.
+- [x] Enviar confirmacion por email.
 
 ## Epic 5: Perfil y directorio
 
