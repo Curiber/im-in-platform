@@ -100,6 +100,12 @@ export default async function AdminEventDetailPage({
               >
                 Check-in
               </Link>
+              <Link
+                className="inline-flex h-10 items-center rounded-md border border-[#d9d5cb] px-4 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+                href={`/admin/events/${event.id}/dashboard`}
+              >
+                Dashboard
+              </Link>
               {event.status === "draft" ? (
                 <form action={publishEvent}>
                   <input name="eventId" type="hidden" value={event.id} />
