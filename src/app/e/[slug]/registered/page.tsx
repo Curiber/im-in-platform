@@ -52,11 +52,12 @@ export default async function RegisteredPage({
     notFound();
   }
 
+  const qrPayload = createCheckInPayload({
+    registrationId: registration.id,
+    token,
+  });
   const qrDataUrl = await QRCode.toDataURL(
-    createCheckInPayload({
-      registrationId: registration.id,
-      token,
-    }),
+    qrPayload,
     {
       errorCorrectionLevel: "M",
       margin: 2,
@@ -133,6 +134,19 @@ export default async function RegisteredPage({
           <p className="mt-4 break-all font-mono text-xs text-[#5f625d]">
             {registration.id}
           </p>
+          <div className="mt-5 text-left">
+            <p className="text-sm font-semibold text-[#1f2723]">
+              Payload del QR
+            </p>
+            <textarea
+              className="mt-2 min-h-28 w-full rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-3 font-mono text-xs text-[#4a4d49]"
+              readOnly
+              value={qrPayload}
+            />
+            <p className="mt-2 text-xs leading-5 text-[#5f625d]">
+              Copia este texto y pegalo en la pantalla de check-in del admin.
+            </p>
+          </div>
         </aside>
       </section>
     </main>

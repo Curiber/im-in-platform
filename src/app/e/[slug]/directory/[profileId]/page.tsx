@@ -59,6 +59,23 @@ export default async function EventDirectoryProfilePage({
     notFound();
   }
 
+  const { data: existingConnection } = await adminClient
+    .from("connection_requests")
+    .select("status, requester_registration_id, receiver_registration_id")
+    .eq("event_id", viewer.event_id)
+    .in("status", ["pending", "accepted"])
+    .or(
+      [
+        `and(requester_registration_id.eq.${viewer.id},receiver_registration_id.eq.${profile.id})`,
+        `and(requester_registration_id.eq.${profile.id},receiver_registration_id.eq.${viewer.id})`,
+      ].join(","),
+    )
+    .maybeSingle<{
+      requester_registration_id: string;
+      receiver_registration_id: string;
+      status: "pending" | "accepted";
+    }>();
+
   const accessQuery = `registrationId=${viewer.id}&token=${token}`;
 
   return (
@@ -126,7 +143,7 @@ export default async function EventDirectoryProfilePage({
             </div>
           </div>
 
-          {profile.id !== viewer.id ? (
+          {profile.id !== viewer.id && !existingConnection ? (
             <form
               action={createConnectionRequest}
               className="mt-8 rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4"
@@ -153,10 +170,51 @@ export default async function EventDirectoryProfilePage({
               </button>
             </form>
           ) : null}
+
+          {profile.id !== viewer.id && existingConnection ? (
+            <div className="mt-8 rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4">
+              <p className="text-sm font-semibold text-[#1f2723]">
+                Conexion ya solicitada
+              </p>
+              <p className="mt-1 text-sm leading-6 text-[#5f625d]">
+                {connectionStatusText({
+                  status: existingConnection.status,
+                  viewerId: viewer.id,
+                  requesterId: existingConnection.requester_registration_id,
+                })}
+              </p>
+              <Link
+                className="mt-4 inline-flex h-10 items-center rounded-md border border-[#d9d5cb] px-4 text-sm font-semibold text-[#1f2723] hover:bg-white"
+                href={`/e/${slug}/connections?${accessQuery}`}
+              >
+                Ver conexiones
+              </Link>
+            </div>
+          ) : null}
         </article>
       </section>
     </main>
   );
+}
+
+function connectionStatusText({
+  requesterId,
+  status,
+  viewerId,
+}: {
+  requesterId: string;
+  status: "pending" | "accepted";
+  viewerId: string;
+}) {
+  if (status === "accepted") {
+    return "Ya existe una conexion aceptada entre ambos.";
+  }
+
+  if (requesterId === viewerId) {
+    return "Ya enviaste una solicitud y esta pendiente de respuesta.";
+  }
+
+  return "Esta persona ya te envio una solicitud pendiente. Respondela desde Conexiones.";
 }
 
 function Info({

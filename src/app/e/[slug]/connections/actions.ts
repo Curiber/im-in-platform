@@ -26,8 +26,14 @@ export async function createConnectionRequest(formData: FormData) {
     token,
   });
 
-  if (!viewer || !receiverRegistrationId || viewer.id === receiverRegistrationId) {
-    redirect(`/e/${slug}/directory?registrationId=${registrationId}&token=${token}`);
+  if (
+    !viewer ||
+    !receiverRegistrationId ||
+    viewer.id === receiverRegistrationId
+  ) {
+    redirect(
+      `/e/${slug}/directory?registrationId=${registrationId}&token=${token}`,
+    );
   }
 
   const adminClient = createSupabaseAdminClient();
@@ -43,11 +49,26 @@ export async function createConnectionRequest(formData: FormData) {
     redirect(`/e/${slug}/directory?registrationId=${viewer.id}&token=${token}`);
   }
 
-  await adminClient.from("connection_requests").insert({
-    event_id: viewer.event_id,
-    requester_registration_id: viewer.id,
-    receiver_registration_id: receiver.id,
-  });
+  const { data: existingRequest } = await adminClient
+    .from("connection_requests")
+    .select("id")
+    .eq("event_id", viewer.event_id)
+    .in("status", ["pending", "accepted"])
+    .or(
+      [
+        `and(requester_registration_id.eq.${viewer.id},receiver_registration_id.eq.${receiver.id})`,
+        `and(requester_registration_id.eq.${receiver.id},receiver_registration_id.eq.${viewer.id})`,
+      ].join(","),
+    )
+    .maybeSingle<{ id: string }>();
+
+  if (!existingRequest) {
+    await adminClient.from("connection_requests").insert({
+      event_id: viewer.event_id,
+      requester_registration_id: viewer.id,
+      receiver_registration_id: receiver.id,
+    });
+  }
 
   redirect(`/e/${slug}/connections?registrationId=${viewer.id}&token=${token}`);
 }
