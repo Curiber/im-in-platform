@@ -96,8 +96,8 @@ export default async function RegisteredPage({
 
           <p className="mt-5 flex items-start gap-2 text-sm leading-6 text-[#5f625d]">
             <Mail className="mt-0.5 size-4 shrink-0 text-[#2f6f4e]" />
-            La confirmacion visual queda disponible en esta pagina. El envio por
-            email se implementara cuando conectemos el proveedor transaccional.
+            Si el proveedor de email esta configurado, tambien recibiras esta
+            confirmacion en tu correo.
           </p>
 
           <Link

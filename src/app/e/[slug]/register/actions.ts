@@ -1,8 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { z } from "zod";
 
+import { sendRegistrationConfirmationEmail } from "@/lib/email";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   createRegistrationToken,
@@ -64,10 +66,17 @@ export async function registerForEvent(
   const adminClient = createSupabaseAdminClient();
   const { data: event } = await adminClient
     .from("events")
-    .select("id, capacity, status, slug")
+    .select("id, capacity, status, slug, name, starts_at")
     .eq("id", parsed.data.eventId)
     .eq("slug", parsed.data.slug)
-    .single<{ id: string; capacity: number; status: string; slug: string }>();
+    .single<{
+      id: string;
+      capacity: number;
+      status: string;
+      slug: string;
+      name: string;
+      starts_at: string;
+    }>();
 
   if (!event || event.status !== "published") {
     return {
@@ -167,7 +176,29 @@ export async function registerForEvent(
     },
   ]);
 
-  redirect(
-    `/e/${parsed.data.slug}/registered?registrationId=${registration.id}&token=${token}`,
-  );
+  const confirmationPath = `/e/${parsed.data.slug}/registered?registrationId=${registration.id}&token=${token}`;
+  const headerStore = await headers();
+  const origin =
+    headerStore.get("origin") ?? process.env.APP_URL ?? "http://localhost:3000";
+
+  try {
+    await sendRegistrationConfirmationEmail({
+      attendeeName: parsed.data.fullName,
+      confirmationUrl: `${origin}${confirmationPath}`,
+      eventDate: formatDate(event.starts_at),
+      eventName: event.name,
+      to: parsed.data.email,
+    });
+  } catch {
+    // Email delivery should not invalidate a completed registration.
+  }
+
+  redirect(confirmationPath);
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("es-CL", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 }
