@@ -2,6 +2,7 @@ import { CalendarPlus, ShieldCheck, Users } from "lucide-react";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { createOrganization } from "@/app/admin/actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -110,17 +111,75 @@ export default async function AdminHomePage() {
                   </p>
                 </div>
               ))
-            ) : (
-              <p className="rounded-md bg-[#fbfaf7] p-3 text-sm leading-6 text-[#5f625d]">
-                Aun no tienes una organizacion asociada. Se puede crear una
-                semilla inicial desde Supabase o desde la proxima tarea de esta
-                epica.
-              </p>
-            )}
+            ) : null}
+
+            {!error && !memberships?.length ? (
+              <CreateOrganizationForm />
+            ) : null}
           </div>
         </aside>
       </section>
     </main>
+  );
+}
+
+function CreateOrganizationForm() {
+  return (
+    <form action={createOrganization} className="space-y-4">
+      <p className="rounded-md bg-[#fbfaf7] p-3 text-sm leading-6 text-[#5f625d]">
+        Aun no tienes una organizacion asociada. Crea el workspace inicial para
+        operar eventos.
+      </p>
+
+      <label className="block">
+        <span className="text-sm font-medium text-[#1f2723]">Nombre</span>
+        <input
+          className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
+          name="name"
+          placeholder="Universidad, empresa o comunidad"
+          required
+        />
+      </label>
+
+      <label className="block">
+        <span className="text-sm font-medium text-[#1f2723]">Tipo</span>
+        <select
+          className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
+          name="type"
+          defaultValue="company"
+          required
+        >
+          <option value="university">Universidad</option>
+          <option value="company">Empresa</option>
+          <option value="foundation">Fundacion</option>
+          <option value="guild">Gremio</option>
+          <option value="incubator">Incubadora</option>
+          <option value="community">Comunidad</option>
+          <option value="producer">Productora</option>
+          <option value="public_institution">Institucion publica</option>
+          <option value="other">Otro</option>
+        </select>
+      </label>
+
+      <label className="block">
+        <span className="text-sm font-medium text-[#1f2723]">
+          Sitio web opcional
+        </span>
+        <input
+          className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
+          name="websiteUrl"
+          placeholder="https://..."
+          type="url"
+        />
+      </label>
+
+      <button
+        className="h-11 w-full rounded-md bg-[#102923] px-4 text-sm font-semibold text-white hover:bg-[#183b33]"
+        type="submit"
+      >
+        Crear organizacion
+      </button>
+    </form>
   );
 }
 
