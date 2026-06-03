@@ -1,4 +1,4 @@
-import { Search, UserRound, Users } from "lucide-react";
+import { Bell, Search, UserRound, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -42,16 +42,25 @@ export default async function EventDirectoryPage({
   }
 
   const adminClient = createSupabaseAdminClient();
-  const { data: profiles } = await adminClient
-    .from("event_registrations")
-    .select(
-      "id, full_name_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests",
-    )
-    .eq("event_id", viewer.event_id)
-    .eq("public_profile_enabled", true)
-    .neq("status", "cancelled")
-    .order("full_name_snapshot", { ascending: true })
-    .returns<DirectoryProfile[]>();
+  const [{ data: profiles }, { count: pendingReceivedCount }] =
+    await Promise.all([
+      adminClient
+        .from("event_registrations")
+        .select(
+          "id, full_name_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests",
+        )
+        .eq("event_id", viewer.event_id)
+        .eq("public_profile_enabled", true)
+        .neq("status", "cancelled")
+        .order("full_name_snapshot", { ascending: true })
+        .returns<DirectoryProfile[]>(),
+      adminClient
+        .from("connection_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", viewer.event_id)
+        .eq("receiver_registration_id", viewer.id)
+        .eq("status", "pending"),
+    ]);
 
   const filteredProfiles = (profiles ?? []).filter((profile) => {
     const query = q?.trim().toLowerCase();
@@ -95,9 +104,15 @@ export default async function EventDirectoryPage({
             <h1 className="text-xl font-semibold">{viewer.events.name}</h1>
           </div>
           <Link
-            className="rounded-md border border-[#d9d5cb] px-3 py-2 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+            className="inline-flex items-center gap-2 rounded-md border border-[#d9d5cb] px-3 py-2 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
             href={`/e/${slug}/connections?${accessQuery}`}
           >
+            {pendingReceivedCount ? (
+              <span className="inline-flex items-center gap-1 rounded-md bg-[#2f6f4e] px-2 py-0.5 text-xs font-semibold text-white">
+                <Bell className="size-3" aria-hidden="true" />
+                {pendingReceivedCount}
+              </span>
+            ) : null}
             Conexiones
           </Link>
         </div>

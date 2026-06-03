@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, X } from "lucide-react";
+import { ArrowLeft, Bell, Check, X } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
@@ -75,6 +75,8 @@ export default async function ConnectionsPage({
   ]);
 
   const accessQuery = `registrationId=${viewer.id}&token=${token}`;
+  const pendingReceivedCount =
+    received?.filter((request) => request.status === "pending").length ?? 0;
 
   return (
     <main className="min-h-screen bg-[#f6f4ef] text-[#171717]">
@@ -96,8 +98,25 @@ export default async function ConnectionsPage({
         </div>
       </header>
 
-      <section className="mx-auto grid w-full max-w-5xl gap-6 px-5 py-8 sm:px-8 lg:grid-cols-2">
-        <Panel title="Recibidas">
+      <section className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8">
+        {pendingReceivedCount ? (
+          <div className="mb-5 flex gap-3 rounded-lg border border-[#cfe4c4] bg-[#eef6e9] p-4 text-[#2f6f4e] shadow-sm">
+            <Bell className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+            <div>
+              <p className="font-semibold">
+                Tienes {pendingReceivedCount} solicitud
+                {pendingReceivedCount === 1 ? "" : "es"} nueva
+                {pendingReceivedCount === 1 ? "" : "s"}.
+              </p>
+              <p className="mt-1 text-sm leading-6">
+                Puedes aceptarla o rechazarla desde la seccion Recibidas.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="grid gap-6 lg:grid-cols-2">
+        <Panel title={`Recibidas${pendingReceivedCount ? ` (${pendingReceivedCount})` : ""}`}>
           {received?.length ? (
             received.map((request) => (
               <RequestCard
@@ -130,6 +149,7 @@ export default async function ConnectionsPage({
             <EmptyState text="Aun no has enviado solicitudes." />
           )}
         </Panel>
+        </div>
       </section>
     </main>
   );
