@@ -76,8 +76,12 @@ export default async function EventDirectoryPage({
     return matchesQuery && matchesIndustry && matchesInterest;
   });
 
-  const industries = unique((profiles ?? []).map((profile) => profile.industry_snapshot));
-  const interests = unique((profiles ?? []).flatMap((profile) => profile.interests));
+  const industries = unique(
+    (profiles ?? []).map((profile) => profile.industry_snapshot),
+  );
+  const interests = unique(
+    (profiles ?? []).flatMap((profile) => profile.interests),
+  );
   const accessQuery = `registrationId=${viewer.id}&token=${token}`;
 
   return (
@@ -167,8 +171,9 @@ export default async function EventDirectoryPage({
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredProfiles.map((profile) => (
-            <article
-              className="rounded-lg border border-[#d9d5cb] bg-white p-5 shadow-sm"
+            <Link
+              className="rounded-lg border border-[#d9d5cb] bg-white p-5 shadow-sm hover:bg-[#fbfaf7]"
+              href={`/e/${slug}/directory/${profile.id}?${accessQuery}`}
               key={profile.id}
             >
               <div className="flex items-start gap-4">
@@ -202,7 +207,7 @@ export default async function EventDirectoryPage({
                   </span>
                 ))}
               </div>
-            </article>
+            </Link>
           ))}
         </div>
 
