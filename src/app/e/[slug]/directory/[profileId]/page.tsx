@@ -8,6 +8,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { createConnectionRequest } from "@/app/e/[slug]/connections/actions";
 import { verifyRegistrationAccess } from "@/lib/registrations";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -125,15 +126,33 @@ export default async function EventDirectoryProfilePage({
             </div>
           </div>
 
-          <div className="mt-8 rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4">
-            <p className="text-sm font-semibold text-[#1f2723]">
-              Solicitud de conexion
-            </p>
-            <p className="mt-1 text-sm leading-6 text-[#5f625d]">
-              El boton de conectar se activa en la siguiente epica, guardando
-              una solicitud dentro de este mismo evento.
-            </p>
-          </div>
+          {profile.id !== viewer.id ? (
+            <form
+              action={createConnectionRequest}
+              className="mt-8 rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4"
+            >
+              <input name="slug" type="hidden" value={slug} />
+              <input name="registrationId" type="hidden" value={viewer.id} />
+              <input name="token" type="hidden" value={token} />
+              <input
+                name="receiverRegistrationId"
+                type="hidden"
+                value={profile.id}
+              />
+              <p className="text-sm font-semibold text-[#1f2723]">
+                Solicitud de conexion
+              </p>
+              <p className="mt-1 text-sm leading-6 text-[#5f625d]">
+                Si acepta, ambos recibiran los datos de contacto por email.
+              </p>
+              <button
+                className="mt-4 h-10 rounded-md bg-[#102923] px-4 text-sm font-semibold text-white hover:bg-[#183b33]"
+                type="submit"
+              >
+                Conectar
+              </button>
+            </form>
+          ) : null}
         </article>
       </section>
     </main>

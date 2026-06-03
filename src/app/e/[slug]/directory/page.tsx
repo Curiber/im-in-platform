@@ -96,9 +96,9 @@ export default async function EventDirectoryPage({
           </div>
           <Link
             className="rounded-md border border-[#d9d5cb] px-3 py-2 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
-            href={`/e/${slug}/registered?${accessQuery}`}
+            href={`/e/${slug}/connections?${accessQuery}`}
           >
-            Mi QR
+            Conexiones
           </Link>
         </div>
       </header>
