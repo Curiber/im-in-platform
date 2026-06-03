@@ -1,4 +1,5 @@
 import { CalendarPlus, ShieldCheck, Users } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
@@ -77,11 +78,13 @@ export default async function AdminHomePage() {
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             <ActionCard
               description="Crear y publicar eventos del MVP."
+              href="/admin/events"
               icon={<CalendarPlus className="size-5" aria-hidden="true" />}
               title="Eventos"
             />
             <ActionCard
               description="Gestionar owners, admins y event admins."
+              href="/admin"
               icon={<Users className="size-5" aria-hidden="true" />}
               title="Roles"
             />
@@ -185,21 +188,26 @@ function CreateOrganizationForm() {
 
 function ActionCard({
   description,
+  href,
   icon,
   title,
 }: {
   description: string;
+  href: string;
   icon: ReactNode;
   title: string;
 }) {
   return (
-    <article className="rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4">
+    <Link
+      className="rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4 hover:bg-[#f4f1e9]"
+      href={href}
+    >
       <span className="flex size-9 items-center justify-center rounded-md bg-white text-[#254f74]">
         {icon}
       </span>
       <h3 className="mt-4 text-lg font-semibold">{title}</h3>
       <p className="mt-2 text-sm leading-6 text-[#5f625d]">{description}</p>
-    </article>
+    </Link>
   );
 }
 
