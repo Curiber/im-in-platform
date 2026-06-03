@@ -36,8 +36,6 @@ export async function registerForEvent(
   formData: FormData,
 ): Promise<RegistrationActionState> {
   const networkingOptIn = formData.get("networkingOptIn") === "on";
-  const publicProfileEnabled =
-    networkingOptIn && formData.get("publicProfileEnabled") === "on";
 
   const parsed = registrationSchema.safeParse({
     eventId: formData.get("eventId"),
@@ -50,7 +48,7 @@ export async function registerForEvent(
     industry: formData.get("industry"),
     interests: formData.getAll("interests"),
     networkingOptIn,
-    publicProfileEnabled,
+    publicProfileEnabled: networkingOptIn,
     dataConsent: formData.get("dataConsent") === "on",
   });
 

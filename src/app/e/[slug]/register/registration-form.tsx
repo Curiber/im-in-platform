@@ -149,28 +149,12 @@ export function RegistrationForm({
           <input className="mt-1 size-4" name="networkingOptIn" type="checkbox" />
           <span>
             <span className="block text-sm font-semibold text-[#1f2723]">
-              Quiero participar en networking
+              Quiero participar en networking y aparecer en el directorio
             </span>
             <span className="mt-1 block text-sm leading-6 text-[#5f625d]">
-              Podras aparecer en el directorio privado del evento y recibir
-              solicitudes de conexion.
-            </span>
-          </span>
-        </label>
-
-        <label className="flex items-start gap-3">
-          <input
-            className="mt-1 size-4"
-            name="publicProfileEnabled"
-            type="checkbox"
-          />
-          <span>
-            <span className="block text-sm font-semibold text-[#1f2723]">
-              Mostrar mi perfil en el directorio
-            </span>
-            <span className="mt-1 block text-sm leading-6 text-[#5f625d]">
-              Si no lo marcas, tus datos solo seran visibles para el
-              organizador.
+              Otros asistentes inscritos podran ver tu nombre, cargo, empresa,
+              area e intereses. Tu email y telefono solo se comparten si aceptas
+              una conexion.
             </span>
           </span>
         </label>
