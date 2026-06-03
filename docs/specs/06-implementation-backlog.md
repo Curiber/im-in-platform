@@ -12,12 +12,12 @@
 
 ## Epic 2: Auth y roles
 
-- [ ] Implementar login con email/magic link o password.
-- [ ] Crear callback de auth.
-- [ ] Crear tabla `organizations`.
-- [ ] Crear tabla `organization_users`.
-- [ ] Proteger rutas admin.
-- [ ] Crear seed de organizacion/admin piloto.
+- [x] Implementar login con email/magic link o password.
+- [x] Crear callback de auth.
+- [x] Crear tabla `organizations`.
+- [x] Crear tabla `organization_users`.
+- [x] Proteger rutas admin.
+- [x] Crear seed de organizacion/admin piloto.
 
 ## Epic 3: Eventos
 
