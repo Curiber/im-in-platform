@@ -57,11 +57,11 @@
 
 ## Epic 7: Conexiones
 
-- [ ] Crear `connection_requests`.
-- [ ] Crear accion "Conectar".
-- [ ] Crear bandeja de solicitudes recibidas.
-- [ ] Aceptar/rechazar.
-- [ ] Compartir datos autorizados tras aceptacion.
+- [x] Crear `connection_requests`.
+- [x] Crear accion "Conectar".
+- [x] Crear bandeja de solicitudes recibidas.
+- [x] Aceptar/rechazar.
+- [x] Compartir datos autorizados tras aceptacion.
 
 ## Epic 8: Dashboard y exportacion
 
