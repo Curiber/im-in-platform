@@ -41,12 +41,12 @@
 
 ## Epic 5: Perfil y directorio
 
-- [ ] Crear `attendee_profiles`.
-- [ ] Crear intereses base.
-- [ ] Permitir completar perfil breve.
-- [ ] Crear directorio privado por evento.
-- [ ] Agregar busqueda y filtros.
-- [ ] Restringir directorio a inscritos.
+- [x] Crear perfil publico por inscripcion.
+- [x] Crear intereses base.
+- [x] Permitir completar perfil breve.
+- [x] Crear directorio privado por evento.
+- [x] Agregar busqueda y filtros.
+- [x] Restringir directorio a inscritos.
 
 ## Epic 6: Check-in
 
