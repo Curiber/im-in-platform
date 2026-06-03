@@ -21,11 +21,11 @@
 
 ## Epic 3: Eventos
 
-- [ ] Crear tablas `events` e indices.
-- [ ] Crear formulario admin de evento.
-- [ ] Crear listado admin de eventos.
-- [ ] Implementar estados `draft`, `published`, `closed`.
-- [ ] Generar slug y link publico.
+- [x] Crear tablas `events` e indices.
+- [x] Crear formulario admin de evento.
+- [x] Crear listado admin de eventos.
+- [x] Implementar estados `draft`, `published`, `closed`.
+- [x] Generar slug y link publico.
 
 ## Epic 4: Inscripcion
 
