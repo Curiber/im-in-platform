@@ -50,10 +50,10 @@
 
 ## Epic 6: Check-in
 
-- [ ] Crear lector QR en admin.
-- [ ] Crear endpoint server-side para validar token.
-- [ ] Registrar check-in.
-- [ ] Manejar QR ya usado, invalido o cancelado.
+- [x] Crear lector QR en admin.
+- [x] Crear endpoint server-side para validar token.
+- [x] Registrar check-in.
+- [x] Manejar QR ya usado, invalido o cancelado.
 
 ## Epic 7: Conexiones
 
