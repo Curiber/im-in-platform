@@ -162,13 +162,19 @@ export default async function AdminEventDetailPage({
             <div className="mt-4 rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-3">
               <p className="break-all font-mono text-sm">{publicPath}</p>
             </div>
-            <Link
-              className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-[#d9d5cb] text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
-              href={publicPath}
-            >
-              <Link2 className="size-4" aria-hidden="true" />
-              Ver pagina publica
-            </Link>
+            {event.status === "draft" ? (
+              <p className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-md border border-[#d9d5cb] text-sm font-semibold text-[#5f625d]">
+                Publica el evento para ver la pagina
+              </p>
+            ) : (
+              <Link
+                className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-[#d9d5cb] text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+                href={publicPath}
+              >
+                <Link2 className="size-4" aria-hidden="true" />
+                Ver pagina publica
+              </Link>
+            )}
           </div>
 
           <div className="rounded-lg border border-[#d9d5cb] bg-white p-5 shadow-sm">

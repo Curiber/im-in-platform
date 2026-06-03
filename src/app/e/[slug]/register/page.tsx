@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { RegistrationForm } from "@/app/e/[slug]/register/registration-form";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +27,7 @@ export default async function RegisterPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   const { data: event } = await supabase
     .from("events")
@@ -36,7 +36,6 @@ export default async function RegisterPage({
     )
     .eq("slug", slug)
     .eq("status", "published")
-    .eq("event_type", "open")
     .single()
     .returns<RegistrationEvent>();
 

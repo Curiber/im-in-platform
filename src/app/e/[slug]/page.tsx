@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +14,7 @@ type PublicEvent = {
   location: string | null;
   capacity: number;
   networking_enabled: boolean;
+  status: "published" | "closed";
   organizations: {
     name: string;
   } | null;
@@ -25,16 +26,15 @@ export default async function PublicEventPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   const { data: event } = await supabase
     .from("events")
     .select(
-      "name, description, starts_at, location, capacity, networking_enabled, organizations(name)",
+      "name, description, starts_at, location, capacity, networking_enabled, status, organizations(name)",
     )
     .eq("slug", slug)
-    .eq("status", "published")
-    .eq("event_type", "open")
+    .in("status", ["published", "closed"])
     .single()
     .returns<PublicEvent>();
 
@@ -67,12 +67,18 @@ export default async function PublicEventPage({
             MVP. Este link ya queda generado desde el panel organizador y
             preparado para recibir asistentes.
           </p>
-          <Link
-            className="mt-6 inline-flex h-11 items-center justify-center rounded-md bg-[#102923] px-5 text-sm font-semibold text-white hover:bg-[#183b33]"
-            href={`/e/${slug}/register`}
-          >
-            Inscribirme
-          </Link>
+          {event.status === "published" ? (
+            <Link
+              className="mt-6 inline-flex h-11 items-center justify-center rounded-md bg-[#102923] px-5 text-sm font-semibold text-white hover:bg-[#183b33]"
+              href={`/e/${slug}/register`}
+            >
+              Inscribirme
+            </Link>
+          ) : (
+            <p className="mt-6 inline-flex h-11 items-center justify-center rounded-md border border-[#d9d5cb] px-5 text-sm font-semibold text-[#5f625d]">
+              Inscripciones cerradas
+            </p>
+          )}
         </div>
 
         <aside className="space-y-3">
