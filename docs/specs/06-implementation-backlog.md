@@ -65,12 +65,12 @@
 
 ## Epic 8: Dashboard y exportacion
 
-- [ ] Mostrar inscritos totales.
-- [ ] Mostrar acreditados.
-- [ ] Mostrar no show.
-- [ ] Mostrar perfiles publicos.
-- [ ] Mostrar solicitudes enviadas y aceptadas.
-- [ ] Exportar CSV.
+- [x] Mostrar inscritos totales.
+- [x] Mostrar acreditados.
+- [x] Mostrar no show.
+- [x] Mostrar perfiles publicos.
+- [x] Mostrar solicitudes enviadas y aceptadas.
+- [x] Exportar CSV.
 
 ## Epic 9: V1.5 evaluable
 
