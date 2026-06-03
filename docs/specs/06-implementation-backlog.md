@@ -24,6 +24,7 @@
 - [x] Crear tablas `events` e indices.
 - [x] Crear formulario admin de evento.
 - [x] Crear listado admin de eventos.
+- [x] Editar evento.
 - [x] Implementar estados `draft`, `published`, `closed`.
 - [x] Generar slug y link publico.
 

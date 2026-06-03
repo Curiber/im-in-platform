@@ -78,6 +78,65 @@ export async function createEvent(formData: FormData) {
   redirect(`/admin/events/${event.id}`);
 }
 
+export async function updateEvent(formData: FormData) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const eventId = String(formData.get("eventId") ?? "");
+  const parsed = eventSchema.safeParse({
+    organizationId: formData.get("organizationId"),
+    name: String(formData.get("name") ?? ""),
+    description: String(formData.get("description") ?? ""),
+    startsAt: formData.get("startsAt"),
+    arrivalStartsAt: emptyToNull(formData.get("arrivalStartsAt")),
+    endsAt: emptyToNull(formData.get("endsAt")),
+    location: String(formData.get("location") ?? ""),
+    modality: formData.get("modality"),
+    capacity: formData.get("capacity"),
+    eventType: formData.get("eventType"),
+    networkingEnabled: formData.get("networkingEnabled") === "on",
+  });
+
+  if (!eventId) {
+    throw new Error("Evento invalido.");
+  }
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
+  }
+
+  const { error } = await supabase
+    .from("events")
+    .update({
+      name: parsed.data.name,
+      description: parsed.data.description || null,
+      starts_at: parsed.data.startsAt.toISOString(),
+      arrival_starts_at: parsed.data.arrivalStartsAt?.toISOString() ?? null,
+      ends_at: parsed.data.endsAt?.toISOString() ?? null,
+      location: parsed.data.location,
+      modality: parsed.data.modality,
+      capacity: parsed.data.capacity,
+      event_type: parsed.data.eventType,
+      networking_enabled: parsed.data.networkingEnabled,
+    })
+    .eq("id", eventId)
+    .eq("organization_id", parsed.data.organizationId);
+
+  if (error) {
+    throw new Error("No se pudo actualizar el evento.");
+  }
+
+  revalidatePath("/admin/events");
+  revalidatePath(`/admin/events/${eventId}`);
+  redirect(`/admin/events/${eventId}`);
+}
+
 export async function publishEvent(formData: FormData) {
   await updateEventStatus(formData, "published");
 }
