@@ -24,6 +24,12 @@ type ConnectionMetric = {
   status: "pending" | "accepted" | "rejected" | "cancelled";
 };
 
+type ProfileViewMetric = {
+  viewed: {
+    full_name_snapshot: string;
+  } | null;
+};
+
 export default async function EventDashboardPage({
   params,
 }: {
@@ -50,20 +56,28 @@ export default async function EventDashboardPage({
     notFound();
   }
 
-  const [{ data: registrations }, { data: connections }] = await Promise.all([
-    supabase
-      .from("event_registrations")
-      .select(
-        "status, public_profile_enabled, networking_opt_in, industry_snapshot, interests",
-      )
-      .eq("event_id", event.id)
-      .returns<RegistrationMetric[]>(),
-    supabase
-      .from("connection_requests")
-      .select("status")
-      .eq("event_id", event.id)
-      .returns<ConnectionMetric[]>(),
-  ]);
+  const [{ data: registrations }, { data: connections }, { data: profileViews }] =
+    await Promise.all([
+      supabase
+        .from("event_registrations")
+        .select(
+          "status, public_profile_enabled, networking_opt_in, industry_snapshot, interests",
+        )
+        .eq("event_id", event.id)
+        .returns<RegistrationMetric[]>(),
+      supabase
+        .from("connection_requests")
+        .select("status")
+        .eq("event_id", event.id)
+        .returns<ConnectionMetric[]>(),
+      supabase
+        .from("profile_views")
+        .select(
+          "viewed:event_registrations!profile_views_viewed_registration_id_fkey(full_name_snapshot)",
+        )
+        .eq("event_id", event.id)
+        .returns<ProfileViewMetric[]>(),
+    ]);
 
   const activeRegistrations = (registrations ?? []).filter(
     (registration) => registration.status !== "cancelled",
@@ -152,6 +166,14 @@ export default async function EventDashboardPage({
                 (registration) =>
                   registration.industry_snapshot ?? "No informado",
               ),
+            )}
+          />
+          <Ranking
+            title="Perfiles mas vistos"
+            rows={rank(
+              (profileViews ?? [])
+                .map((view) => view.viewed?.full_name_snapshot)
+                .filter((name): name is string => Boolean(name)),
             )}
           />
         </div>
