@@ -1,9 +1,22 @@
-import { ArrowLeft, Calendar, Link2, MapPin, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  CalendarClock,
+  Link2,
+  MapPin,
+  Trash2,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { closeEvent, publishEvent } from "@/app/admin/events/actions";
+import {
+  closeEvent,
+  createAgendaItem,
+  deleteAgendaItem,
+  publishEvent,
+} from "@/app/admin/events/actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +38,15 @@ type EventDetail = {
   organizations: {
     name: string;
   } | null;
+};
+
+type AgendaItem = {
+  id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  starts_at: string;
+  ends_at: string | null;
 };
 
 export default async function AdminEventDetailPage({
@@ -54,6 +76,13 @@ export default async function AdminEventDetailPage({
   if (!event) {
     notFound();
   }
+
+  const { data: agendaItems } = await supabase
+    .from("event_agenda_items")
+    .select("id, title, description, location, starts_at, ends_at")
+    .eq("event_id", event.id)
+    .order("starts_at", { ascending: true })
+    .returns<AgendaItem[]>();
 
   const publicPath = `/e/${event.slug}`;
 
@@ -154,6 +183,132 @@ export default async function AdminEventDetailPage({
               value={`${event.capacity}`}
             />
           </div>
+
+          <div className="mt-10">
+            <h3 className="flex items-center gap-2 text-xl font-semibold">
+              <CalendarClock
+                className="size-5 text-[#2f6f4e]"
+                aria-hidden="true"
+              />
+              Agenda
+            </h3>
+
+            {agendaItems?.length ? (
+              <div className="mt-4 space-y-3">
+                {agendaItems.map((item) => (
+                  <div
+                    className="flex items-start justify-between gap-4 rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4"
+                    key={item.id}
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-[#254f74]">
+                        {formatTimeRange(item.starts_at, item.ends_at)}
+                      </p>
+                      <p className="mt-1 font-semibold">{item.title}</p>
+                      {item.description ? (
+                        <p className="mt-1 text-sm leading-6 text-[#5f625d]">
+                          {item.description}
+                        </p>
+                      ) : null}
+                      {item.location ? (
+                        <p className="mt-1 text-sm text-[#5f625d]">
+                          {item.location}
+                        </p>
+                      ) : null}
+                    </div>
+                    <form action={deleteAgendaItem}>
+                      <input name="agendaItemId" type="hidden" value={item.id} />
+                      <input name="eventId" type="hidden" value={event.id} />
+                      <input name="slug" type="hidden" value={event.slug} />
+                      <button
+                        aria-label="Eliminar bloque"
+                        className="rounded-md border border-[#d9d5cb] p-2 text-[#8a2f24] hover:bg-white"
+                        type="submit"
+                      >
+                        <Trash2 className="size-4" aria-hidden="true" />
+                      </button>
+                    </form>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4 text-sm text-[#5f625d]">
+                Sin bloques de agenda todavia. Agrega el primero abajo.
+              </p>
+            )}
+
+            <form
+              action={createAgendaItem}
+              className="mt-4 grid gap-4 rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4 sm:grid-cols-2"
+            >
+              <input name="eventId" type="hidden" value={event.id} />
+              <input name="slug" type="hidden" value={event.slug} />
+
+              <label className="block sm:col-span-2">
+                <span className="text-sm font-medium text-[#1f2723]">
+                  Titulo
+                </span>
+                <input
+                  className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
+                  name="title"
+                  placeholder="Charla, panel, networking..."
+                  required
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-medium text-[#1f2723]">
+                  Inicio
+                </span>
+                <input
+                  className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
+                  name="startsAt"
+                  type="datetime-local"
+                  required
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-medium text-[#1f2723]">
+                  Termino opcional
+                </span>
+                <input
+                  className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
+                  name="endsAt"
+                  type="datetime-local"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-medium text-[#1f2723]">
+                  Lugar opcional
+                </span>
+                <input
+                  className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
+                  name="location"
+                  placeholder="Sala, escenario..."
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-medium text-[#1f2723]">
+                  Descripcion opcional
+                </span>
+                <input
+                  className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
+                  name="description"
+                  placeholder="Detalle breve del bloque"
+                />
+              </label>
+
+              <button
+                className="h-11 rounded-md bg-[#102923] px-4 text-sm font-semibold text-white hover:bg-[#183b33] sm:col-span-2 sm:justify-self-start sm:px-6"
+                type="submit"
+              >
+                Agregar bloque
+              </button>
+            </form>
+          </div>
         </article>
 
         <aside className="space-y-4">
@@ -226,6 +381,20 @@ function formatDate(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function formatTimeRange(startsAt: string, endsAt: string | null) {
+  const start = formatDate(startsAt);
+
+  if (!endsAt) {
+    return start;
+  }
+
+  const end = new Intl.DateTimeFormat("es-CL", {
+    timeStyle: "short",
+  }).format(new Date(endsAt));
+
+  return `${start} - ${end}`;
 }
 
 function formatStatus(status: EventDetail["status"]) {
