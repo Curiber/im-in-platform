@@ -74,11 +74,12 @@
 
 ## Epic 9: V1.5 evaluable
 
-- [ ] Match simple por interseccion de intereses.
-- [ ] Email transaccional de conexion aceptada.
-- [ ] Agenda simple.
-- [ ] Login con LinkedIn OIDC.
-- [ ] Dashboard con intereses frecuentes y perfiles mas vistos.
+- [x] Match simple por interseccion de intereses.
+- [x] Email transaccional de conexion aceptada.
+- [x] Agenda simple.
+- [x] Login con LinkedIn OIDC. Requiere habilitar el provider
+  `linkedin_oidc` en Supabase Auth con client id/secret de LinkedIn.
+- [x] Dashboard con intereses frecuentes y perfiles mas vistos.
 
 ## Epic 10: Perfil persistente
 

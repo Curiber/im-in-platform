@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Linkedin, Mail } from "lucide-react";
+import { ArrowRight, Mail } from "lucide-react";
 import { useActionState } from "react";
 
 import {
@@ -73,10 +73,23 @@ export function LoginForm() {
         className="flex h-12 w-full items-center justify-center gap-2 rounded-md border border-[#d9d5cb] bg-white px-4 text-sm font-semibold text-[#1f2723] transition hover:bg-[#f6f4ef]"
         type="submit"
       >
-        <Linkedin className="size-4 text-[#0a66c2]" aria-hidden="true" />
+        <LinkedInIcon className="size-4 text-[#0a66c2]" />
         Continuar con LinkedIn
       </button>
     </form>
     </div>
+  );
+}
+
+function LinkedInIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path d="M20.45 20.45h-3.55v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.36V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.36-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.11 20.45H3.56V9h3.55v11.45z" />
+    </svg>
   );
 }
