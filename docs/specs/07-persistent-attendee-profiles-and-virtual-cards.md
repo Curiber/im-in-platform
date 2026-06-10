@@ -250,15 +250,27 @@ server-side de imagen. El MVP inicial puede entregar link compartible.
 
 ### Epic 10: Perfil persistente
 
-- [ ] Crear migracion `attendee_profiles`.
-- [ ] Habilitar extension `citext` para email case-insensitive.
-- [ ] Agregar `profile_id` a `event_registrations`.
-- [ ] Crear indices por `email`, `profile_slug` y `user_id`.
-- [ ] Crear helper `upsertAttendeeProfileFromRegistration`.
-- [ ] Actualizar registro publico para crear/reusar perfil.
-- [ ] Poblar snapshots desde perfil.
-- [ ] Actualizar directorio para leer `avatar_url`, `headline` y `profile_id`.
-- [ ] Agregar prueba manual: mismo email en dos eventos reutiliza perfil.
+- [x] Crear migracion `attendee_profiles`.
+- [x] Habilitar extension `citext` para email case-insensitive.
+- [x] Agregar `profile_id` a `event_registrations`.
+- [x] Crear indices por `email`, `profile_slug` y `user_id`.
+- [x] Crear helper `upsertAttendeeProfileFromRegistration`.
+- [x] Actualizar registro publico para crear/reusar perfil.
+- [x] Poblar snapshots desde perfil.
+- [x] Actualizar directorio para leer `avatar_url`, `headline` y `profile_id`.
+- [x] Agregar prueba manual: mismo email en dos eventos reutiliza perfil.
+
+#### Prueba manual: perfil reutilizado entre eventos
+
+1. Aplicar la migracion `20260610120000_create_attendee_profiles.sql`.
+2. Crear y publicar dos eventos A y B.
+3. Inscribirse en A con `persona@test.com`.
+4. Verificar en `attendee_profiles` que existe un perfil con ese email y
+   que la inscripcion de A tiene `profile_id` poblado.
+5. Inscribirse en B con `Persona@Test.com` (case distinto) y otro cargo.
+6. Verificar que no se creo un segundo perfil, que la inscripcion de B usa
+   el mismo `profile_id` y que el perfil quedo con el cargo nuevo.
+7. Verificar que los snapshots de A no cambiaron.
 
 ### Epic 11: Foto de perfil
 

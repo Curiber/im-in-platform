@@ -83,13 +83,13 @@
 
 ## Epic 10: Perfil persistente
 
-- [ ] Crear migracion `attendee_profiles`.
-- [ ] Habilitar extension `citext` para email case-insensitive.
-- [ ] Agregar `profile_id` a `event_registrations`.
-- [ ] Crear upsert de perfil por email normalizado.
-- [ ] Reutilizar perfil al registrar el mismo email en otro evento.
-- [ ] Mantener snapshots por evento.
-- [ ] Actualizar directorio para leer foto/headline desde perfil.
+- [x] Crear migracion `attendee_profiles`.
+- [x] Habilitar extension `citext` para email case-insensitive.
+- [x] Agregar `profile_id` a `event_registrations`.
+- [x] Crear upsert de perfil por email normalizado.
+- [x] Reutilizar perfil al registrar el mismo email en otro evento.
+- [x] Mantener snapshots por evento.
+- [x] Actualizar directorio para leer foto/headline desde perfil.
 
 ## Epic 11: Foto de perfil
 

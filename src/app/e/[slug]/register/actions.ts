@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { z } from "zod";
 
+import { upsertAttendeeProfileFromRegistration } from "@/lib/attendee-profiles";
 import { sendRegistrationConfirmationEmail } from "@/lib/email";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
@@ -96,6 +97,16 @@ export async function registerForEvent(
     };
   }
 
+  const profileId = await upsertAttendeeProfileFromRegistration({
+    email: parsed.data.email,
+    fullName: parsed.data.fullName,
+    phone: parsed.data.phone || null,
+    role: parsed.data.role,
+    company: parsed.data.company,
+    industry: parsed.data.industry,
+    interests: parsed.data.interests,
+  });
+
   const token = createRegistrationToken();
   const tokenHash = hashRegistrationToken(token);
 
@@ -103,6 +114,7 @@ export async function registerForEvent(
     .from("event_registrations")
     .insert({
       event_id: parsed.data.eventId,
+      profile_id: profileId,
       email: parsed.data.email,
       full_name_snapshot: parsed.data.fullName,
       phone_snapshot: parsed.data.phone || null,
