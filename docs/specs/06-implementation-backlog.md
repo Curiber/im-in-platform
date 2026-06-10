@@ -80,6 +80,66 @@
 - [ ] Login con LinkedIn OIDC.
 - [ ] Dashboard con intereses frecuentes y perfiles mas vistos.
 
+## Epic 10: Perfil persistente
+
+- [ ] Crear migracion `attendee_profiles`.
+- [ ] Habilitar extension `citext` para email case-insensitive.
+- [ ] Agregar `profile_id` a `event_registrations`.
+- [ ] Crear upsert de perfil por email normalizado.
+- [ ] Reutilizar perfil al registrar el mismo email en otro evento.
+- [ ] Mantener snapshots por evento.
+- [ ] Actualizar directorio para leer foto/headline desde perfil.
+
+## Epic 11: Foto de perfil
+
+- [ ] Crear bucket Supabase Storage `profile-photos`.
+- [ ] Crear upload server-side con validacion de token.
+- [ ] Validar tipo y peso de imagen.
+- [ ] Guardar `avatar_url`.
+- [ ] Mostrar foto en directorio, detalle y confirmacion.
+
+## Epic 12: Edicion de perfil
+
+- [ ] Crear ruta de perfil del asistente.
+- [ ] Editar descripcion, cargo, empresa, telefono, LinkedIn e intereses.
+- [ ] Configurar visibilidad de datos.
+- [ ] Sincronizar snapshots del registro actual cuando corresponda.
+
+## Epic 13: Tarjeta virtual
+
+- [ ] Crear ruta publica `/p/[profileSlug]`.
+- [ ] Renderizar tarjeta vertical responsive.
+- [ ] Generar QR para conectar por I'M IN.
+- [ ] Agregar copiar link.
+- [ ] Evaluar descarga PNG como V1.1.
+
+## Epic 14: Brand foundation
+
+- [ ] Elegir logo final.
+- [ ] Agregar assets de marca.
+- [ ] Crear tokens CSS azul/navy/celeste/turquesa/verde agua.
+- [ ] Actualizar favicon.
+
+## Epic 15: Rediseno publico
+
+- [ ] Redisenar home publica.
+- [ ] Redisenar pagina publica de evento.
+- [ ] Redisenar registro y confirmacion.
+- [ ] Incorporar visuales de networking y plataforma.
+
+## Epic 16: Rediseno networking
+
+- [ ] Redisenar directorio.
+- [ ] Redisenar perfil de asistente.
+- [ ] Redisenar conexiones.
+- [ ] Integrar tarjeta virtual.
+
+## Epic 17: Admin polish
+
+- [ ] Redisenar listado/detalle de eventos.
+- [ ] Redisenar dashboard.
+- [ ] Redisenar check-in para uso en puerta.
+
 ## Primera vertical recomendada
 
 Construir primero:

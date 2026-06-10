@@ -11,6 +11,9 @@ Este directorio contiene la base de spec-driven development para el MVP.
 5. [04-privacy-linkedin.md](04-privacy-linkedin.md)
 6. [05-architecture.md](05-architecture.md)
 7. [06-implementation-backlog.md](06-implementation-backlog.md)
+8. [07-persistent-attendee-profiles-and-virtual-cards.md](07-persistent-attendee-profiles-and-virtual-cards.md)
+9. [08-visual-redesign-and-brand-system.md](08-visual-redesign-and-brand-system.md)
+10. [09-next-execution-plan.md](09-next-execution-plan.md)
 
 ## Criterio de spec-driven development
 

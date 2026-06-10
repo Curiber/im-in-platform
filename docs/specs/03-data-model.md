@@ -43,16 +43,22 @@ Modelo conceptual inicial para Supabase/Postgres.
 
 ### attendee_profiles
 
+Estado actual: definido conceptualmente, pendiente de migracion. El MVP actual
+guarda snapshots en `event_registrations`; la siguiente epica debe materializar
+esta tabla para tener perfiles persistentes.
+
 - `id`
 - `user_id`
+- `email`
 - `full_name`
 - `headline`
+- `description`
 - `company`
 - `industry`
-- `bio`
-- `photo_url`
+- `avatar_url`
 - `phone`
 - `linkedin_url`
+- `profile_slug`
 - `created_at`
 - `updated_at`
 
