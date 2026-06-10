@@ -44,6 +44,7 @@ export default async function PublicEventPage({
       "id, name, description, starts_at, location, capacity, networking_enabled, status, organizations(name)",
     )
     .eq("slug", slug)
+    .is("deleted_at", null)
     .in("status", ["published", "closed"])
     .single()
     .returns<PublicEvent>();

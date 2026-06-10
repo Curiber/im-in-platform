@@ -48,6 +48,7 @@ export async function checkInAttendee(
     .from("events")
     .select("id")
     .eq("id", eventId)
+    .is("deleted_at", null)
     .single<{ id: string }>();
 
   if (!event) {

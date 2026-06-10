@@ -49,6 +49,7 @@ export default async function EventDashboardPage({
     .from("events")
     .select("id, name, capacity")
     .eq("id", eventId)
+    .is("deleted_at", null)
     .single()
     .returns<EventSummary>();
 

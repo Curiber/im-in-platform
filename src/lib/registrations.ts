@@ -14,6 +14,7 @@ export type VerifiedRegistration = {
     slug: string;
     name: string;
     networking_enabled: boolean;
+    deleted_at: string | null;
   } | null;
 };
 
@@ -34,13 +35,17 @@ export async function verifyRegistrationAccess({
   const { data: registration } = await adminClient
     .from("event_registrations")
     .select(
-      "id, event_id, email, full_name_snapshot, interests, status, qr_token_hash, events(id, slug, name, networking_enabled)",
+      "id, event_id, email, full_name_snapshot, interests, status, qr_token_hash, events(id, slug, name, networking_enabled, deleted_at)",
     )
     .eq("id", registrationId)
     .single()
     .returns<VerifiedRegistration>();
 
   if (!registration || registration.events?.slug !== slug) {
+    return null;
+  }
+
+  if (registration.events.deleted_at) {
     return null;
   }
 

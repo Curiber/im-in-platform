@@ -36,6 +36,7 @@ export async function GET(
     .from("events")
     .select("id, name")
     .eq("id", eventId)
+    .is("deleted_at", null)
     .single<{ id: string; name: string }>();
 
   if (!event) {

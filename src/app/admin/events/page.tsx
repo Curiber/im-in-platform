@@ -34,6 +34,7 @@ export default async function AdminEventsPage() {
     .select(
       "id, name, slug, status, starts_at, capacity, networking_enabled, organizations(name)",
     )
+    .is("deleted_at", null)
     .order("starts_at", { ascending: true })
     .returns<AdminEvent[]>();
 

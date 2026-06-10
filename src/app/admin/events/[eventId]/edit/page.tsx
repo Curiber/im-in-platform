@@ -43,6 +43,7 @@ export default async function EditEventPage({
       "id, organization_id, name, description, starts_at, arrival_starts_at, ends_at, location, capacity, event_type, modality, networking_enabled",
     )
     .eq("id", eventId)
+    .is("deleted_at", null)
     .single()
     .returns<EditableEvent>();
 

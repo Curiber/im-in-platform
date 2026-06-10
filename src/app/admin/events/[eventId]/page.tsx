@@ -14,6 +14,7 @@ import type { ReactNode } from "react";
 import {
   closeEvent,
   createAgendaItem,
+  deleteEvent,
   deleteAgendaItem,
   publishEvent,
 } from "@/app/admin/events/actions";
@@ -23,6 +24,7 @@ export const dynamic = "force-dynamic";
 
 type EventDetail = {
   id: string;
+  organization_id: string;
   name: string;
   slug: string;
   description: string | null;
@@ -67,9 +69,10 @@ export default async function AdminEventDetailPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, name, slug, description, starts_at, arrival_starts_at, ends_at, location, capacity, status, event_type, modality, networking_enabled, organizations(name)",
+      "id, organization_id, name, slug, description, starts_at, arrival_starts_at, ends_at, location, capacity, status, event_type, modality, networking_enabled, organizations(name)",
     )
     .eq("id", eventId)
+    .is("deleted_at", null)
     .single()
     .returns<EventDetail>();
 
@@ -83,8 +86,15 @@ export default async function AdminEventDetailPage({
     .eq("event_id", event.id)
     .order("starts_at", { ascending: true })
     .returns<AgendaItem[]>();
+  const { data: membership } = await supabase
+    .from("organization_users")
+    .select("role")
+    .eq("organization_id", event.organization_id)
+    .eq("user_id", user.id)
+    .single<{ role: "owner" | "admin" | "event_admin" }>();
 
   const publicPath = `/e/${event.slug}`;
+  const canDelete = membership?.role === "owner" || membership?.role === "admin";
 
   return (
     <main className="min-h-screen bg-[#f6f4ef] text-[#171717]">
@@ -342,6 +352,43 @@ export default async function AdminEventDetailPage({
                 value={event.networking_enabled ? "Activo" : "Inactivo"}
               />
             </dl>
+          </div>
+
+          <div className="rounded-lg border border-[#e0b4ad] bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-[#8a2f24]">
+              Zona de peligro
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-[#5f625d]">
+              Elimina este evento de la operacion normal. Los datos historicos
+              se conservan para auditoria.
+            </p>
+            {canDelete ? (
+              <form action={deleteEvent} className="mt-4 space-y-3">
+                <input name="eventId" type="hidden" value={event.id} />
+                <input name="slug" type="hidden" value={event.slug} />
+                <label className="block">
+                  <span className="text-sm font-medium text-[#1f2723]">
+                    Motivo
+                  </span>
+                  <textarea
+                    className="mt-2 min-h-24 w-full rounded-md border border-[#d9d5cb] bg-white px-3 py-3 text-sm outline-none focus:border-[#8a2f24]"
+                    name="reason"
+                    placeholder="Duplicado, cancelado, creado por error..."
+                    required
+                  />
+                </label>
+                <button
+                  className="inline-flex h-10 items-center rounded-md bg-[#8a2f24] px-4 text-sm font-semibold text-white hover:bg-[#72261d]"
+                  type="submit"
+                >
+                  Eliminar evento
+                </button>
+              </form>
+            ) : (
+              <p className="mt-4 rounded-md bg-[#fbfaf7] p-3 text-sm leading-6 text-[#5f625d]">
+                Solo owners y admins pueden eliminar eventos.
+              </p>
+            )}
           </div>
         </aside>
       </section>

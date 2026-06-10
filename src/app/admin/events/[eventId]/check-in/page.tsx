@@ -33,6 +33,7 @@ export default async function CheckInPage({
     .from("events")
     .select("id, name, starts_at, event_registrations(count)")
     .eq("id", eventId)
+    .is("deleted_at", null)
     .single()
     .returns<CheckInEvent>();
 

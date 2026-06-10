@@ -126,7 +126,8 @@ export async function updateEvent(formData: FormData) {
       networking_enabled: parsed.data.networkingEnabled,
     })
     .eq("id", eventId)
-    .eq("organization_id", parsed.data.organizationId);
+    .eq("organization_id", parsed.data.organizationId)
+    .is("deleted_at", null);
 
   if (error) {
     throw new Error("No se pudo actualizar el evento.");
@@ -143,6 +144,74 @@ export async function publishEvent(formData: FormData) {
 
 export async function closeEvent(formData: FormData) {
   await updateEventStatus(formData, "closed");
+}
+
+const deleteEventSchema = z.object({
+  eventId: z.string().uuid(),
+  reason: z.string().trim().min(5, "Ingresa un motivo de eliminacion."),
+  slug: z.string().min(1),
+});
+
+export async function deleteEvent(formData: FormData) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const parsed = deleteEventSchema.safeParse({
+    eventId: formData.get("eventId"),
+    reason: String(formData.get("reason") ?? ""),
+    slug: String(formData.get("slug") ?? ""),
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
+  }
+
+  const { data: event } = await supabase
+    .from("events")
+    .select("id, organization_id")
+    .eq("id", parsed.data.eventId)
+    .is("deleted_at", null)
+    .single<{ id: string; organization_id: string }>();
+
+  if (!event) {
+    throw new Error("Evento invalido.");
+  }
+
+  const { data: membership } = await supabase
+    .from("organization_users")
+    .select("role")
+    .eq("organization_id", event.organization_id)
+    .eq("user_id", user.id)
+    .single<{ role: "owner" | "admin" | "event_admin" }>();
+
+  if (!membership || !["owner", "admin"].includes(membership.role)) {
+    throw new Error("No tienes permisos para eliminar este evento.");
+  }
+
+  const { error } = await supabase
+    .from("events")
+    .update({
+      delete_reason: parsed.data.reason,
+      deleted_at: new Date().toISOString(),
+      deleted_by: user.id,
+    })
+    .eq("id", event.id)
+    .is("deleted_at", null);
+
+  if (error) {
+    throw new Error("No se pudo eliminar el evento.");
+  }
+
+  revalidatePath("/admin/events");
+  revalidatePath(`/admin/events/${event.id}`);
+  revalidatePath(`/e/${parsed.data.slug}`);
+  redirect("/admin/events");
 }
 
 async function updateEventStatus(
@@ -168,7 +237,8 @@ async function updateEventStatus(
   const { error } = await supabase
     .from("events")
     .update({ status })
-    .eq("id", eventId);
+    .eq("id", eventId)
+    .is("deleted_at", null);
 
   if (error) {
     throw new Error("No se pudo actualizar el evento.");
@@ -216,6 +286,17 @@ export async function createAgendaItem(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
   }
 
+  const { data: event } = await supabase
+    .from("events")
+    .select("id")
+    .eq("id", parsed.data.eventId)
+    .is("deleted_at", null)
+    .single<{ id: string }>();
+
+  if (!event) {
+    throw new Error("Evento invalido.");
+  }
+
   const { error } = await supabase.from("event_agenda_items").insert({
     event_id: parsed.data.eventId,
     title: parsed.data.title,
@@ -251,6 +332,17 @@ export async function deleteAgendaItem(formData: FormData) {
 
   if (!agendaItemId || !eventId) {
     throw new Error("Bloque de agenda invalido.");
+  }
+
+  const { data: event } = await supabase
+    .from("events")
+    .select("id")
+    .eq("id", eventId)
+    .is("deleted_at", null)
+    .single<{ id: string }>();
+
+  if (!event) {
+    throw new Error("Evento invalido.");
   }
 
   const { error } = await supabase

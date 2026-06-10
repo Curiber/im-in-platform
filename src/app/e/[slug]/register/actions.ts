@@ -68,6 +68,7 @@ export async function registerForEvent(
     .select("id, capacity, status, slug, name, starts_at")
     .eq("id", parsed.data.eventId)
     .eq("slug", parsed.data.slug)
+    .is("deleted_at", null)
     .single<{
       id: string;
       capacity: number;

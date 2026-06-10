@@ -36,6 +36,7 @@ export default async function RegisterPage({
     )
     .eq("slug", slug)
     .eq("status", "published")
+    .is("deleted_at", null)
     .single()
     .returns<RegistrationEvent>();
 
