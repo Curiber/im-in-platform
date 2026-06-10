@@ -174,7 +174,14 @@ export default async function RegisteredPage({
           </div>
 
           <Link
-            className="mt-6 inline-flex h-11 items-center justify-center rounded-md border border-[#d9d5cb] px-4 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+            className="mt-6 inline-flex h-11 items-center justify-center rounded-md bg-[#102923] px-4 text-sm font-semibold text-white hover:bg-[#183b33]"
+            href={`/e/${slug}/profile?registrationId=${registration.id}&token=${token}`}
+          >
+            Editar perfil
+          </Link>
+
+          <Link
+            className="ml-3 mt-6 inline-flex h-11 items-center justify-center rounded-md border border-[#d9d5cb] px-4 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
             href={`/e/${slug}/directory?registrationId=${registration.id}&token=${token}`}
           >
             Ver directorio del evento
