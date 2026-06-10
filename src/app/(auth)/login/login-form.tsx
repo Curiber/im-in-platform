@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowRight, Mail } from "lucide-react";
+import { ArrowRight, Linkedin, Mail } from "lucide-react";
 import { useActionState } from "react";
 
 import {
   type LoginActionState,
   sendMagicLink,
+  signInWithLinkedIn,
 } from "@/app/(auth)/login/actions";
 
 const initialState: LoginActionState = {
@@ -20,6 +21,7 @@ export function LoginForm() {
   );
 
   return (
+    <div className="space-y-5">
     <form action={formAction} className="space-y-5">
       <label className="block">
         <span className="text-sm font-medium text-[#1f2723]">Email</span>
@@ -57,5 +59,24 @@ export function LoginForm() {
         </p>
       ) : null}
     </form>
+
+    <div className="flex items-center gap-3">
+      <span className="h-px flex-1 bg-[#d9d5cb]" aria-hidden="true" />
+      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#888b85]">
+        o
+      </span>
+      <span className="h-px flex-1 bg-[#d9d5cb]" aria-hidden="true" />
+    </div>
+
+    <form action={signInWithLinkedIn}>
+      <button
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-md border border-[#d9d5cb] bg-white px-4 text-sm font-semibold text-[#1f2723] transition hover:bg-[#f6f4ef]"
+        type="submit"
+      >
+        <Linkedin className="size-4 text-[#0a66c2]" aria-hidden="true" />
+        Continuar con LinkedIn
+      </button>
+    </form>
+    </div>
   );
 }

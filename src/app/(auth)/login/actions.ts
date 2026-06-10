@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -52,4 +53,24 @@ export async function sendMagicLink(
     status: "success",
     message: "Te enviamos un link de acceso. Revisa tu correo.",
   };
+}
+
+export async function signInWithLinkedIn() {
+  const headerStore = await headers();
+  const origin =
+    headerStore.get("origin") ?? process.env.APP_URL ?? "http://localhost:3000";
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "linkedin_oidc",
+    options: {
+      redirectTo: `${origin}/auth/callback?next=/admin`,
+    },
+  });
+
+  if (error || !data.url) {
+    redirect("/login?error=linkedin");
+  }
+
+  redirect(data.url);
 }
