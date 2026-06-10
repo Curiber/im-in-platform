@@ -14,6 +14,10 @@ type DirectoryProfile = {
   company_snapshot: string | null;
   industry_snapshot: string | null;
   interests: string[];
+  attendee_profiles: {
+    headline: string | null;
+    avatar_url: string | null;
+  } | null;
 };
 
 export default async function EventDirectoryPage({
@@ -47,7 +51,7 @@ export default async function EventDirectoryPage({
       adminClient
         .from("event_registrations")
         .select(
-          "id, full_name_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests",
+          "id, full_name_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, attendee_profiles(headline, avatar_url)",
         )
         .eq("event_id", viewer.event_id)
         .eq("public_profile_enabled", true)
@@ -255,9 +259,18 @@ export default async function EventDirectoryPage({
               key={profile.id}
             >
               <div className="flex items-start gap-4">
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-md bg-[#e3f0d9] text-[#2f6f4e]">
-                  <UserRound className="size-6" aria-hidden="true" />
-                </span>
+                {profile.attendee_profiles?.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    alt={profile.full_name_snapshot}
+                    className="size-12 shrink-0 rounded-md object-cover"
+                    src={profile.attendee_profiles.avatar_url}
+                  />
+                ) : (
+                  <span className="flex size-12 shrink-0 items-center justify-center rounded-md bg-[#e3f0d9] text-[#2f6f4e]">
+                    <UserRound className="size-6" aria-hidden="true" />
+                  </span>
+                )}
                 <div>
                   <h3 className="text-lg font-semibold">
                     {profile.full_name_snapshot}
@@ -268,6 +281,11 @@ export default async function EventDirectoryPage({
                       ? ` en ${profile.company_snapshot}`
                       : ""}
                   </p>
+                  {profile.attendee_profiles?.headline ? (
+                    <p className="mt-1 text-sm italic leading-6 text-[#5f625d]">
+                      {profile.attendee_profiles.headline}
+                    </p>
+                  ) : null}
                 </div>
               </div>
 

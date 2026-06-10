@@ -21,6 +21,11 @@ type DirectoryProfileDetail = {
   company_snapshot: string | null;
   industry_snapshot: string | null;
   interests: string[];
+  attendee_profiles: {
+    headline: string | null;
+    description: string | null;
+    avatar_url: string | null;
+  } | null;
 };
 
 export default async function EventDirectoryProfilePage({
@@ -46,7 +51,7 @@ export default async function EventDirectoryProfilePage({
   const { data: profile } = await adminClient
     .from("event_registrations")
     .select(
-      "id, full_name_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests",
+      "id, full_name_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, attendee_profiles(headline, description, avatar_url)",
     )
     .eq("id", profileId)
     .eq("event_id", viewer.event_id)
@@ -109,9 +114,18 @@ export default async function EventDirectoryProfilePage({
       <section className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8">
         <article className="rounded-lg border border-[#d9d5cb] bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-            <span className="flex size-16 shrink-0 items-center justify-center rounded-md bg-[#e3f0d9] text-[#2f6f4e]">
-              <UserRound className="size-9" aria-hidden="true" />
-            </span>
+            {profile.attendee_profiles?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                alt={profile.full_name_snapshot}
+                className="size-16 shrink-0 rounded-md object-cover"
+                src={profile.attendee_profiles.avatar_url}
+              />
+            ) : (
+              <span className="flex size-16 shrink-0 items-center justify-center rounded-md bg-[#e3f0d9] text-[#2f6f4e]">
+                <UserRound className="size-9" aria-hidden="true" />
+              </span>
+            )}
             <div>
               <h2 className="text-3xl font-semibold">
                 {profile.full_name_snapshot}
@@ -119,8 +133,19 @@ export default async function EventDirectoryProfilePage({
               <p className="mt-2 text-lg leading-7 text-[#4a4d49]">
                 {profile.role_snapshot ?? "Rol por confirmar"}
               </p>
+              {profile.attendee_profiles?.headline ? (
+                <p className="mt-2 italic leading-7 text-[#5f625d]">
+                  {profile.attendee_profiles.headline}
+                </p>
+              ) : null}
             </div>
           </div>
+
+          {profile.attendee_profiles?.description ? (
+            <p className="mt-6 max-w-3xl leading-7 text-[#4a4d49]">
+              {profile.attendee_profiles.description}
+            </p>
+          ) : null}
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             <Info
