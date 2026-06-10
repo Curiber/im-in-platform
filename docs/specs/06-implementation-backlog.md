@@ -108,10 +108,10 @@
 
 ## Epic 13: Tarjeta virtual
 
-- [ ] Crear ruta publica `/p/[profileSlug]`.
-- [ ] Renderizar tarjeta vertical responsive.
-- [ ] Generar QR para conectar por I'M IN.
-- [ ] Agregar copiar link.
+- [x] Crear ruta publica `/p/[profileSlug]`.
+- [x] Renderizar tarjeta vertical responsive.
+- [x] Generar QR para conectar por I'M IN.
+- [x] Agregar copiar link.
 - [ ] Evaluar descarga PNG como V1.1.
 
 ## Epic 14: Brand foundation

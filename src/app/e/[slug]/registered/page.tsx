@@ -27,6 +27,7 @@ type Registration = {
   qr_token_hash: string;
   attendee_profiles: {
     avatar_url: string | null;
+    profile_slug: string | null;
   } | null;
   events: RegisteredEvent | null;
 };
@@ -53,7 +54,7 @@ export default async function RegisteredPage({
   const { data: registration } = await adminClient
     .from("event_registrations")
     .select(
-      "id, email, full_name_snapshot, profile_id, qr_token_hash, attendee_profiles(avatar_url), events(name, starts_at, location)",
+      "id, email, full_name_snapshot, profile_id, qr_token_hash, attendee_profiles(avatar_url, profile_slug), events(name, starts_at, location)",
     )
     .eq("id", registrationId)
     .single()
@@ -186,6 +187,16 @@ export default async function RegisteredPage({
           >
             Ver directorio del evento
           </Link>
+
+          {registration.attendee_profiles?.profile_slug ? (
+            <Link
+              className="ml-3 mt-6 inline-flex h-11 items-center justify-center rounded-md border border-[#d9d5cb] px-4 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+              href={`/p/${registration.attendee_profiles.profile_slug}`}
+              target="_blank"
+            >
+              Ver tarjeta virtual
+            </Link>
+          ) : null}
 
           <Link
             className="ml-3 mt-6 inline-flex h-11 items-center justify-center rounded-md border border-[#d9d5cb] px-4 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
