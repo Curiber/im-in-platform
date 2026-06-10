@@ -81,9 +81,8 @@ export default async function PublicEventPage({
           <div className="rounded-lg border border-[#d9d5cb] bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-semibold">Inscripcion</h2>
             <p className="mt-3 leading-7 text-[#4a4d49]">
-              El formulario publico de inscripcion sera la siguiente tarea del
-              MVP. Este link ya queda generado desde el panel organizador y
-              preparado para recibir asistentes.
+              Completa tu inscripcion para recibir tu credencial QR de acceso
+              y activar el networking del evento.
             </p>
             {event.status === "published" ? (
               <Link
