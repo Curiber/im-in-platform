@@ -182,6 +182,94 @@ async function updateEventStatus(
   }
 }
 
+const agendaItemSchema = z.object({
+  eventId: z.string().uuid(),
+  slug: z.string().min(1),
+  title: z.string().trim().min(3, "Ingresa el titulo del bloque."),
+  description: z.string().trim().optional(),
+  location: z.string().trim().optional(),
+  startsAt: z.coerce.date(),
+  endsAt: z.coerce.date().optional().nullable(),
+});
+
+export async function createAgendaItem(formData: FormData) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const parsed = agendaItemSchema.safeParse({
+    eventId: formData.get("eventId"),
+    slug: String(formData.get("slug") ?? ""),
+    title: String(formData.get("title") ?? ""),
+    description: String(formData.get("description") ?? ""),
+    location: String(formData.get("location") ?? ""),
+    startsAt: formData.get("startsAt"),
+    endsAt: emptyToNull(formData.get("endsAt")),
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
+  }
+
+  const { error } = await supabase.from("event_agenda_items").insert({
+    event_id: parsed.data.eventId,
+    title: parsed.data.title,
+    description: parsed.data.description || null,
+    location: parsed.data.location || null,
+    starts_at: parsed.data.startsAt.toISOString(),
+    ends_at: parsed.data.endsAt?.toISOString() ?? null,
+    created_by: user.id,
+  });
+
+  if (error) {
+    throw new Error("No se pudo agregar el bloque de agenda.");
+  }
+
+  revalidatePath(`/admin/events/${parsed.data.eventId}`);
+  revalidatePath(`/e/${parsed.data.slug}`);
+  redirect(`/admin/events/${parsed.data.eventId}`);
+}
+
+export async function deleteAgendaItem(formData: FormData) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const agendaItemId = String(formData.get("agendaItemId") ?? "");
+  const eventId = String(formData.get("eventId") ?? "");
+  const slug = String(formData.get("slug") ?? "");
+
+  if (!agendaItemId || !eventId) {
+    throw new Error("Bloque de agenda invalido.");
+  }
+
+  const { error } = await supabase
+    .from("event_agenda_items")
+    .delete()
+    .eq("id", agendaItemId)
+    .eq("event_id", eventId);
+
+  if (error) {
+    throw new Error("No se pudo eliminar el bloque de agenda.");
+  }
+
+  revalidatePath(`/admin/events/${eventId}`);
+
+  if (slug) {
+    revalidatePath(`/e/${slug}`);
+  }
+}
+
 function emptyToNull(value: FormDataEntryValue | null) {
   if (!value || String(value).trim() === "") {
     return null;

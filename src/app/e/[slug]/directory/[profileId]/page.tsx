@@ -59,6 +59,14 @@ export default async function EventDirectoryProfilePage({
     notFound();
   }
 
+  if (profile.id !== viewer.id) {
+    await adminClient.from("profile_views").insert({
+      event_id: viewer.event_id,
+      viewer_registration_id: viewer.id,
+      viewed_registration_id: profile.id,
+    });
+  }
+
   const { data: existingConnection } = await adminClient
     .from("connection_requests")
     .select("status, requester_registration_id, receiver_registration_id")

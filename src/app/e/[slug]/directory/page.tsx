@@ -1,4 +1,4 @@
-import { Bell, Search, UserRound, Users } from "lucide-react";
+import { Bell, Search, Sparkles, UserRound, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -92,6 +92,22 @@ export default async function EventDirectoryPage({
     (profiles ?? []).flatMap((profile) => profile.interests),
   );
   const accessQuery = `registrationId=${viewer.id}&token=${token}`;
+  const viewerInterests = new Set(viewer.interests);
+  const suggestedMatches = (profiles ?? [])
+    .filter((profile) => profile.id !== viewer.id)
+    .map((profile) => ({
+      profile,
+      sharedInterests: profile.interests.filter((item) =>
+        viewerInterests.has(item),
+      ),
+    }))
+    .filter((match) => match.sharedInterests.length > 0)
+    .sort(
+      (a, b) =>
+        b.sharedInterests.length - a.sharedInterests.length ||
+        a.profile.full_name_snapshot.localeCompare(b.profile.full_name_snapshot),
+    )
+    .slice(0, 3);
 
   return (
     <main className="min-h-screen bg-[#f6f4ef] text-[#171717]">
@@ -139,6 +155,53 @@ export default async function EventDirectoryPage({
             </p>
           </div>
         </div>
+
+        {suggestedMatches.length ? (
+          <div className="mb-6 rounded-lg border border-[#d9d5cb] bg-white p-5 shadow-sm">
+            <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-[#2f6f4e]">
+              <Sparkles className="size-4" aria-hidden="true" />
+              Matches sugeridos
+            </p>
+            <p className="mt-1 text-sm leading-6 text-[#5f625d]">
+              Personas con intereses en comun contigo.
+            </p>
+            <div className="mt-4 grid gap-4 md:grid-cols-3">
+              {suggestedMatches.map(({ profile, sharedInterests }) => (
+                <Link
+                  className="rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4 hover:bg-[#f4f1e9]"
+                  href={`/e/${slug}/directory/${profile.id}?${accessQuery}`}
+                  key={profile.id}
+                >
+                  <h3 className="font-semibold">
+                    {profile.full_name_snapshot}
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-[#5f625d]">
+                    {profile.role_snapshot ?? "Rol por confirmar"}
+                    {profile.company_snapshot
+                      ? ` en ${profile.company_snapshot}`
+                      : ""}
+                  </p>
+                  <p className="mt-3 text-xs font-semibold text-[#2f6f4e]">
+                    {sharedInterests.length}{" "}
+                    {sharedInterests.length === 1
+                      ? "interes en comun"
+                      : "intereses en comun"}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {sharedInterests.map((item) => (
+                      <span
+                        className="rounded-md bg-[#2f6f4e] px-2 py-1 text-xs font-semibold text-white"
+                        key={item}
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         <form className="mb-5 grid gap-3 rounded-lg border border-[#d9d5cb] bg-white p-4 shadow-sm md:grid-cols-[1fr_220px_220px_auto]">
           <input name="registrationId" type="hidden" value={viewer.id} />
@@ -215,7 +278,11 @@ export default async function EventDirectoryPage({
               <div className="mt-3 flex flex-wrap gap-2">
                 {profile.interests.map((item) => (
                   <span
-                    className="rounded-md bg-[#eef6e9] px-2 py-1 text-xs font-semibold text-[#2f6f4e]"
+                    className={
+                      profile.id !== viewer.id && viewerInterests.has(item)
+                        ? "rounded-md bg-[#2f6f4e] px-2 py-1 text-xs font-semibold text-white"
+                        : "rounded-md bg-[#eef6e9] px-2 py-1 text-xs font-semibold text-[#2f6f4e]"
+                    }
                     key={item}
                   >
                     {item}
