@@ -101,10 +101,10 @@
 
 ## Epic 12: Edicion de perfil
 
-- [ ] Crear ruta de perfil del asistente.
-- [ ] Editar descripcion, cargo, empresa, telefono, LinkedIn e intereses.
-- [ ] Configurar visibilidad de datos.
-- [ ] Sincronizar snapshots del registro actual cuando corresponda.
+- [x] Crear ruta de perfil del asistente.
+- [x] Editar descripcion, cargo, empresa, telefono, LinkedIn e intereses.
+- [x] Configurar visibilidad de datos.
+- [x] Sincronizar snapshots del registro actual cuando corresponda.
 
 ## Epic 13: Tarjeta virtual
 
