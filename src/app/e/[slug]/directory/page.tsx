@@ -123,18 +123,26 @@ export default async function EventDirectoryPage({
             </p>
             <h1 className="text-xl font-semibold">{viewer.events.name}</h1>
           </div>
-          <Link
-            className="inline-flex items-center gap-2 rounded-md border border-[#d9d5cb] px-3 py-2 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
-            href={`/e/${slug}/connections?${accessQuery}`}
-          >
-            {pendingReceivedCount ? (
-              <span className="inline-flex items-center gap-1 rounded-md bg-[#2f6f4e] px-2 py-0.5 text-xs font-semibold text-white">
-                <Bell className="size-3" aria-hidden="true" />
-                {pendingReceivedCount}
-              </span>
-            ) : null}
-            Conexiones
-          </Link>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Link
+              className="inline-flex items-center gap-2 rounded-md border border-[#d9d5cb] px-3 py-2 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+              href={`/e/${slug}/connections?${accessQuery}`}
+            >
+              {pendingReceivedCount ? (
+                <span className="inline-flex items-center gap-1 rounded-md bg-[#2f6f4e] px-2 py-0.5 text-xs font-semibold text-white">
+                  <Bell className="size-3" aria-hidden="true" />
+                  {pendingReceivedCount}
+                </span>
+              ) : null}
+              Conexiones
+            </Link>
+            <Link
+              className="inline-flex rounded-md border border-[#d9d5cb] px-3 py-2 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+              href={`/e/${slug}/profile?${accessQuery}`}
+            >
+              Mi perfil
+            </Link>
+          </div>
         </div>
       </header>
 

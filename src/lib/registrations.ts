@@ -4,9 +4,11 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 export type VerifiedRegistration = {
   id: string;
   event_id: string;
+  profile_id: string | null;
   email: string;
   full_name_snapshot: string;
   interests: string[];
+  public_profile_enabled: boolean;
   status: "registered" | "checked_in" | "cancelled" | "no_show";
   qr_token_hash: string;
   events: {
@@ -35,7 +37,7 @@ export async function verifyRegistrationAccess({
   const { data: registration } = await adminClient
     .from("event_registrations")
     .select(
-      "id, event_id, email, full_name_snapshot, interests, status, qr_token_hash, events(id, slug, name, networking_enabled, deleted_at)",
+      "id, event_id, profile_id, email, full_name_snapshot, interests, public_profile_enabled, status, qr_token_hash, events(id, slug, name, networking_enabled, deleted_at)",
     )
     .eq("id", registrationId)
     .single()

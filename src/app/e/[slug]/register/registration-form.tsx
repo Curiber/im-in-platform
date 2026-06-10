@@ -8,37 +8,12 @@ import {
   type RegistrationActionState,
   registerForEvent,
 } from "@/app/e/[slug]/register/actions";
+import { industries, interests } from "@/lib/profile-options";
 
 const initialState: RegistrationActionState = {
   status: "idle",
   message: "",
 };
-
-const industries = [
-  "Educacion",
-  "Tecnologia",
-  "Innovacion",
-  "Finanzas",
-  "Marketing",
-  "Operaciones",
-  "Sostenibilidad",
-  "Emprendimiento",
-  "Consultoria",
-  "Otro",
-];
-
-const interests = [
-  "Liderazgo",
-  "Innovacion",
-  "Datos",
-  "Emprendimiento",
-  "Impacto social",
-  "Finanzas",
-  "Marketing",
-  "Tecnologia",
-  "Talento",
-  "Internacional",
-];
 
 export function RegistrationForm({
   eventId,
