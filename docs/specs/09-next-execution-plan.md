@@ -19,14 +19,26 @@ Brechas principales:
 2. Foto: no hay upload ni render de avatar real.
 3. Tarjeta virtual: no existe perfil compartible ni QR de conexion publico.
 4. Diseno: hay base funcional, pero falta identidad visual propia.
-5. Login de asistentes: aun no esta definido como requisito inmediato.
+5. Administracion de organizacion: falta editar nombre de empresa.
+6. Eliminacion de eventos: falta soft delete con auditoria.
+7. Login de asistentes: aun no esta definido como requisito inmediato.
 
 ## Recomendacion de prioridad
 
-### Paso 1: Perfil persistente
+### Paso 1: Organization settings y event deletion
 
-Debe ir primero porque foto, tarjeta, directorio mejorado, LinkedIn y match
-dependen de una entidad estable de persona.
+Debe ir primero porque son controles operativos basicos para clientes reales.
+
+Resultado esperado:
+
+- Owner/admin puede editar nombre de empresa.
+- Owner/admin puede eliminar eventos con motivo.
+- Los eventos eliminados se ocultan sin perder historico.
+
+### Paso 2: Perfil persistente
+
+Debe ir antes de foto, tarjeta, directorio mejorado, LinkedIn y match porque
+todos dependen de una entidad estable de persona.
 
 Resultado esperado:
 
@@ -34,7 +46,7 @@ Resultado esperado:
 - Cada `event_registration` tiene `profile_id`.
 - El mismo email reutiliza perfil entre eventos.
 
-### Paso 2: Foto de perfil
+### Paso 3: Foto de perfil
 
 Debe ir segundo porque mejora reconocimiento real en eventos y alimenta la
 tarjeta.
@@ -44,7 +56,7 @@ Resultado esperado:
 - Upload a Supabase Storage.
 - Foto visible en directorio, detalle y tarjeta.
 
-### Paso 3: Edicion de perfil
+### Paso 4: Edicion de perfil
 
 Permite que el asistente complete datos despues del registro.
 
@@ -53,7 +65,7 @@ Resultado esperado:
 - Ruta privada con token de registro.
 - Campos: descripcion, cargo, empresa, telefono, LinkedIn, intereses y foto.
 
-### Paso 4: Tarjeta virtual
+### Paso 5: Tarjeta virtual
 
 Debe apoyarse en perfil persistente y foto.
 
@@ -64,7 +76,7 @@ Resultado esperado:
 - Datos visibles segun privacidad.
 - Copiar link.
 
-### Paso 5: Rediseno visual
+### Paso 6: Rediseno visual
 
 Debe hacerse cuando las piezas reales existan, para que el rediseno no sea solo
 cosmetico.
@@ -85,6 +97,9 @@ Resultado esperado:
 - `epic/15-public-redesign`
 - `epic/16-networking-redesign`
 - `epic/17-admin-polish`
+- `epic/18-organization-settings`
+- `epic/19-event-deletion`
+- `epic/20-deleted-event-recovery`
 
 ## Commit strategy
 
@@ -97,6 +112,8 @@ Un commit por tarea verificable:
 - `feat: add virtual business card page`
 - `style: add im in brand tokens`
 - `style: redesign public event page`
+- `feat: add organization settings`
+- `feat: add soft delete for events`
 
 ## Definition of done por epica
 
@@ -136,9 +153,24 @@ Un commit por tarea verificable:
 - Se usara marca I'M IN sola o co-branding con organizadores?
 - La home sera orientada a asistentes, organizadores o ambos?
 
+### Administracion
+
+- Event admin debe poder eliminar eventos o solo owner/admin?
+- Queremos recuperar eventos eliminados en V1.1?
+- El motivo de eliminacion debe ser visible en reportes internos?
+
 ## Plan de implementacion inmediato
 
-### Sprint A: Perfil persistente
+### Sprint A: Administracion base
+
+1. Crear `/admin/settings`.
+2. Crear action para editar nombre de organizacion.
+3. Agregar soft delete a eventos.
+4. Crear action para eliminar evento con motivo.
+5. Filtrar eventos eliminados en rutas operativas.
+6. Verificar que datos historicos siguen en DB.
+
+### Sprint B: Perfil persistente
 
 1. Crear migracion `attendee_profiles`.
 2. Agregar `profile_id` a `event_registrations`.
@@ -147,7 +179,7 @@ Un commit por tarea verificable:
 5. Actualizar directorio y detalle.
 6. Verificar dos eventos con mismo email.
 
-### Sprint B: Foto + edicion
+### Sprint C: Foto + edicion
 
 1. Crear bucket `profile-photos`.
 2. Crear formulario de edicion.
@@ -155,7 +187,7 @@ Un commit por tarea verificable:
 4. Mostrar foto en directorio.
 5. Agregar fallback con iniciales.
 
-### Sprint C: Tarjeta virtual
+### Sprint D: Tarjeta virtual
 
 1. Crear slug publico de perfil.
 2. Crear `/p/[profileSlug]`.
@@ -163,7 +195,7 @@ Un commit por tarea verificable:
 4. Generar QR.
 5. Agregar copiar link.
 
-### Sprint D: Rediseno
+### Sprint E: Rediseno
 
 1. Integrar logo final.
 2. Crear tokens visuales.
@@ -174,7 +206,8 @@ Un commit por tarea verificable:
 
 ## Decision recomendada
 
-Implementar primero `epic/10-persistent-attendee-profiles`.
+Implementar primero `epic/18-organization-settings` y
+`epic/19-event-deletion`.
 
-Sin perfil persistente, cualquier trabajo de foto, tarjeta, match o LinkedIn va
-a quedar pegado a inscripciones individuales y despues sera mas caro migrarlo.
+Son cambios pequenos, de alto valor operativo y despejan administracion basica
+antes de entrar a perfil/foto/tarjeta.

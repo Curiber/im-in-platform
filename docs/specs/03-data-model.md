@@ -12,6 +12,7 @@ Modelo conceptual inicial para Supabase/Postgres.
 - `logo_url`
 - `website_url`
 - `created_at`
+- `updated_at`
 
 ### organization_users
 
@@ -38,6 +39,9 @@ Modelo conceptual inicial para Supabase/Postgres.
 - `event_type`: `open`, `closed`
 - `networking_enabled`
 - `created_by`
+- `deleted_at`
+- `deleted_by`
+- `delete_reason`
 - `created_at`
 - `updated_at`
 
@@ -141,6 +145,9 @@ esta tabla para tener perfiles persistentes.
 ## RLS esperada
 
 - Admin de organizacion puede leer y gestionar eventos de su organizacion.
+- Owner/admin puede editar datos de organizacion.
+- Owner/admin puede soft-delete eventos de su organizacion.
+- Event admin no puede eliminar eventos salvo decision posterior de producto.
 - Asistente puede leer sus propias inscripciones.
 - Asistente inscrito puede leer perfiles publicos del mismo evento.
 - Asistente puede crear solicitudes donde es requester.

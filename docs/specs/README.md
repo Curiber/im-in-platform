@@ -14,6 +14,7 @@ Este directorio contiene la base de spec-driven development para el MVP.
 8. [07-persistent-attendee-profiles-and-virtual-cards.md](07-persistent-attendee-profiles-and-virtual-cards.md)
 9. [08-visual-redesign-and-brand-system.md](08-visual-redesign-and-brand-system.md)
 10. [09-next-execution-plan.md](09-next-execution-plan.md)
+11. [10-admin-organization-and-event-management.md](10-admin-organization-and-event-management.md)
 
 ## Criterio de spec-driven development
 

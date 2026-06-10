@@ -140,6 +140,30 @@
 - [ ] Redisenar dashboard.
 - [ ] Redisenar check-in para uso en puerta.
 
+## Epic 18: Organization settings
+
+- [ ] Crear ruta `/admin/settings`.
+- [ ] Crear formulario para editar nombre de empresa.
+- [ ] Crear server action `updateOrganizationSettings`.
+- [ ] Validar permisos `owner/admin`.
+- [ ] Bloquear edicion para `event_admin`.
+
+## Epic 19: Event deletion
+
+- [ ] Agregar soft delete a `events`.
+- [ ] Guardar `deleted_at`, `deleted_by` y `delete_reason`.
+- [ ] Crear server action `deleteEvent`.
+- [ ] Validar permisos `owner/admin`.
+- [ ] Requerir motivo de eliminacion.
+- [ ] Ocultar eventos eliminados de listados activos.
+- [ ] Bloquear pagina publica, registro, check-in, dashboard y export.
+
+## Epic 20: Deleted event recovery, V1.1
+
+- [ ] Agregar filtro de eventos eliminados.
+- [ ] Agregar vista read-only de evento eliminado.
+- [ ] Permitir restaurar solo a owner.
+
 ## Primera vertical recomendada
 
 Construir primero:
