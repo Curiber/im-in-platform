@@ -1,4 +1,4 @@
-import { ArrowLeft, Save, UserRound } from "lucide-react";
+import { ArrowLeft, ExternalLink, Save, UserRound } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
@@ -20,6 +20,7 @@ type AttendeeProfile = {
   interests: string[];
   linkedin_url: string | null;
   phone: string | null;
+  profile_slug: string | null;
   role: string | null;
 };
 
@@ -50,7 +51,7 @@ export default async function EventProfilePage({
   const { data: profile } = await adminClient
     .from("attendee_profiles")
     .select(
-      "avatar_url, company, description, full_name, headline, industry, interests, linkedin_url, phone, role",
+      "avatar_url, company, description, full_name, headline, industry, interests, linkedin_url, phone, profile_slug, role",
     )
     .eq("id", registration.profile_id)
     .single<AttendeeProfile>();
@@ -279,6 +280,16 @@ export default async function EventProfilePage({
             >
               Cambiar foto
             </Link>
+            {profile.profile_slug ? (
+              <Link
+                className="mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#102923] px-4 text-sm font-semibold text-white hover:bg-[#183b33]"
+                href={`/p/${profile.profile_slug}`}
+                target="_blank"
+              >
+                Ver tarjeta
+                <ExternalLink className="size-4" aria-hidden="true" />
+              </Link>
+            ) : null}
           </div>
         </aside>
       </section>
