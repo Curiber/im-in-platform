@@ -78,3 +78,63 @@ export async function createOrganization(formData: FormData) {
   revalidatePath("/admin");
   redirect("/admin");
 }
+
+const organizationSettingsSchema = z.object({
+  organizationId: z.string().uuid(),
+  name: z.string().trim().min(2, "Ingresa el nombre de la organizacion."),
+  websiteUrl: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => (value ? value : null))
+    .pipe(z.string().url().nullable()),
+});
+
+export async function updateOrganizationSettings(formData: FormData) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const parsed = organizationSettingsSchema.safeParse({
+    organizationId: formData.get("organizationId"),
+    name: String(formData.get("name") ?? ""),
+    websiteUrl: String(formData.get("websiteUrl") ?? ""),
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
+  }
+
+  const { data: membership } = await supabase
+    .from("organization_users")
+    .select("role")
+    .eq("organization_id", parsed.data.organizationId)
+    .eq("user_id", user.id)
+    .single<{ role: "owner" | "admin" | "event_admin" }>();
+
+  if (!membership || !["owner", "admin"].includes(membership.role)) {
+    throw new Error("No tienes permisos para editar esta organizacion.");
+  }
+
+  const { error } = await supabase
+    .from("organizations")
+    .update({
+      name: parsed.data.name,
+      website_url: parsed.data.websiteUrl,
+    })
+    .eq("id", parsed.data.organizationId);
+
+  if (error) {
+    throw new Error("No se pudo actualizar la organizacion.");
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/events");
+  revalidatePath("/admin/settings");
+  redirect("/admin/settings");
+}

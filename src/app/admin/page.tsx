@@ -83,10 +83,10 @@ export default async function AdminHomePage() {
               title="Eventos"
             />
             <ActionCard
-              description="Gestionar owners, admins y event admins."
-              href="/admin"
+              description="Editar datos basicos de la organizacion."
+              href="/admin/settings"
               icon={<Users className="size-5" aria-hidden="true" />}
-              title="Roles"
+              title="Configuracion"
             />
           </div>
         </div>
