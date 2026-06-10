@@ -1,26 +1,56 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7fafc;
+  --foreground: #101828;
+  --brand-navy-950: #071b33;
+  --brand-navy-900: #0b2a4a;
+  --brand-blue-700: #1267b3;
+  --brand-cyan-500: #19a7ce;
+  --brand-aqua-400: #36d1c4;
+  --brand-mint-300: #8be6d1;
+  --brand-slate-900: #101828;
+  --brand-slate-600: #475467;
+  --brand-slate-100: #f2f4f7;
+  --brand-surface: #ffffff;
+  --brand-surface-soft: #f7fafc;
+  --brand-border: #b9ddd8;
+  --brand-gradient-primary: linear-gradient(
+    135deg,
+    #071b33 0%,
+    #1267b3 48%,
+    #36d1c4 100%
+  );
+  --brand-gradient-soft: linear-gradient(135deg, #eaf7ff 0%, #e8fff9 100%);
+  --brand-gradient-accent: linear-gradient(135deg, #19a7ce 0%, #8be6d1 100%);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-brand-navy-950: var(--brand-navy-950);
+  --color-brand-navy-900: var(--brand-navy-900);
+  --color-brand-blue-700: var(--brand-blue-700);
+  --color-brand-cyan-500: var(--brand-cyan-500);
+  --color-brand-aqua-400: var(--brand-aqua-400);
+  --color-brand-mint-300: var(--brand-mint-300);
+  --color-brand-slate-900: var(--brand-slate-900);
+  --color-brand-slate-600: var(--brand-slate-600);
+  --color-brand-slate-100: var(--brand-slate-100);
+  --color-brand-surface: var(--brand-surface);
+  --color-brand-surface-soft: var(--brand-surface-soft);
+  --color-brand-border: var(--brand-border);
   --font-sans: Arial, Helvetica, ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Courier New", ui-monospace, monospace;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+::selection {
+  background: var(--brand-mint-300);
+  color: var(--brand-navy-950);
 }

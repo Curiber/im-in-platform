@@ -8,6 +8,7 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
+import Image from "next/image";
 
 const mvpModules = [
   {
@@ -57,14 +58,24 @@ const nextModules = [
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[#f6f4ef] text-[#171717]">
-      <section className="border-b border-[#d9d5cb] bg-[#102923] text-white">
+    <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
+      <section className="border-b border-white/15 bg-[image:var(--brand-gradient-primary)] text-white">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-5 py-10 sm:px-8 lg:flex-row lg:items-end lg:justify-between lg:py-14">
           <div className="max-w-3xl">
+            <div className="mb-6 inline-flex rounded-md bg-white p-2 shadow-sm">
+              <Image
+                alt="I'M IN"
+                className="h-auto w-48 sm:w-56"
+                height={60}
+                priority
+                src="/brand/im-in-logo.png"
+                width={240}
+              />
+            </div>
             <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-[#9bd8b5]">
               Spec-driven MVP
             </p>
-            <h1 className="text-4xl font-semibold sm:text-5xl">I&apos;m IN</h1>
+            <h1 className="sr-only">I&apos;M IN</h1>
             <p className="mt-4 max-w-2xl text-lg leading-8 text-[#d9efe2]">
               Inscripcion, acreditacion y networking inteligente en una sola
               experiencia web para eventos.

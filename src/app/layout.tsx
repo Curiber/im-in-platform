@@ -2,9 +2,45 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "I'm IN",
+  metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
+  title: {
+    default: "I'M IN",
+    template: "%s | I'M IN",
+  },
   description:
     "Plataforma de inscripcion, acreditacion y networking para eventos.",
+  icons: {
+    icon: [
+      {
+        rel: "icon",
+        type: "image/png",
+        sizes: "512x512",
+        url: "/brand/im-in-mark.png",
+      },
+    ],
+    apple: [
+      {
+        type: "image/png",
+        sizes: "512x512",
+        url: "/brand/im-in-mark.png",
+      },
+    ],
+  },
+  openGraph: {
+    description:
+      "Plataforma de inscripcion, acreditacion y networking para eventos.",
+    images: [
+      {
+        alt: "I'M IN",
+        height: 300,
+        url: "/brand/im-in-logo.png",
+        width: 1200,
+      },
+    ],
+    siteName: "I'M IN",
+    title: "I'M IN",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

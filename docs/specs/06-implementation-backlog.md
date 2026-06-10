@@ -116,10 +116,10 @@
 
 ## Epic 14: Brand foundation
 
-- [ ] Elegir logo final.
-- [ ] Agregar assets de marca.
-- [ ] Crear tokens CSS azul/navy/celeste/turquesa/verde agua.
-- [ ] Actualizar favicon.
+- [x] Elegir logo final.
+- [x] Agregar assets de marca.
+- [x] Crear tokens CSS azul/navy/celeste/turquesa/verde agua.
+- [x] Actualizar favicon.
 
 ## Epic 15: Rediseno publico
 

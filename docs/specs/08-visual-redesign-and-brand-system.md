@@ -188,12 +188,12 @@ inspiracion y adaptar la marca I'M IN.
 
 ### Epic 14: Brand foundation
 
-- [ ] Elegir logo final y exportar assets web.
-- [ ] Agregar `public/brand/im-in-logo.svg`.
-- [ ] Agregar `public/brand/im-in-mark.svg`.
-- [ ] Definir tokens CSS en `globals.css`.
-- [ ] Crear utilidades de gradiente y superficies.
-- [ ] Actualizar favicon.
+- [x] Elegir logo final y exportar assets web.
+- [x] Usar `public/brand/im-in-logo.png`.
+- [x] Usar `public/brand/im-in-mark.png`.
+- [x] Definir tokens CSS en `globals.css`.
+- [x] Crear utilidades de gradiente y superficies.
+- [x] Actualizar favicon.
 
 ### Epic 15: Marketing/home redesign
 
