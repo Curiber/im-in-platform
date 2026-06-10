@@ -93,11 +93,11 @@
 
 ## Epic 11: Foto de perfil
 
-- [ ] Crear bucket Supabase Storage `profile-photos`.
-- [ ] Crear upload server-side con validacion de token.
-- [ ] Validar tipo y peso de imagen.
-- [ ] Guardar `avatar_url`.
-- [ ] Mostrar foto en directorio, detalle y confirmacion.
+- [x] Crear bucket Supabase Storage `profile-photos`.
+- [x] Crear upload server-side con validacion de token.
+- [x] Validar tipo y peso de imagen.
+- [x] Guardar `avatar_url`.
+- [x] Mostrar foto en directorio, detalle y confirmacion.
 
 ## Epic 12: Edicion de perfil
 
