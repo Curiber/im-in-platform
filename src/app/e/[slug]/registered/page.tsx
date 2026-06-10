@@ -1,9 +1,10 @@
-import { CheckCircle2, Mail, QrCode } from "lucide-react";
+import { Camera, CheckCircle2, Mail, QrCode, UserRound } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 
+import { uploadProfilePhoto } from "@/app/e/[slug]/registered/actions";
 import {
   createCheckInPayload,
   hashRegistrationToken,
@@ -22,7 +23,11 @@ type Registration = {
   id: string;
   email: string;
   full_name_snapshot: string;
+  profile_id: string | null;
   qr_token_hash: string;
+  attendee_profiles: {
+    avatar_url: string | null;
+  } | null;
   events: RegisteredEvent | null;
 };
 
@@ -31,10 +36,14 @@ export default async function RegisteredPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ registrationId?: string; token?: string }>;
+  searchParams: Promise<{
+    photoStatus?: "error" | "invalid" | "missing" | "uploaded";
+    registrationId?: string;
+    token?: string;
+  }>;
 }) {
   const { slug } = await params;
-  const { registrationId, token } = await searchParams;
+  const { photoStatus, registrationId, token } = await searchParams;
 
   if (!registrationId || !token) {
     notFound();
@@ -43,7 +52,9 @@ export default async function RegisteredPage({
   const adminClient = createSupabaseAdminClient();
   const { data: registration } = await adminClient
     .from("event_registrations")
-    .select("id, email, full_name_snapshot, qr_token_hash, events(name, starts_at, location)")
+    .select(
+      "id, email, full_name_snapshot, profile_id, qr_token_hash, attendee_profiles(avatar_url), events(name, starts_at, location)",
+    )
     .eq("id", registrationId)
     .single()
     .returns<Registration>();
@@ -100,6 +111,67 @@ export default async function RegisteredPage({
             Si el proveedor de email esta configurado, tambien recibiras esta
             confirmacion en tu correo.
           </p>
+
+          <div className="mt-6 rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              {registration.attendee_profiles?.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  alt={registration.full_name_snapshot}
+                  className="size-16 rounded-md object-cover"
+                  src={registration.attendee_profiles.avatar_url}
+                />
+              ) : (
+                <span className="flex size-16 shrink-0 items-center justify-center rounded-md bg-[#e3f0d9] text-[#2f6f4e]">
+                  <UserRound className="size-8" aria-hidden="true" />
+                </span>
+              )}
+              <div>
+                <p className="flex items-center gap-2 text-sm font-semibold text-[#1f2723]">
+                  <Camera className="size-4 text-[#2f6f4e]" aria-hidden="true" />
+                  Foto de perfil
+                </p>
+                <p className="mt-1 text-sm leading-6 text-[#5f625d]">
+                  Sube una foto reconocible para que otros asistentes puedan
+                  ubicarte durante el evento.
+                </p>
+              </div>
+            </div>
+
+            <form
+              action={uploadProfilePhoto}
+              className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center"
+            >
+              <input name="slug" type="hidden" value={slug} />
+              <input name="registrationId" type="hidden" value={registration.id} />
+              <input name="token" type="hidden" value={token} />
+              <input
+                accept="image/jpeg,image/png,image/webp"
+                className="block w-full text-sm text-[#4a4d49] file:mr-3 file:h-10 file:rounded-md file:border-0 file:bg-white file:px-4 file:text-sm file:font-semibold file:text-[#1f2723]"
+                name="photo"
+                required
+                type="file"
+              />
+              <button
+                className="h-10 rounded-md bg-[#102923] px-4 text-sm font-semibold text-white hover:bg-[#183b33]"
+                type="submit"
+              >
+                Subir foto
+              </button>
+            </form>
+
+            {photoStatus ? (
+              <p
+                className={
+                  photoStatus === "uploaded"
+                    ? "mt-3 text-sm font-semibold text-[#2f6f4e]"
+                    : "mt-3 text-sm font-semibold text-[#8a2f24]"
+                }
+              >
+                {formatPhotoStatus(photoStatus)}
+              </p>
+            ) : null}
+          </div>
 
           <Link
             className="mt-6 inline-flex h-11 items-center justify-center rounded-md border border-[#d9d5cb] px-4 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
@@ -158,4 +230,17 @@ function formatDate(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function formatPhotoStatus(
+  status: "error" | "invalid" | "missing" | "uploaded",
+) {
+  const labels = {
+    error: "No pudimos subir la foto. Intentalo nuevamente.",
+    invalid: "La foto debe ser JPG, PNG o WebP y pesar maximo 5 MB.",
+    missing: "Selecciona una foto antes de subir.",
+    uploaded: "Foto actualizada correctamente.",
+  };
+
+  return labels[status];
 }
