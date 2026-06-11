@@ -88,7 +88,7 @@ export default async function RegisterPage({
         </div>
 
         <aside className="space-y-3">
-          <div className="rounded-lg bg-[image:var(--brand-gradient-primary)] p-5 text-white shadow-sm">
+          <div className="rounded-lg bg-brand-gradient-primary p-5 text-white shadow-sm">
             <p className="text-sm text-white/70">Organiza</p>
             <p className="mt-1 font-semibold text-white">
               {event.organizations?.name ?? "Organizacion"}

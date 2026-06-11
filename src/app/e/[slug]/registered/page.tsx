@@ -78,7 +78,7 @@ export default async function RegisteredPage({
   );
 
   return (
-    <main className="min-h-screen bg-[image:var(--brand-gradient-soft)] text-brand-slate-900">
+    <main className="min-h-screen bg-brand-gradient-soft text-brand-slate-900">
       <section className="mx-auto grid min-h-screen w-full max-w-6xl items-center gap-6 px-5 py-10 sm:px-8 lg:grid-cols-[1fr_380px]">
         <div className="rounded-lg border border-brand-border bg-white p-6 shadow-xl shadow-brand-blue-700/10">
           <Link className="inline-flex" href="/">
