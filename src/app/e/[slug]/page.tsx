@@ -1,4 +1,5 @@
 import { Calendar, CalendarClock, MapPin, Users } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
@@ -61,49 +62,89 @@ export default async function PublicEventPage({
     .returns<PublicAgendaItem[]>();
 
   return (
-    <main className="min-h-screen bg-[#f6f4ef] text-[#171717]">
-      <section className="border-b border-[#d9d5cb] bg-[#102923] text-white">
-        <div className="mx-auto w-full max-w-5xl px-5 py-10 sm:px-8 sm:py-14">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#9bd8b5]">
-            {event.organizations?.name ?? "I'm IN"}
-          </p>
-          <h1 className="mt-5 max-w-4xl text-4xl font-semibold leading-tight sm:text-5xl">
-            {event.name}
-          </h1>
-          <p className="mt-5 max-w-3xl text-lg leading-8 text-[#d9efe2]">
-            {event.description ||
-              "Inscribete y prepara tu networking antes del evento."}
-          </p>
-        </div>
-      </section>
-
-      <section className="mx-auto grid w-full max-w-5xl gap-6 px-5 py-8 sm:px-8 md:grid-cols-[1fr_320px]">
-        <div className="space-y-6">
-          <div className="rounded-lg border border-[#d9d5cb] bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-semibold">Inscripcion</h2>
-            <p className="mt-3 leading-7 text-[#4a4d49]">
-              Completa tu inscripcion para recibir tu credencial QR de acceso
-              y activar el networking del evento.
+    <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
+      <section className="overflow-hidden bg-[image:var(--brand-gradient-primary)] text-white">
+        <div className="mx-auto grid w-full max-w-7xl gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[1fr_340px] lg:py-16">
+          <div>
+            <Link className="inline-flex rounded-md bg-white p-2" href="/">
+              <Image
+                alt="I'M IN"
+                className="h-auto w-40"
+                height={45}
+                priority
+                src="/brand/im-in-logo.png"
+                width={180}
+              />
+            </Link>
+            <p className="mt-8 text-sm font-semibold uppercase tracking-[0.18em] text-brand-mint-300">
+              {event.organizations?.name ?? "I'M IN"}
+            </p>
+            <h1 className="mt-4 max-w-4xl text-4xl font-semibold leading-tight sm:text-6xl">
+              {event.name}
+            </h1>
+            <p className="mt-5 max-w-3xl text-lg leading-8 text-white/85">
+              {event.description ||
+                "Inscribete y prepara tu networking antes del evento."}
             </p>
             {event.status === "published" ? (
               <Link
-                className="mt-6 inline-flex h-11 items-center justify-center rounded-md bg-[#102923] px-5 text-sm font-semibold text-white hover:bg-[#183b33]"
+                className="mt-8 inline-flex h-12 items-center justify-center rounded-md bg-white px-5 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
                 href={`/e/${slug}/register`}
               >
                 Inscribirme
               </Link>
             ) : (
-              <p className="mt-6 inline-flex h-11 items-center justify-center rounded-md border border-[#d9d5cb] px-5 text-sm font-semibold text-[#5f625d]">
+              <p className="mt-8 inline-flex h-12 items-center justify-center rounded-md border border-white/30 px-5 text-sm font-semibold text-white/80">
                 Inscripciones cerradas
               </p>
             )}
           </div>
 
+          <aside className="rounded-lg border border-white/20 bg-white/10 p-5 backdrop-blur">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-mint-300">
+              Detalles
+            </p>
+            <div className="mt-5 space-y-3">
+              <Info
+                icon={<Calendar className="size-5" aria-hidden="true" />}
+                label="Fecha"
+                value={formatDate(event.starts_at)}
+                variant="dark"
+              />
+              <Info
+                icon={<MapPin className="size-5" aria-hidden="true" />}
+                label="Lugar"
+                value={event.location ?? "Por definir"}
+                variant="dark"
+              />
+              <Info
+                icon={<Users className="size-5" aria-hidden="true" />}
+                label="Cupos"
+                value={`${event.capacity}`}
+                variant="dark"
+              />
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section className="mx-auto grid w-full max-w-7xl gap-6 px-5 py-10 sm:px-8 md:grid-cols-[1fr_340px]">
+        <div className="space-y-6">
+          <div className="rounded-lg border border-brand-border bg-white p-6 shadow-sm">
+            <h2 className="text-2xl font-semibold text-brand-navy-950">
+              Tu experiencia de networking empieza aqui
+            </h2>
+            <p className="mt-3 leading-7 text-brand-slate-600">
+              Recibe tu QR de acceso, crea un perfil reconocible y descubre
+              asistentes con intereses afines antes y durante el evento.
+            </p>
+          </div>
+
           {agendaItems?.length ? (
-            <div className="rounded-lg border border-[#d9d5cb] bg-white p-6 shadow-sm">
-              <h2 className="flex items-center gap-2 text-2xl font-semibold">
+            <div className="rounded-lg border border-brand-border bg-white p-6 shadow-sm">
+              <h2 className="flex items-center gap-2 text-2xl font-semibold text-brand-navy-950">
                 <CalendarClock
-                  className="size-6 text-[#2f6f4e]"
+                  className="size-6 text-brand-cyan-500"
                   aria-hidden="true"
                 />
                 Agenda
@@ -111,20 +152,22 @@ export default async function PublicEventPage({
               <div className="mt-5 space-y-4">
                 {agendaItems.map((item) => (
                   <div
-                    className="rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4"
+                    className="rounded-md border border-brand-border bg-brand-surface-soft p-4"
                     key={item.id}
                   >
-                    <p className="text-sm font-semibold text-[#254f74]">
+                    <p className="text-sm font-semibold text-brand-blue-700">
                       {formatTimeRange(item.starts_at, item.ends_at)}
                     </p>
-                    <p className="mt-1 font-semibold">{item.title}</p>
+                    <p className="mt-1 font-semibold text-brand-navy-950">
+                      {item.title}
+                    </p>
                     {item.description ? (
-                      <p className="mt-1 text-sm leading-6 text-[#5f625d]">
+                      <p className="mt-1 text-sm leading-6 text-brand-slate-600">
                         {item.description}
                       </p>
                     ) : null}
                     {item.location ? (
-                      <p className="mt-1 text-sm text-[#5f625d]">
+                      <p className="mt-1 text-sm text-brand-slate-600">
                         {item.location}
                       </p>
                     ) : null}
@@ -135,22 +178,15 @@ export default async function PublicEventPage({
           ) : null}
         </div>
 
-        <aside className="space-y-3">
-          <Info
-            icon={<Calendar className="size-5" aria-hidden="true" />}
-            label="Fecha"
-            value={formatDate(event.starts_at)}
-          />
-          <Info
-            icon={<MapPin className="size-5" aria-hidden="true" />}
-            label="Lugar"
-            value={event.location ?? "Por definir"}
-          />
-          <Info
-            icon={<Users className="size-5" aria-hidden="true" />}
-            label="Cupos"
-            value={`${event.capacity}`}
-          />
+        <aside className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-cyan-500">
+            Que incluye
+          </p>
+          <div className="mt-4 space-y-3 text-sm leading-6 text-brand-slate-600">
+            <p>Credencial QR para check-in.</p>
+            <p>Perfil profesional para el directorio.</p>
+            <p>Solicitudes de conexion durante el evento.</p>
+          </div>
         </aside>
       </section>
     </main>
@@ -160,17 +196,29 @@ export default async function PublicEventPage({
 function Info({
   icon,
   label,
+  variant,
   value,
 }: {
   icon: ReactNode;
   label: string;
+  variant?: "dark" | "light";
   value: string;
 }) {
+  if (variant === "dark") {
+    return (
+      <div className="rounded-md border border-white/15 bg-white/10 p-4">
+        <span className="text-brand-mint-300">{icon}</span>
+        <p className="mt-3 text-sm text-white/70">{label}</p>
+        <p className="mt-1 font-semibold text-white">{value}</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="rounded-lg border border-[#d9d5cb] bg-white p-5 shadow-sm">
-      <span className="text-[#2f6f4e]">{icon}</span>
-      <p className="mt-3 text-sm text-[#5f625d]">{label}</p>
-      <p className="mt-1 font-semibold">{value}</p>
+    <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
+      <span className="text-brand-cyan-500">{icon}</span>
+      <p className="mt-3 text-sm text-brand-slate-600">{label}</p>
+      <p className="mt-1 font-semibold text-brand-navy-950">{value}</p>
     </div>
   );
 }

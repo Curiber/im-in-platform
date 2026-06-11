@@ -1,4 +1,5 @@
 import { ArrowLeft, Calendar, MapPin } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
@@ -45,17 +46,22 @@ export default async function RegisterPage({
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f4ef] text-[#171717]">
-      <header className="border-b border-[#d9d5cb] bg-white">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-5 py-4 sm:px-8">
+    <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
+      <header className="border-b border-brand-border bg-white">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
           <div>
-            <p className="text-sm font-semibold text-[#2f6f4e]">
-              Inscripcion
-            </p>
-            <h1 className="text-xl font-semibold">{event.name}</h1>
+            <Link className="inline-flex items-center" href="/">
+              <Image
+                alt="I'M IN"
+                className="h-auto w-32"
+                height={38}
+                src="/brand/im-in-logo.png"
+                width={152}
+              />
+            </Link>
           </div>
           <Link
-            className="inline-flex items-center gap-2 rounded-md border border-[#d9d5cb] px-3 py-2 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+            className="inline-flex items-center gap-2 rounded-md border border-brand-border px-3 py-2 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
             href={`/e/${slug}`}
           >
             <ArrowLeft className="size-4" aria-hidden="true" />
@@ -64,12 +70,17 @@ export default async function RegisterPage({
         </div>
       </header>
 
-      <section className="mx-auto grid w-full max-w-5xl gap-6 px-5 py-8 sm:px-8 lg:grid-cols-[1fr_320px]">
-        <div className="rounded-lg border border-[#d9d5cb] bg-white p-6 shadow-sm">
-          <h2 className="text-2xl font-semibold">Completa tus datos</h2>
-          <p className="mt-2 text-sm leading-6 text-[#5f625d]">
-            Te tomara cerca de 2 minutos. Solo compartiremos tu perfil con otros
-            asistentes si activas networking y directorio.
+      <section className="mx-auto grid w-full max-w-7xl gap-6 px-5 py-8 sm:px-8 lg:grid-cols-[1fr_360px]">
+        <div className="rounded-lg border border-brand-border bg-white p-6 shadow-sm">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-cyan-500">
+            Inscripcion
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold text-brand-navy-950">
+            {event.name}
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-brand-slate-600">
+            Te tomara cerca de 2 minutos. Tu email y telefono solo se comparten
+            cuando aceptas una conexion.
           </p>
           <div className="mt-6">
             <RegistrationForm eventId={event.id} slug={slug} />
@@ -77,9 +88,9 @@ export default async function RegisterPage({
         </div>
 
         <aside className="space-y-3">
-          <div className="rounded-lg border border-[#d9d5cb] bg-white p-5 shadow-sm">
-            <p className="text-sm text-[#5f625d]">Organiza</p>
-            <p className="mt-1 font-semibold">
+          <div className="rounded-lg bg-[image:var(--brand-gradient-primary)] p-5 text-white shadow-sm">
+            <p className="text-sm text-white/70">Organiza</p>
+            <p className="mt-1 font-semibold text-white">
               {event.organizations?.name ?? "Organizacion"}
             </p>
           </div>
@@ -109,10 +120,10 @@ function Info({
   value: string;
 }) {
   return (
-    <div className="rounded-lg border border-[#d9d5cb] bg-white p-5 shadow-sm">
-      <span className="text-[#2f6f4e]">{icon}</span>
-      <p className="mt-3 text-sm text-[#5f625d]">{label}</p>
-      <p className="mt-1 font-semibold">{value}</p>
+    <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
+      <span className="text-brand-cyan-500">{icon}</span>
+      <p className="mt-3 text-sm text-brand-slate-600">{label}</p>
+      <p className="mt-1 font-semibold text-brand-navy-950">{value}</p>
     </div>
   );
 }

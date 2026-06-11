@@ -1,178 +1,290 @@
 import {
-  BarChart3,
-  CalendarPlus,
-  CheckCircle2,
-  IdCard,
-  Link2,
+  ArrowRight,
+  BadgeCheck,
+  CalendarDays,
+  Handshake,
+  Network,
   QrCode,
   Sparkles,
   Users,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
-const mvpModules = [
+const steps = [
   {
-    title: "Creacion de eventos",
+    title: "Crea tu perfil",
     description:
-      "El organizador define nombre, fecha, lugar, cupos y formulario simple. Al publicar, obtiene un link publico de inscripcion.",
-    icon: CalendarPlus,
+      "Completa tus datos profesionales, intereses y una foto reconocible para llegar preparado.",
+    icon: BadgeCheck,
   },
   {
-    title: "Inscripcion de asistentes",
+    title: "Encuentra eventos",
     description:
-      "Formulario mobile-first con datos base, intereses seleccionables, consentimiento y opcion de perfil publico para networking.",
-    icon: CheckCircle2,
+      "Inscribete, recibe tu QR y entra al directorio privado de asistentes del evento.",
+    icon: CalendarDays,
   },
   {
-    title: "Perfil del asistente",
+    title: "Conecta mejor",
     description:
-      "Foto opcional, nombre, cargo, organizacion, descripcion breve y hasta cinco intereses visibles por evento.",
-    icon: IdCard,
-  },
-  {
-    title: "Directorio del evento",
-    description:
-      "Lista privada de asistentes que aceptaron networking, con busqueda y filtros por area, organizacion e intereses.",
-    icon: Users,
-  },
-  {
-    title: "QR de acceso",
-    description:
-      "Cada inscripcion genera un token unico para acreditar llegada y separar inscritos, asistentes reales y no show.",
-    icon: QrCode,
-  },
-  {
-    title: "Solicitud de conexion",
-    description:
-      "Boton conectar, solicitud pendiente, aceptacion o rechazo. Sin chat: el intercambio de contacto ocurre al aceptar.",
-    icon: Link2,
+      "Descubre personas relevantes, pide conectar y conserva el vinculo despues del encuentro.",
+    icon: Handshake,
   },
 ];
 
-const nextModules = [
-  "Match simple por interseccion de intereses",
-  "Dashboard basico de inscritos, check-ins y conexiones",
-  "Descarga CSV para organizadores",
-  "Notificaciones por email transaccional",
+const benefits = [
+  "Networking mas eficiente antes, durante y despues del evento.",
+  "Acreditacion simple con QR y datos claros para el organizador.",
+  "Directorio privado con intereses, cargo, empresa y foto.",
+  "Tarjeta virtual para compartir contacto profesional.",
+];
+
+const audiences = [
+  "Asistentes que quieren conocer personas relevantes.",
+  "Organizadores que necesitan registro, check-in y metricas.",
+  "Empresas y comunidades que activan redes profesionales.",
 ];
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
-      <section className="border-b border-white/15 bg-[image:var(--brand-gradient-primary)] text-white">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-5 py-10 sm:px-8 lg:flex-row lg:items-end lg:justify-between lg:py-14">
-          <div className="max-w-3xl">
-            <div className="mb-6 inline-flex rounded-md bg-white p-2 shadow-sm">
-              <Image
-                alt="I'M IN"
-                className="h-auto w-48 sm:w-56"
-                height={60}
-                priority
-                src="/brand/im-in-logo.png"
-                width={240}
-              />
+      <header className="border-b border-brand-border/70 bg-white/90">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
+          <Link className="inline-flex items-center" href="/">
+            <Image
+              alt="I'M IN"
+              className="h-auto w-36"
+              height={45}
+              priority
+              src="/brand/im-in-logo.png"
+              width={180}
+            />
+          </Link>
+          <nav className="flex items-center gap-2">
+            <Link
+              className="rounded-md px-3 py-2 text-sm font-semibold text-brand-slate-600 hover:text-brand-navy-950"
+              href="/login"
+            >
+              Ingresar
+            </Link>
+            <Link
+              className="inline-flex h-10 items-center gap-2 rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white hover:bg-brand-navy-900"
+              href="/admin/events/new"
+            >
+              Crear evento
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      <section className="overflow-hidden border-b border-brand-border/70 bg-[image:var(--brand-gradient-soft)]">
+        <div className="mx-auto grid min-h-[calc(100vh-73px)] w-full max-w-7xl items-center gap-10 px-5 py-12 sm:px-8 lg:grid-cols-[1fr_460px]">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-cyan-500">
+              Networking inteligente para eventos
+            </p>
+            <h1 className="mt-4 max-w-4xl text-5xl font-semibold leading-tight text-brand-navy-950 sm:text-6xl">
+              I&apos;M IN
+            </h1>
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-brand-slate-600">
+              Una plataforma para que profesionales descubran eventos, conecten
+              con personas relevantes y generen oportunidades reales de
+              networking.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                className="inline-flex h-12 items-center gap-2 rounded-md bg-brand-navy-950 px-5 text-sm font-semibold text-white hover:bg-brand-navy-900"
+                href="/login"
+              >
+                Explorar plataforma
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </Link>
+              <Link
+                className="inline-flex h-12 items-center rounded-md border border-brand-border bg-white px-5 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
+                href="/admin/events/new"
+              >
+                Crear evento
+              </Link>
             </div>
-            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-[#9bd8b5]">
-              Spec-driven MVP
-            </p>
-            <h1 className="sr-only">I&apos;M IN</h1>
-            <p className="mt-4 max-w-2xl text-lg leading-8 text-[#d9efe2]">
-              Inscripcion, acreditacion y networking inteligente en una sola
-              experiencia web para eventos.
-            </p>
           </div>
 
-          <div className="grid min-w-0 grid-cols-2 gap-3 sm:min-w-96">
-            <Metric label="Stack" value="Next + Supabase" />
-            <Metric label="Deploy" value="Vercel" />
-            <Metric label="Formato" value="PWA responsive" />
-            <Metric label="Estado" value="Specs v0.1" />
+          <div className="relative">
+            <div className="absolute -left-8 top-10 h-32 w-32 rounded-full bg-brand-aqua-400/20 blur-3xl" />
+            <div className="absolute -right-8 bottom-10 h-32 w-32 rounded-full bg-brand-blue-700/20 blur-3xl" />
+            <div className="relative rounded-lg border border-brand-border bg-white p-5 shadow-xl shadow-brand-blue-700/10">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-brand-navy-950">
+                  Directorio del evento
+                </p>
+                <span className="rounded-md bg-[image:var(--brand-gradient-accent)] px-3 py-1 text-xs font-semibold text-brand-navy-950">
+                  En vivo
+                </span>
+              </div>
+              <div className="mt-5 space-y-3">
+                <ProfileCard
+                  company="UAI"
+                  name="Marcela Tapia"
+                  tags={["Liderazgo", "Impacto"]}
+                />
+                <ProfileCard
+                  company="Founder"
+                  name="Javier Munoz"
+                  tags={["Datos", "Innovacion"]}
+                />
+                <ProfileCard
+                  company="Comunidad"
+                  name="Sofia Herrera"
+                  tags={["Marketing", "Talento"]}
+                />
+              </div>
+              <div className="mt-5 grid grid-cols-3 gap-3">
+                <MiniMetric icon={<Users className="size-4" />} value="128" />
+                <MiniMetric icon={<QrCode className="size-4" />} value="94" />
+                <MiniMetric icon={<Network className="size-4" />} value="37" />
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto grid w-full max-w-7xl gap-6 px-5 py-8 sm:px-8 lg:grid-cols-[1fr_360px] lg:py-10">
-        <div>
-          <div className="mb-5 flex items-center gap-3">
-            <span className="flex size-9 items-center justify-center rounded-md bg-[#2f6f4e] text-white">
-              <Sparkles className="size-5" aria-hidden="true" />
-            </span>
-            <div>
-              <h2 className="text-2xl font-semibold">Debe tener</h2>
-              <p className="text-sm text-[#5f625d]">
-                Sin estos modulos no hay producto validable.
-              </p>
+      <section className="mx-auto w-full max-w-7xl px-5 py-14 sm:px-8">
+        <div className="max-w-3xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-cyan-500">
+            Como funciona
+          </p>
+          <h2 className="mt-3 text-3xl font-semibold text-brand-navy-950">
+            Una experiencia simple para llegar, encontrarse y continuar.
+          </h2>
+        </div>
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          {steps.map((step) => {
+            const Icon = step.icon;
+
+            return (
+              <article
+                className="rounded-lg border border-brand-border bg-white p-5 shadow-sm"
+                key={step.title}
+              >
+                <span className="flex size-11 items-center justify-center rounded-md bg-[image:var(--brand-gradient-accent)] text-brand-navy-950">
+                  <Icon className="size-5" aria-hidden="true" />
+                </span>
+                <h3 className="mt-5 text-xl font-semibold text-brand-navy-950">
+                  {step.title}
+                </h3>
+                <p className="mt-3 leading-7 text-brand-slate-600">
+                  {step.description}
+                </p>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="bg-white">
+        <div className="mx-auto grid w-full max-w-7xl gap-8 px-5 py-14 sm:px-8 lg:grid-cols-[1fr_420px]">
+          <div>
+            <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-brand-cyan-500">
+              <Sparkles className="size-4" aria-hidden="true" />
+              Beneficios
+            </p>
+            <h2 className="mt-3 text-3xl font-semibold text-brand-navy-950">
+              Menos azar, mas conexiones con sentido.
+            </h2>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {benefits.map((benefit) => (
+                <div
+                  className="rounded-lg border border-brand-border bg-brand-surface-soft p-4"
+                  key={benefit}
+                >
+                  <p className="leading-7 text-brand-slate-600">{benefit}</p>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            {mvpModules.map((module) => {
-              const Icon = module.icon;
-
-              return (
-                <article
-                  className="rounded-lg border border-[#d9d5cb] bg-white p-5 shadow-sm"
-                  key={module.title}
-                >
-                  <div className="mb-4 flex items-center gap-3">
-                    <span className="flex size-10 items-center justify-center rounded-md bg-[#eef6e9] text-[#2f6f4e]">
-                      <Icon className="size-5" aria-hidden="true" />
-                    </span>
-                    <span className="rounded-md bg-[#e3f0d9] px-3 py-1 text-sm font-semibold text-[#2f6f4e]">
-                      MVP
-                    </span>
-                  </div>
-                  <h3 className="text-xl font-semibold">{module.title}</h3>
-                  <p className="mt-3 leading-7 text-[#4a4d49]">
-                    {module.description}
-                  </p>
-                </article>
-              );
-            })}
-          </div>
+          <aside className="rounded-lg bg-brand-navy-950 p-6 text-white">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-mint-300">
+              Casos de uso
+            </p>
+            <div className="mt-5 space-y-4">
+              {audiences.map((audience) => (
+                <p className="rounded-md bg-white/10 p-4 leading-7" key={audience}>
+                  {audience}
+                </p>
+              ))}
+            </div>
+          </aside>
         </div>
+      </section>
 
-        <aside className="rounded-lg border border-[#d9d5cb] bg-white p-5 shadow-sm">
-          <div className="mb-5 flex items-center gap-3">
-            <span className="flex size-9 items-center justify-center rounded-md bg-[#254f74] text-white">
-              <BarChart3 className="size-5" aria-hidden="true" />
-            </span>
-            <h2 className="text-xl font-semibold">Siguiente capa</h2>
-          </div>
-
-          <div className="space-y-3">
-            {nextModules.map((module) => (
-              <div
-                className="rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4"
-                key={module}
-              >
-                <p className="text-sm font-medium leading-6">{module}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 rounded-md bg-[#102923] p-4 text-white">
-            <p className="text-sm font-semibold text-[#9bd8b5]">
-              Decision inicial
-            </p>
-            <p className="mt-2 text-sm leading-6 text-[#d9efe2]">
-              Partir como web app responsive/PWA. Login LinkedIn queda como
-              mejora evaluada, no bloqueo del MVP.
-            </p>
-          </div>
-        </aside>
+      <section className="mx-auto w-full max-w-7xl px-5 py-14 sm:px-8">
+        <div className="rounded-lg bg-[image:var(--brand-gradient-primary)] px-6 py-10 text-white sm:px-10">
+          <h2 className="max-w-3xl text-3xl font-semibold">
+            Activa networking real en tu proximo evento.
+          </h2>
+          <p className="mt-4 max-w-2xl leading-7 text-white/85">
+            Crea el evento, comparte el link de inscripcion y deja que I&apos;M
+            IN conecte a las personas correctas.
+          </p>
+          <Link
+            className="mt-7 inline-flex h-12 items-center gap-2 rounded-md bg-white px-5 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
+            href="/admin/events/new"
+          >
+            Crear evento
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </Link>
+        </div>
       </section>
     </main>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function ProfileCard({
+  company,
+  name,
+  tags,
+}: {
+  company: string;
+  name: string;
+  tags: string[];
+}) {
   return (
-    <div className="rounded-lg border border-white/15 bg-white/8 p-4">
-      <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#9bd8b5]">
-        {label}
-      </p>
-      <p className="mt-2 text-sm font-semibold text-white">{value}</p>
+    <div className="rounded-md border border-brand-border bg-brand-surface-soft p-4">
+      <div className="flex items-center gap-3">
+        <span className="flex size-10 items-center justify-center rounded-md bg-brand-navy-950 text-sm font-semibold text-white">
+          {name
+            .split(" ")
+            .map((part) => part[0])
+            .join("")
+            .slice(0, 2)}
+        </span>
+        <div>
+          <p className="font-semibold text-brand-navy-950">{name}</p>
+          <p className="text-sm text-brand-slate-600">{company}</p>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {tags.map((tag) => (
+          <span
+            className="rounded-md bg-white px-2 py-1 text-xs font-semibold text-brand-blue-700"
+            key={tag}
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MiniMetric({ icon, value }: { icon: React.ReactNode; value: string }) {
+  return (
+    <div className="rounded-md border border-brand-border bg-brand-surface-soft p-3 text-center">
+      <span className="mx-auto flex size-8 items-center justify-center rounded-md bg-white text-brand-cyan-500">
+        {icon}
+      </span>
+      <p className="mt-2 text-sm font-semibold text-brand-navy-950">{value}</p>
     </div>
   );
 }

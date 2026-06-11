@@ -100,16 +100,16 @@ export function RegistrationForm({
       </div>
 
       <fieldset>
-        <legend className="text-sm font-semibold text-[#1f2723]">
+        <legend className="text-sm font-semibold text-brand-navy-950">
           Intereses
         </legend>
-        <p className="mt-1 text-sm text-[#5f625d]">
+        <p className="mt-1 text-sm text-brand-slate-600">
           Selecciona hasta 5 temas para ayudarte a descubrir personas afines.
         </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {interests.map((interest) => (
             <label
-              className="flex items-center gap-3 rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-3 text-sm"
+              className="flex items-center gap-3 rounded-md border border-brand-border bg-brand-surface-soft p-3 text-sm"
               key={interest}
             >
               <input name="interests" type="checkbox" value={interest} />
@@ -119,14 +119,14 @@ export function RegistrationForm({
         </div>
       </fieldset>
 
-      <div className="space-y-3 rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4">
+      <div className="space-y-3 rounded-md border border-brand-border bg-brand-surface-soft p-4">
         <label className="flex items-start gap-3">
           <input className="mt-1 size-4" name="networkingOptIn" type="checkbox" />
           <span>
-            <span className="block text-sm font-semibold text-[#1f2723]">
+            <span className="block text-sm font-semibold text-brand-navy-950">
               Quiero participar en networking y aparecer en el directorio
             </span>
-            <span className="mt-1 block text-sm leading-6 text-[#5f625d]">
+            <span className="mt-1 block text-sm leading-6 text-brand-slate-600">
               Otros asistentes inscritos podran ver tu nombre, cargo, empresa,
               area e intereses. Tu email y telefono solo se comparten si aceptas
               una conexion.
@@ -135,9 +135,9 @@ export function RegistrationForm({
         </label>
       </div>
 
-      <label className="flex items-start gap-3 rounded-md border border-[#d9d5cb] bg-white p-4">
+      <label className="flex items-start gap-3 rounded-md border border-brand-border bg-white p-4">
         <input className="mt-1 size-4" name="dataConsent" required type="checkbox" />
-        <span className="text-sm leading-6 text-[#4a4d49]">
+        <span className="text-sm leading-6 text-brand-slate-600">
           Acepto que el organizador use mis datos para gestionar la inscripcion,
           acreditacion y experiencia del evento.
         </span>
@@ -150,7 +150,7 @@ export function RegistrationForm({
       ) : null}
 
       <button
-        className="flex h-12 w-full items-center justify-center gap-2 rounded-md bg-[#102923] px-5 text-sm font-semibold text-white hover:bg-[#183b33] disabled:cursor-not-allowed disabled:opacity-65"
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-md bg-brand-navy-950 px-5 text-sm font-semibold text-white hover:bg-brand-navy-900 disabled:cursor-not-allowed disabled:opacity-65"
         disabled={isPending}
         type="submit"
       >
@@ -158,8 +158,8 @@ export function RegistrationForm({
         {isPending ? null : <ArrowRight className="size-4" aria-hidden="true" />}
       </button>
 
-      <p className="flex items-start gap-2 text-sm leading-6 text-[#5f625d]">
-        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-[#2f6f4e]" />
+      <p className="flex items-start gap-2 text-sm leading-6 text-brand-slate-600">
+        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-brand-cyan-500" />
         Al finalizar recibiras tu credencial QR para entrar al evento.
       </p>
     </form>
@@ -175,11 +175,11 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="text-sm font-medium text-[#1f2723]">{label}</span>
+      <span className="text-sm font-medium text-brand-navy-950">{label}</span>
       <span className="mt-2 block">{children}</span>
     </label>
   );
 }
 
 const inputClass =
-  "h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]";
+  "h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500";
