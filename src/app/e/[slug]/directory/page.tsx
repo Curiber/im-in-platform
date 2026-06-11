@@ -1,4 +1,11 @@
-import { Bell, Search, Sparkles, UserRound, Users } from "lucide-react";
+import {
+  Bell,
+  IdCard,
+  Search,
+  Sparkles,
+  UserRoundPen,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -96,6 +103,7 @@ export default async function EventDirectoryPage({
     (profiles ?? []).flatMap((profile) => profile.interests),
   );
   const accessQuery = `registrationId=${viewer.id}&token=${token}`;
+  const viewerCardSlug = viewer.attendee_profiles?.profile_slug;
   const viewerInterests = new Set(viewer.interests);
   const suggestedMatches = (profiles ?? [])
     .filter((profile) => profile.id !== viewer.id)
@@ -114,32 +122,44 @@ export default async function EventDirectoryPage({
     .slice(0, 3);
 
   return (
-    <main className="min-h-screen bg-[#f6f4ef] text-[#171717]">
-      <header className="border-b border-[#d9d5cb] bg-white">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
+    <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
+      <header className="sticky top-0 z-40 border-b border-brand-border/70 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-8">
           <div>
-            <p className="text-sm font-semibold text-[#2f6f4e]">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-cyan-500">
               Directorio privado
             </p>
-            <h1 className="text-xl font-semibold">{viewer.events.name}</h1>
+            <h1 className="text-xl font-semibold text-brand-navy-950">
+              {viewer.events.name}
+            </h1>
           </div>
           <div className="flex flex-wrap justify-end gap-2">
             <Link
-              className="inline-flex items-center gap-2 rounded-md border border-[#d9d5cb] px-3 py-2 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+              className="inline-flex items-center gap-2 rounded-md border border-brand-border bg-white px-3 py-2 text-sm font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft"
               href={`/e/${slug}/connections?${accessQuery}`}
             >
               {pendingReceivedCount ? (
-                <span className="inline-flex items-center gap-1 rounded-md bg-[#2f6f4e] px-2 py-0.5 text-xs font-semibold text-white">
+                <span className="inline-flex items-center gap-1 rounded-md bg-brand-cyan-500 px-2 py-0.5 text-xs font-semibold text-white">
                   <Bell className="size-3" aria-hidden="true" />
                   {pendingReceivedCount}
                 </span>
               ) : null}
               Conexiones
             </Link>
+            {viewerCardSlug ? (
+              <Link
+                className="inline-flex items-center gap-2 rounded-md border border-brand-border bg-white px-3 py-2 text-sm font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft"
+                href={`/p/${viewerCardSlug}?source=event`}
+              >
+                <IdCard className="size-4 text-brand-cyan-500" aria-hidden="true" />
+                Mi tarjeta
+              </Link>
+            ) : null}
             <Link
-              className="inline-flex rounded-md border border-[#d9d5cb] px-3 py-2 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+              className="inline-flex items-center gap-2 rounded-md bg-brand-navy-950 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-navy-900"
               href={`/e/${slug}/profile?${accessQuery}`}
             >
+              <UserRoundPen className="size-4" aria-hidden="true" />
               Mi perfil
             </Link>
           </div>
@@ -149,51 +169,60 @@ export default async function EventDirectoryPage({
       <section className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8">
         <div className="mb-6 grid gap-4 lg:grid-cols-[1fr_360px]">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2f6f4e]">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-cyan-500">
               Quien esta aqui hoy
             </p>
-            <h2 className="mt-1 text-3xl font-semibold">
+            <h2 className="mt-1 text-3xl font-semibold text-brand-navy-950">
               Personas disponibles para conectar
             </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#5f625d]">
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-brand-slate-600">
               Solo aparecen asistentes que aceptaron networking y directorio.
             </p>
           </div>
 
-          <div className="rounded-lg border border-[#d9d5cb] bg-white p-4 shadow-sm">
-            <p className="flex items-center gap-2 text-sm font-semibold text-[#1f2723]">
-              <Users className="size-4 text-[#2f6f4e]" aria-hidden="true" />
+          <div className="self-start rounded-lg border border-brand-border bg-white p-4 shadow-sm">
+            <p className="flex items-center gap-2 text-sm font-semibold text-brand-navy-950">
+              <Users className="size-4 text-brand-cyan-500" aria-hidden="true" />
               {filteredProfiles.length} perfiles visibles
             </p>
           </div>
         </div>
 
         {suggestedMatches.length ? (
-          <div className="mb-6 rounded-lg border border-[#d9d5cb] bg-white p-5 shadow-sm">
-            <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-[#2f6f4e]">
+          <div className="mb-6 rounded-lg border border-brand-border bg-white p-5 shadow-sm">
+            <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-brand-cyan-500">
               <Sparkles className="size-4" aria-hidden="true" />
               Matches sugeridos
             </p>
-            <p className="mt-1 text-sm leading-6 text-[#5f625d]">
+            <p className="mt-1 text-sm leading-6 text-brand-slate-600">
               Personas con intereses en comun contigo.
             </p>
             <div className="mt-4 grid gap-4 md:grid-cols-3">
               {suggestedMatches.map(({ profile, sharedInterests }) => (
                 <Link
-                  className="rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4 hover:bg-[#f4f1e9]"
+                  className="rounded-md border border-brand-border bg-brand-surface-soft p-4 transition hover:border-brand-cyan-500/60 hover:shadow-sm"
                   href={`/e/${slug}/directory/${profile.id}?${accessQuery}`}
                   key={profile.id}
                 >
-                  <h3 className="font-semibold">
-                    {profile.full_name_snapshot}
-                  </h3>
-                  <p className="mt-1 text-sm leading-6 text-[#5f625d]">
-                    {profile.role_snapshot ?? "Rol por confirmar"}
-                    {profile.company_snapshot
-                      ? ` en ${profile.company_snapshot}`
-                      : ""}
-                  </p>
-                  <p className="mt-3 text-xs font-semibold text-[#2f6f4e]">
+                  <div className="flex items-center gap-3">
+                    <Avatar
+                      avatarUrl={profile.attendee_profiles?.avatar_url}
+                      name={profile.full_name_snapshot}
+                      size="sm"
+                    />
+                    <div>
+                      <h3 className="font-semibold text-brand-navy-950">
+                        {profile.full_name_snapshot}
+                      </h3>
+                      <p className="text-sm leading-6 text-brand-slate-600">
+                        {profile.role_snapshot ?? "Rol por confirmar"}
+                        {profile.company_snapshot
+                          ? ` en ${profile.company_snapshot}`
+                          : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs font-semibold text-brand-cyan-500">
                     {sharedInterests.length}{" "}
                     {sharedInterests.length === 1
                       ? "interes en comun"
@@ -202,7 +231,7 @@ export default async function EventDirectoryPage({
                   <div className="mt-2 flex flex-wrap gap-2">
                     {sharedInterests.map((item) => (
                       <span
-                        className="rounded-md bg-[#2f6f4e] px-2 py-1 text-xs font-semibold text-white"
+                        className="rounded-md bg-brand-navy-900 px-2 py-1 text-xs font-semibold text-white"
                         key={item}
                       >
                         {item}
@@ -215,11 +244,11 @@ export default async function EventDirectoryPage({
           </div>
         ) : null}
 
-        <form className="mb-5 grid gap-3 rounded-lg border border-[#d9d5cb] bg-white p-4 shadow-sm md:grid-cols-[1fr_220px_220px_auto]">
+        <form className="mb-5 grid gap-3 rounded-lg border border-brand-border bg-white p-4 shadow-sm md:grid-cols-[1fr_220px_220px_auto]">
           <input name="registrationId" type="hidden" value={viewer.id} />
           <input name="token" type="hidden" value={token} />
-          <label className="flex h-11 items-center gap-2 rounded-md border border-[#d9d5cb] bg-white px-3">
-            <Search className="size-4 text-[#5f625d]" aria-hidden="true" />
+          <label className="flex h-11 items-center gap-2 rounded-md border border-brand-border bg-white px-3 focus-within:border-brand-cyan-500">
+            <Search className="size-4 text-brand-slate-600" aria-hidden="true" />
             <input
               className="w-full bg-transparent text-sm outline-none"
               defaultValue={q}
@@ -228,7 +257,7 @@ export default async function EventDirectoryPage({
             />
           </label>
           <select
-            className="h-11 rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none"
+            className="h-11 rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
             defaultValue={industry ?? ""}
             name="industry"
           >
@@ -240,7 +269,7 @@ export default async function EventDirectoryPage({
             ))}
           </select>
           <select
-            className="h-11 rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none"
+            className="h-11 rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
             defaultValue={interest ?? ""}
             name="interest"
           >
@@ -252,7 +281,7 @@ export default async function EventDirectoryPage({
             ))}
           </select>
           <button
-            className="h-11 rounded-md bg-[#102923] px-4 text-sm font-semibold text-white hover:bg-[#183b33]"
+            className="h-11 rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white transition hover:bg-brand-navy-900"
             type="submit"
           >
             Filtrar
@@ -262,42 +291,35 @@ export default async function EventDirectoryPage({
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredProfiles.map((profile) => (
             <Link
-              className="rounded-lg border border-[#d9d5cb] bg-white p-5 shadow-sm hover:bg-[#fbfaf7]"
+              className="rounded-lg border border-brand-border bg-white p-5 shadow-sm transition hover:border-brand-cyan-500/60 hover:shadow-md"
               href={`/e/${slug}/directory/${profile.id}?${accessQuery}`}
               key={profile.id}
             >
               <div className="flex items-start gap-4">
-                {profile.attendee_profiles?.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    alt={profile.full_name_snapshot}
-                    className="size-12 shrink-0 rounded-md object-cover"
-                    src={profile.attendee_profiles.avatar_url}
-                  />
-                ) : (
-                  <span className="flex size-12 shrink-0 items-center justify-center rounded-md bg-[#e3f0d9] text-[#2f6f4e]">
-                    <UserRound className="size-6" aria-hidden="true" />
-                  </span>
-                )}
+                <Avatar
+                  avatarUrl={profile.attendee_profiles?.avatar_url}
+                  name={profile.full_name_snapshot}
+                  size="md"
+                />
                 <div>
-                  <h3 className="text-lg font-semibold">
+                  <h3 className="text-lg font-semibold text-brand-navy-950">
                     {profile.full_name_snapshot}
                   </h3>
-                  <p className="mt-1 text-sm leading-6 text-[#5f625d]">
+                  <p className="mt-1 text-sm leading-6 text-brand-slate-600">
                     {profile.role_snapshot ?? "Rol por confirmar"}
                     {profile.company_snapshot
                       ? ` en ${profile.company_snapshot}`
                       : ""}
                   </p>
                   {profile.attendee_profiles?.headline ? (
-                    <p className="mt-1 text-sm italic leading-6 text-[#5f625d]">
+                    <p className="mt-1 text-sm italic leading-6 text-brand-slate-600">
                       {profile.attendee_profiles.headline}
                     </p>
                   ) : null}
                 </div>
               </div>
 
-              <p className="mt-4 text-sm font-semibold text-[#254f74]">
+              <p className="mt-4 text-sm font-semibold text-brand-blue-700">
                 {profile.industry_snapshot ?? "Area no informada"}
               </p>
 
@@ -306,8 +328,8 @@ export default async function EventDirectoryPage({
                   <span
                     className={
                       profile.id !== viewer.id && viewerInterests.has(item)
-                        ? "rounded-md bg-[#2f6f4e] px-2 py-1 text-xs font-semibold text-white"
-                        : "rounded-md bg-[#eef6e9] px-2 py-1 text-xs font-semibold text-[#2f6f4e]"
+                        ? "rounded-md bg-brand-navy-900 px-2 py-1 text-xs font-semibold text-white"
+                        : "rounded-md bg-brand-slate-100 px-2 py-1 text-xs font-semibold text-brand-navy-900"
                     }
                     key={item}
                   >
@@ -320,9 +342,15 @@ export default async function EventDirectoryPage({
         </div>
 
         {!filteredProfiles.length ? (
-          <div className="rounded-lg border border-[#d9d5cb] bg-white p-8 text-center shadow-sm">
-            <p className="font-semibold">No hay perfiles para este filtro</p>
-            <p className="mt-2 text-sm text-[#5f625d]">
+          <div className="rounded-lg border border-brand-border bg-white p-8 text-center shadow-sm">
+            <Users
+              className="mx-auto size-10 text-brand-cyan-500"
+              aria-hidden="true"
+            />
+            <p className="mt-3 font-semibold text-brand-navy-950">
+              No hay perfiles para este filtro
+            </p>
+            <p className="mt-2 text-sm text-brand-slate-600">
               Prueba con otra busqueda o vuelve a todos los asistentes.
             </p>
           </div>
@@ -330,6 +358,47 @@ export default async function EventDirectoryPage({
       </section>
     </main>
   );
+}
+
+function Avatar({
+  avatarUrl,
+  name,
+  size,
+}: {
+  avatarUrl?: string | null;
+  name: string;
+  size: "sm" | "md";
+}) {
+  const sizeClass = size === "sm" ? "size-10" : "size-12";
+
+  if (avatarUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        alt={name}
+        className={`${sizeClass} shrink-0 rounded-full object-cover ring-1 ring-brand-border`}
+        src={avatarUrl}
+      />
+    );
+  }
+
+  return (
+    <span
+      className={`flex ${sizeClass} shrink-0 items-center justify-center rounded-full bg-brand-navy-950 text-sm font-semibold text-white`}
+    >
+      {initials(name)}
+    </span>
+  );
+}
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 }
 
 function unique(values: Array<string | null>) {
