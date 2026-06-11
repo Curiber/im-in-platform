@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { updateOrganizationSettings } from "@/app/admin/actions";
+import { SignOutButton } from "@/app/admin/sign-out-button";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -43,13 +44,16 @@ export default async function AdminSettingsPage() {
             <p className="text-sm font-semibold text-[#2f6f4e]">I&apos;m IN</p>
             <h1 className="text-xl font-semibold">Configuracion</h1>
           </div>
-          <Link
-            className="inline-flex items-center gap-2 rounded-md border border-[#d9d5cb] px-3 py-2 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
-            href="/admin"
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-            Volver
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              className="inline-flex items-center gap-2 rounded-md border border-[#d9d5cb] px-3 py-2 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+              href="/admin"
+            >
+              <ArrowLeft className="size-4" aria-hidden="true" />
+              Volver
+            </Link>
+            <SignOutButton />
+          </div>
         </div>
       </header>
 

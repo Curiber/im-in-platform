@@ -1,9 +1,10 @@
-import { CalendarPlus, ShieldCheck, Users } from "lucide-react";
+import { Building2, CalendarPlus, ShieldCheck, Users } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { createOrganization } from "@/app/admin/actions";
+import { SignOutButton } from "@/app/admin/sign-out-button";
+import { isPlatformAdmin } from "@/lib/platform-admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +30,7 @@ export default async function AdminHomePage() {
     redirect("/login");
   }
 
+  const platformAdmin = isPlatformAdmin(user);
   const { data: memberships, error } = await supabase
     .from("organization_users")
     .select("role, organizations(id, name, type)")
@@ -43,14 +45,7 @@ export default async function AdminHomePage() {
             <p className="text-sm font-semibold text-[#2f6f4e]">I&apos;m IN</p>
             <h1 className="text-xl font-semibold">Panel organizador</h1>
           </div>
-          <form action="/auth/sign-out" method="post">
-            <button
-              className="rounded-md border border-[#d9d5cb] px-3 py-2 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
-              type="submit"
-            >
-              Salir
-            </button>
-          </form>
+          <SignOutButton />
         </div>
       </header>
 
@@ -88,6 +83,14 @@ export default async function AdminHomePage() {
               icon={<Users className="size-5" aria-hidden="true" />}
               title="Configuracion"
             />
+            {platformAdmin ? (
+              <ActionCard
+                description="Crear organizaciones y asignar owners iniciales."
+                href="/admin/organizations"
+                icon={<Building2 className="size-5" aria-hidden="true" />}
+                title="Organizaciones"
+              />
+            ) : null}
           </div>
         </div>
 
@@ -117,72 +120,15 @@ export default async function AdminHomePage() {
             ) : null}
 
             {!error && !memberships?.length ? (
-              <CreateOrganizationForm />
+              <p className="rounded-md bg-[#fbfaf7] p-3 text-sm leading-6 text-[#5f625d]">
+                Aun no tienes una organizacion asociada. Un platform admin debe
+                crear tu organizacion y asignarte como owner.
+              </p>
             ) : null}
           </div>
         </aside>
       </section>
     </main>
-  );
-}
-
-function CreateOrganizationForm() {
-  return (
-    <form action={createOrganization} className="space-y-4">
-      <p className="rounded-md bg-[#fbfaf7] p-3 text-sm leading-6 text-[#5f625d]">
-        Aun no tienes una organizacion asociada. Crea el workspace inicial para
-        operar eventos.
-      </p>
-
-      <label className="block">
-        <span className="text-sm font-medium text-[#1f2723]">Nombre</span>
-        <input
-          className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
-          name="name"
-          placeholder="Universidad, empresa o comunidad"
-          required
-        />
-      </label>
-
-      <label className="block">
-        <span className="text-sm font-medium text-[#1f2723]">Tipo</span>
-        <select
-          className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
-          name="type"
-          defaultValue="company"
-          required
-        >
-          <option value="university">Universidad</option>
-          <option value="company">Empresa</option>
-          <option value="foundation">Fundacion</option>
-          <option value="guild">Gremio</option>
-          <option value="incubator">Incubadora</option>
-          <option value="community">Comunidad</option>
-          <option value="producer">Productora</option>
-          <option value="public_institution">Institucion publica</option>
-          <option value="other">Otro</option>
-        </select>
-      </label>
-
-      <label className="block">
-        <span className="text-sm font-medium text-[#1f2723]">
-          Sitio web opcional
-        </span>
-        <input
-          className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
-          name="websiteUrl"
-          placeholder="https://..."
-          type="url"
-        />
-      </label>
-
-      <button
-        className="h-11 w-full rounded-md bg-[#102923] px-4 text-sm font-semibold text-white hover:bg-[#183b33]"
-        type="submit"
-      >
-        Crear organizacion
-      </button>
-    </form>
   );
 }
 

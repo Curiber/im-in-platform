@@ -2,6 +2,7 @@ import { CalendarPlus, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { SignOutButton } from "@/app/admin/sign-out-button";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -136,6 +137,7 @@ function AdminHeader() {
         >
           Volver
         </Link>
+        <SignOutButton />
       </div>
     </header>
   );

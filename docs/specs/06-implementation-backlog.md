@@ -165,6 +165,16 @@
 - [ ] Agregar vista read-only de evento eliminado.
 - [ ] Permitir restaurar solo a owner.
 
+## Epic 21: Platform admin organizations
+
+- [x] Agregar logout visible en pantallas principales del admin.
+- [x] Bloquear creacion autoservicio de organizaciones.
+- [x] Crear ruta `/admin/organizations` para platform admins.
+- [x] Crear organizaciones desde platform admin.
+- [x] Invitar o reutilizar usuario owner por email.
+- [x] Asignar owner inicial en `organization_users`.
+- [x] Ocultar gestion de organizaciones a usuarios no platform admin.
+
 ## Primera vertical recomendada
 
 Construir primero:
