@@ -130,10 +130,10 @@
 
 ## Epic 16: Rediseno networking
 
-- [ ] Redisenar directorio.
-- [ ] Redisenar perfil de asistente.
-- [ ] Redisenar conexiones.
-- [ ] Integrar tarjeta virtual.
+- [x] Redisenar directorio.
+- [x] Redisenar perfil de asistente.
+- [x] Redisenar conexiones.
+- [x] Integrar tarjeta virtual.
 
 ## Epic 17: Admin polish
 

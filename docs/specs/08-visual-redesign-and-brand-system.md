@@ -225,10 +225,12 @@ Refinamiento aplicado despues del primer pase:
 
 ### Epic 17: Networking UI redesign
 
-- [ ] Redisenar directorio con foto y perfiles mas claros.
-- [ ] Redisenar detalle de perfil.
-- [ ] Redisenar conexiones recibidas/enviadas.
-- [ ] Agregar estados visuales para solicitudes pendientes y aceptadas.
+- [x] Redisenar directorio con foto y perfiles mas claros.
+- [x] Redisenar detalle de perfil.
+- [x] Redisenar conexiones recibidas/enviadas.
+- [x] Agregar estados visuales para solicitudes pendientes y aceptadas.
+- [x] Integrar tarjeta virtual: "Mi tarjeta" en directorio y links en
+  conexiones aceptadas y perfil propio/conectado.
 
 ### Epic 18: Admin UI polish
 

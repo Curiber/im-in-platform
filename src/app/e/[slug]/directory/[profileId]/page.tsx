@@ -2,7 +2,8 @@ import {
   ArrowLeft,
   BriefcaseBusiness,
   Building2,
-  UserRound,
+  IdCard,
+  UserRoundPlus,
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -25,6 +26,7 @@ type DirectoryProfileDetail = {
     headline: string | null;
     description: string | null;
     avatar_url: string | null;
+    profile_slug: string | null;
   } | null;
 };
 
@@ -51,7 +53,7 @@ export default async function EventDirectoryProfilePage({
   const { data: profile } = await adminClient
     .from("event_registrations")
     .select(
-      "id, full_name_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, attendee_profiles(headline, description, avatar_url)",
+      "id, full_name_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, attendee_profiles(headline, description, avatar_url, profile_slug)",
     )
     .eq("id", profileId)
     .eq("event_id", viewer.event_id)
@@ -90,19 +92,25 @@ export default async function EventDirectoryProfilePage({
     }>();
 
   const accessQuery = `registrationId=${viewer.id}&token=${token}`;
+  const isConnected = existingConnection?.status === "accepted";
+  const cardSlug = profile.attendee_profiles?.profile_slug;
+  const showCardLink =
+    cardSlug && (profile.id === viewer.id || isConnected);
 
   return (
-    <main className="min-h-screen bg-[#f6f4ef] text-[#171717]">
-      <header className="border-b border-[#d9d5cb] bg-white">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-5 py-4 sm:px-8">
+    <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
+      <header className="sticky top-0 z-40 border-b border-brand-border/70 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-5 py-4 sm:px-8">
           <div>
-            <p className="text-sm font-semibold text-[#2f6f4e]">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-cyan-500">
               Perfil del asistente
             </p>
-            <h1 className="text-xl font-semibold">{viewer.events.name}</h1>
+            <h1 className="text-xl font-semibold text-brand-navy-950">
+              {viewer.events.name}
+            </h1>
           </div>
           <Link
-            className="inline-flex items-center gap-2 rounded-md border border-[#d9d5cb] px-3 py-2 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+            className="inline-flex items-center gap-2 rounded-md border border-brand-border bg-white px-3 py-2 text-sm font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft"
             href={`/e/${slug}/directory?${accessQuery}`}
           >
             <ArrowLeft className="size-4" aria-hidden="true" />
@@ -112,118 +120,140 @@ export default async function EventDirectoryProfilePage({
       </header>
 
       <section className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8">
-        <article className="rounded-lg border border-[#d9d5cb] bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-            {profile.attendee_profiles?.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                alt={profile.full_name_snapshot}
-                className="size-16 shrink-0 rounded-md object-cover"
-                src={profile.attendee_profiles.avatar_url}
-              />
-            ) : (
-              <span className="flex size-16 shrink-0 items-center justify-center rounded-md bg-[#e3f0d9] text-[#2f6f4e]">
-                <UserRound className="size-9" aria-hidden="true" />
-              </span>
-            )}
-            <div>
-              <h2 className="text-3xl font-semibold">
-                {profile.full_name_snapshot}
-              </h2>
-              <p className="mt-2 text-lg leading-7 text-[#4a4d49]">
-                {profile.role_snapshot ?? "Rol por confirmar"}
-              </p>
-              {profile.attendee_profiles?.headline ? (
-                <p className="mt-2 italic leading-7 text-[#5f625d]">
-                  {profile.attendee_profiles.headline}
-                </p>
-              ) : null}
-            </div>
-          </div>
-
-          {profile.attendee_profiles?.description ? (
-            <p className="mt-6 max-w-3xl leading-7 text-[#4a4d49]">
-              {profile.attendee_profiles.description}
-            </p>
-          ) : null}
-
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            <Info
-              icon={<Building2 className="size-5" aria-hidden="true" />}
-              label="Empresa u organizacion"
-              value={profile.company_snapshot ?? "No informado"}
-            />
-            <Info
-              icon={<BriefcaseBusiness className="size-5" aria-hidden="true" />}
-              label="Area"
-              value={profile.industry_snapshot ?? "No informada"}
-            />
-          </div>
-
-          <div className="mt-8">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2f6f4e]">
-              Intereses
-            </h3>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {profile.interests.map((interest) => (
-                <span
-                  className="rounded-md bg-[#eef6e9] px-3 py-1 text-sm font-semibold text-[#2f6f4e]"
-                  key={interest}
-                >
-                  {interest}
+        <article className="overflow-hidden rounded-lg border border-brand-border bg-white shadow-sm">
+          <div className="bg-brand-gradient-primary px-6 py-8 text-white">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+              {profile.attendee_profiles?.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  alt={profile.full_name_snapshot}
+                  className="size-20 shrink-0 rounded-full border-2 border-white/30 object-cover"
+                  src={profile.attendee_profiles.avatar_url}
+                />
+              ) : (
+                <span className="flex size-20 shrink-0 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 text-2xl font-semibold">
+                  {initials(profile.full_name_snapshot)}
                 </span>
-              ))}
+              )}
+              <div>
+                <h2 className="text-3xl font-semibold">
+                  {profile.full_name_snapshot}
+                </h2>
+                <p className="mt-1 text-lg leading-7 text-white/85">
+                  {profile.role_snapshot ?? "Rol por confirmar"}
+                  {profile.company_snapshot
+                    ? ` en ${profile.company_snapshot}`
+                    : ""}
+                </p>
+                {profile.attendee_profiles?.headline ? (
+                  <p className="mt-2 leading-7 text-brand-mint-300">
+                    {profile.attendee_profiles.headline}
+                  </p>
+                ) : null}
+              </div>
             </div>
           </div>
 
-          {profile.id !== viewer.id && !existingConnection ? (
-            <form
-              action={createConnectionRequest}
-              className="mt-8 rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4"
-            >
-              <input name="slug" type="hidden" value={slug} />
-              <input name="registrationId" type="hidden" value={viewer.id} />
-              <input name="token" type="hidden" value={token} />
-              <input
-                name="receiverRegistrationId"
-                type="hidden"
-                value={profile.id}
-              />
-              <p className="text-sm font-semibold text-[#1f2723]">
-                Solicitud de conexion
+          <div className="p-6">
+            {profile.attendee_profiles?.description ? (
+              <p className="max-w-3xl leading-7 text-brand-slate-600">
+                {profile.attendee_profiles.description}
               </p>
-              <p className="mt-1 text-sm leading-6 text-[#5f625d]">
-                Si acepta, ambos recibiran los datos de contacto por email.
-              </p>
-              <button
-                className="mt-4 h-10 rounded-md bg-[#102923] px-4 text-sm font-semibold text-white hover:bg-[#183b33]"
-                type="submit"
-              >
-                Conectar
-              </button>
-            </form>
-          ) : null}
+            ) : null}
 
-          {profile.id !== viewer.id && existingConnection ? (
-            <div className="mt-8 rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4">
-              <p className="text-sm font-semibold text-[#1f2723]">
-                Conexion ya solicitada
-              </p>
-              <p className="mt-1 text-sm leading-6 text-[#5f625d]">
-                {connectionStatusText({
-                  status: existingConnection.status,
-                  viewerId: viewer.id,
-                  requesterId: existingConnection.requester_registration_id,
-                })}
-              </p>
-              <Link
-                className="mt-4 inline-flex h-10 items-center rounded-md border border-[#d9d5cb] px-4 text-sm font-semibold text-[#1f2723] hover:bg-white"
-                href={`/e/${slug}/connections?${accessQuery}`}
-              >
-                Ver conexiones
-              </Link>
+            <div
+              className={`grid gap-4 sm:grid-cols-2 ${profile.attendee_profiles?.description ? "mt-6" : ""}`}
+            >
+              <Info
+                icon={<Building2 className="size-5" aria-hidden="true" />}
+                label="Empresa u organizacion"
+                value={profile.company_snapshot ?? "No informado"}
+              />
+              <Info
+                icon={
+                  <BriefcaseBusiness className="size-5" aria-hidden="true" />
+                }
+                label="Area"
+                value={profile.industry_snapshot ?? "No informada"}
+              />
             </div>
-          ) : null}
+
+            <div className="mt-8">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-cyan-500">
+                Intereses
+              </h3>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {profile.interests.map((interest) => (
+                  <span
+                    className="rounded-md bg-brand-slate-100 px-3 py-1 text-sm font-semibold text-brand-navy-900"
+                    key={interest}
+                  >
+                    {interest}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {showCardLink ? (
+              <Link
+                className="mt-8 inline-flex h-10 items-center gap-2 rounded-md border border-brand-border bg-white px-4 text-sm font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft"
+                href={`/p/${cardSlug}?source=event`}
+              >
+                <IdCard className="size-4 text-brand-cyan-500" aria-hidden="true" />
+                Ver tarjeta virtual
+              </Link>
+            ) : null}
+
+            {profile.id !== viewer.id && !existingConnection ? (
+              <form
+                action={createConnectionRequest}
+                className="mt-8 rounded-md border border-brand-border bg-brand-gradient-soft p-5"
+              >
+                <input name="slug" type="hidden" value={slug} />
+                <input name="registrationId" type="hidden" value={viewer.id} />
+                <input name="token" type="hidden" value={token} />
+                <input
+                  name="receiverRegistrationId"
+                  type="hidden"
+                  value={profile.id}
+                />
+                <p className="text-sm font-semibold text-brand-navy-950">
+                  Solicitud de conexion
+                </p>
+                <p className="mt-1 text-sm leading-6 text-brand-slate-600">
+                  Si acepta, ambos recibiran los datos de contacto por email.
+                </p>
+                <button
+                  className="mt-4 inline-flex h-10 items-center gap-2 rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white transition hover:bg-brand-navy-900"
+                  type="submit"
+                >
+                  <UserRoundPlus className="size-4" aria-hidden="true" />
+                  Conectar
+                </button>
+              </form>
+            ) : null}
+
+            {profile.id !== viewer.id && existingConnection ? (
+              <div className="mt-8 rounded-md border border-brand-border bg-brand-surface-soft p-5">
+                <p className="text-sm font-semibold text-brand-navy-950">
+                  {isConnected ? "Conexion aceptada" : "Conexion ya solicitada"}
+                </p>
+                <p className="mt-1 text-sm leading-6 text-brand-slate-600">
+                  {connectionStatusText({
+                    status: existingConnection.status,
+                    viewerId: viewer.id,
+                    requesterId: existingConnection.requester_registration_id,
+                  })}
+                </p>
+                <Link
+                  className="mt-4 inline-flex h-10 items-center rounded-md border border-brand-border bg-white px-4 text-sm font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft"
+                  href={`/e/${slug}/connections?${accessQuery}`}
+                >
+                  Ver conexiones
+                </Link>
+              </div>
+            ) : null}
+          </div>
         </article>
       </section>
     </main>
@@ -250,6 +280,16 @@ function connectionStatusText({
   return "Esta persona ya te envio una solicitud pendiente. Respondela desde Conexiones.";
 }
 
+function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 function Info({
   icon,
   label,
@@ -260,10 +300,10 @@ function Info({
   value: string;
 }) {
   return (
-    <div className="rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4">
-      <span className="text-[#2f6f4e]">{icon}</span>
-      <p className="mt-3 text-sm text-[#5f625d]">{label}</p>
-      <p className="mt-1 font-semibold">{value}</p>
+    <div className="rounded-md border border-brand-border bg-brand-surface-soft p-4">
+      <span className="text-brand-cyan-500">{icon}</span>
+      <p className="mt-3 text-sm text-brand-slate-600">{label}</p>
+      <p className="mt-1 font-semibold text-brand-navy-950">{value}</p>
     </div>
   );
 }
