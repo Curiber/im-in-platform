@@ -208,6 +208,13 @@ Refinamiento aplicado despues del primer pase:
 - [x] Agregar CTAs a perfil/eventos.
 - [x] Verificar mobile.
 
+Refinamiento aplicado despues del primer pase:
+
+- [x] H1 con propuesta de valor en vez del nombre de marca.
+- [x] Header sticky con anchors a secciones y scroll suave.
+- [x] Bullets de confianza bajo el hero.
+- [x] Footer de marca con logo blanco transparente y tagline.
+
 ### Epic 16: Public event and registration redesign
 
 - [x] Redisenar `/e/[slug]`.

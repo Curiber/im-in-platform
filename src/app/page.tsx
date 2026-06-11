@@ -48,7 +48,7 @@ const audiences = [
 export default function Home() {
   return (
     <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
-      <header className="border-b border-brand-border/70 bg-white/90">
+      <header className="sticky top-0 z-40 border-b border-brand-border/70 bg-white/90 backdrop-blur">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
           <Link className="inline-flex items-center" href="/">
             <Image
@@ -60,7 +60,19 @@ export default function Home() {
               width={180}
             />
           </Link>
-          <nav className="flex items-center gap-2">
+          <nav className="flex items-center gap-1 sm:gap-2">
+            <a
+              className="hidden rounded-md px-3 py-2 text-sm font-semibold text-brand-slate-600 hover:text-brand-navy-950 md:inline-flex"
+              href="#como-funciona"
+            >
+              Como funciona
+            </a>
+            <a
+              className="hidden rounded-md px-3 py-2 text-sm font-semibold text-brand-slate-600 hover:text-brand-navy-950 md:inline-flex"
+              href="#beneficios"
+            >
+              Beneficios
+            </a>
             <Link
               className="rounded-md px-3 py-2 text-sm font-semibold text-brand-slate-600 hover:text-brand-navy-950"
               href="/login"
@@ -68,7 +80,7 @@ export default function Home() {
               Ingresar
             </Link>
             <Link
-              className="inline-flex h-10 items-center gap-2 rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white hover:bg-brand-navy-900"
+              className="inline-flex h-10 items-center gap-2 rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white transition hover:bg-brand-navy-900"
               href="/admin/events/new"
             >
               Crear evento
@@ -84,29 +96,52 @@ export default function Home() {
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-cyan-500">
               Networking inteligente para eventos
             </p>
-            <h1 className="mt-4 max-w-4xl text-5xl font-semibold leading-tight text-brand-navy-950 sm:text-6xl">
-              I&apos;M IN
+            <h1 className="mt-4 max-w-4xl text-4xl font-semibold leading-tight text-brand-navy-950 sm:text-6xl">
+              Conecta con las personas correctas en cada evento.
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-brand-slate-600">
-              Una plataforma para que profesionales descubran eventos, conecten
-              con personas relevantes y generen oportunidades reales de
-              networking.
+              I&apos;M IN une inscripcion, acreditacion QR y networking en una
+              sola experiencia: descubre quien asiste, conecta antes y conserva
+              el vinculo despues.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                className="inline-flex h-12 items-center gap-2 rounded-md bg-brand-navy-950 px-5 text-sm font-semibold text-white hover:bg-brand-navy-900"
-                href="/login"
-              >
-                Explorar plataforma
-                <ArrowRight className="size-4" aria-hidden="true" />
-              </Link>
-              <Link
-                className="inline-flex h-12 items-center rounded-md border border-brand-border bg-white px-5 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
+                className="inline-flex h-12 items-center gap-2 rounded-md bg-brand-navy-950 px-5 text-sm font-semibold text-white transition hover:bg-brand-navy-900"
                 href="/admin/events/new"
               >
-                Crear evento
+                Crear mi evento
+                <ArrowRight className="size-4" aria-hidden="true" />
               </Link>
+              <a
+                className="inline-flex h-12 items-center rounded-md border border-brand-border bg-white px-5 text-sm font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft"
+                href="#como-funciona"
+              >
+                Ver como funciona
+              </a>
             </div>
+            <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-brand-slate-600">
+              <li className="inline-flex items-center gap-2">
+                <BadgeCheck
+                  className="size-4 text-brand-cyan-500"
+                  aria-hidden="true"
+                />
+                QR de acceso incluido
+              </li>
+              <li className="inline-flex items-center gap-2">
+                <Users
+                  className="size-4 text-brand-cyan-500"
+                  aria-hidden="true"
+                />
+                Directorio privado por evento
+              </li>
+              <li className="inline-flex items-center gap-2">
+                <Network
+                  className="size-4 text-brand-cyan-500"
+                  aria-hidden="true"
+                />
+                Conexiones con consentimiento
+              </li>
+            </ul>
           </div>
 
           <div className="relative">
@@ -148,7 +183,10 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-7xl px-5 py-14 sm:px-8">
+      <section
+        className="mx-auto w-full max-w-7xl scroll-mt-20 px-5 py-14 sm:px-8"
+        id="como-funciona"
+      >
         <div className="max-w-3xl">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-cyan-500">
             Como funciona
@@ -181,7 +219,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-white">
+      <section className="scroll-mt-20 bg-white" id="beneficios">
         <div className="mx-auto grid w-full max-w-7xl gap-8 px-5 py-14 sm:px-8 lg:grid-cols-[1fr_420px]">
           <div>
             <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-brand-cyan-500">
@@ -228,7 +266,7 @@ export default function Home() {
             IN conecte a las personas correctas.
           </p>
           <Link
-            className="mt-7 inline-flex h-12 items-center gap-2 rounded-md bg-white px-5 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
+            className="mt-7 inline-flex h-12 items-center gap-2 rounded-md bg-white px-5 text-sm font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft"
             href="/admin/events/new"
           >
             Crear evento
@@ -236,6 +274,46 @@ export default function Home() {
           </Link>
         </div>
       </section>
+
+      <footer className="bg-brand-navy-950 text-white">
+        <div className="mx-auto grid w-full max-w-7xl gap-10 px-5 py-12 sm:px-8 md:grid-cols-[1fr_auto]">
+          <div>
+            <Image
+              alt="I'M IN"
+              className="h-auto w-36"
+              height={45}
+              src="/brand/im-in-logo-white.png"
+              width={180}
+            />
+            <p className="mt-4 max-w-sm text-sm leading-6 text-white/70">
+              Conectar. Compartir. Crear impacto.
+            </p>
+          </div>
+          <nav className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm md:text-right">
+            <a className="text-white/80 hover:text-white" href="#como-funciona">
+              Como funciona
+            </a>
+            <a className="text-white/80 hover:text-white" href="#beneficios">
+              Beneficios
+            </a>
+            <Link className="text-white/80 hover:text-white" href="/login">
+              Ingresar
+            </Link>
+            <Link
+              className="text-white/80 hover:text-white"
+              href="/admin/events/new"
+            >
+              Crear evento
+            </Link>
+          </nav>
+        </div>
+        <div className="border-t border-white/10">
+          <p className="mx-auto w-full max-w-7xl px-5 py-5 text-xs text-white/50 sm:px-8">
+            I&apos;M IN. Plataforma de inscripcion, acreditacion y networking
+            para eventos.
+          </p>
+        </div>
+      </footer>
     </main>
   );
 }
