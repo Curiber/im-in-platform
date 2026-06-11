@@ -39,6 +39,28 @@ de eventos. Esto genera friccion operativa cuando:
 - No crear multi-organizacion avanzada.
 - No permitir que `event_admin` elimine eventos sin permiso superior.
 
+## Platform admin
+
+La creacion de organizaciones no debe ser autoservicio. Para el MVP, solo los
+administradores internos de la plataforma pueden crear organizaciones cliente y
+asignar el owner inicial.
+
+Identificacion MVP:
+
+- `auth.users.raw_app_meta_data.platform_role = "platform_admin"`
+
+Flujo:
+
+1. Platform admin entra a `/admin/organizations`.
+2. Crea la organizacion.
+3. Ingresa email del owner inicial.
+4. Si el usuario ya existe en Supabase Auth, se reutiliza.
+5. Si no existe, se envia invitacion de Supabase Auth.
+6. Se crea `organization_users` con rol `owner`.
+
+Usuarios sin `platform_role = "platform_admin"` no pueden acceder a la ruta ni
+ejecutar la action de creacion.
+
 ## Roles y permisos
 
 ### Editar organizacion
@@ -252,6 +274,16 @@ Agregar zona de peligro:
 - [ ] Crear vista de detalle read-only para evento eliminado.
 - [ ] Crear action `restoreEvent` solo para owner.
 - [ ] Registrar `restored_at` y `restored_by` si se implementa auditoria.
+
+### Epic 21: Platform admin organizations
+
+- [x] Agregar logout visible en pantallas principales del admin.
+- [x] Remover creacion autoservicio de organizaciones desde `/admin`.
+- [x] Crear helper `isPlatformAdmin`.
+- [x] Crear `/admin/organizations`.
+- [x] Crear server action de alta de organizacion protegida por platform admin.
+- [x] Invitar o reutilizar usuario owner por email.
+- [x] Crear membership owner inicial.
 
 ## Orden recomendado
 
