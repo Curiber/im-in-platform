@@ -63,17 +63,17 @@ export default async function EventProfilePage({
   const accessQuery = `registrationId=${registration.id}&token=${token}`;
 
   return (
-    <main className="min-h-screen bg-[#f6f4ef] text-[#171717]">
-      <header className="border-b border-[#d9d5cb] bg-white">
+    <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
+      <header className="border-b border-brand-border bg-white">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-5 py-4 sm:px-8">
           <div>
-            <p className="text-sm font-semibold text-[#2f6f4e]">
+            <p className="text-sm font-semibold text-brand-cyan-500">
               Perfil profesional
             </p>
             <h1 className="text-xl font-semibold">{registration.events?.name}</h1>
           </div>
           <Link
-            className="inline-flex items-center gap-2 rounded-md border border-[#d9d5cb] px-3 py-2 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+            className="inline-flex items-center gap-2 rounded-md border border-brand-border px-3 py-2 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
             href={`/e/${slug}/registered?${accessQuery}`}
           >
             <ArrowLeft className="size-4" aria-hidden="true" />
@@ -85,18 +85,18 @@ export default async function EventProfilePage({
       <section className="mx-auto grid w-full max-w-5xl gap-6 px-5 py-8 sm:px-8 lg:grid-cols-[1fr_300px]">
         <form
           action={updateAttendeeProfile}
-          className="rounded-lg border border-[#d9d5cb] bg-white p-6 shadow-sm"
+          className="rounded-lg border border-brand-border bg-white p-6 shadow-sm"
         >
           <input name="slug" type="hidden" value={slug} />
           <input name="registrationId" type="hidden" value={registration.id} />
           <input name="token" type="hidden" value={token} />
 
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2f6f4e]">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-cyan-500">
               Datos visibles
             </p>
             <h2 className="mt-1 text-3xl font-semibold">Edita tu perfil</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#5f625d]">
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-brand-slate-600">
               Estos datos se usan en el directorio del evento y preparan tu
               futura tarjeta virtual.
             </p>
@@ -106,8 +106,8 @@ export default async function EventProfilePage({
             <p
               className={
                 profileStatus === "updated"
-                  ? "mt-5 rounded-md bg-[#eef6e9] p-3 text-sm font-semibold text-[#2f6f4e]"
-                  : "mt-5 rounded-md bg-[#f8ded8] p-3 text-sm font-semibold text-[#8a2f24]"
+                  ? "mt-5 rounded-md bg-brand-slate-100 p-3 text-sm font-semibold text-brand-cyan-500"
+                  : "mt-5 rounded-md bg-red-50 p-3 text-sm font-semibold text-red-700"
               }
             >
               {formatProfileStatus(profileStatus)}
@@ -191,11 +191,11 @@ export default async function EventProfilePage({
             </Field>
 
             <label className="block md:col-span-2">
-              <span className="text-sm font-medium text-[#1f2723]">
+              <span className="text-sm font-medium text-brand-navy-950">
                 Bio breve
               </span>
               <textarea
-                className="mt-2 min-h-28 w-full rounded-md border border-[#d9d5cb] bg-white px-3 py-3 text-sm outline-none focus:border-[#2f6f4e]"
+                className="mt-2 min-h-28 w-full rounded-md border border-brand-border bg-white px-3 py-3 text-sm outline-none focus:border-brand-cyan-500"
                 defaultValue={profile.description ?? ""}
                 maxLength={500}
                 name="description"
@@ -205,16 +205,16 @@ export default async function EventProfilePage({
           </div>
 
           <fieldset className="mt-6">
-            <legend className="text-sm font-semibold text-[#1f2723]">
+            <legend className="text-sm font-semibold text-brand-navy-950">
               Intereses
             </legend>
-            <p className="mt-1 text-sm text-[#5f625d]">
+            <p className="mt-1 text-sm text-brand-slate-600">
               Selecciona hasta 5 temas para mejorar tus matches.
             </p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {interests.map((interest) => (
                 <label
-                  className="flex items-center gap-3 rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-3 text-sm"
+                  className="flex items-center gap-3 rounded-md border border-brand-border/60 bg-brand-surface-soft p-3 text-sm"
                   key={interest}
                 >
                   <input
@@ -229,7 +229,7 @@ export default async function EventProfilePage({
             </div>
           </fieldset>
 
-          <label className="mt-6 flex items-start gap-3 rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4">
+          <label className="mt-6 flex items-start gap-3 rounded-md border border-brand-border/60 bg-brand-surface-soft p-4">
             <input
               className="mt-1 size-4"
               defaultChecked={registration.public_profile_enabled}
@@ -237,10 +237,10 @@ export default async function EventProfilePage({
               type="checkbox"
             />
             <span>
-              <span className="block text-sm font-semibold text-[#1f2723]">
+              <span className="block text-sm font-semibold text-brand-navy-950">
                 Aparecer en el directorio y recibir solicitudes
               </span>
-              <span className="mt-1 block text-sm leading-6 text-[#5f625d]">
+              <span className="mt-1 block text-sm leading-6 text-brand-slate-600">
                 Si desactivas esto, otros asistentes no podran encontrarte ni
                 pedir conectar contigo en este evento.
               </span>
@@ -248,7 +248,7 @@ export default async function EventProfilePage({
           </label>
 
           <button
-            className="mt-6 inline-flex h-11 items-center gap-2 rounded-md bg-[#102923] px-5 text-sm font-semibold text-white hover:bg-[#183b33]"
+            className="mt-6 inline-flex h-11 items-center gap-2 rounded-md bg-brand-navy-950 px-5 text-sm font-semibold text-white hover:bg-brand-navy-900"
             type="submit"
           >
             <Save className="size-4" aria-hidden="true" />
@@ -257,7 +257,7 @@ export default async function EventProfilePage({
         </form>
 
         <aside className="space-y-4">
-          <div className="rounded-lg border border-[#d9d5cb] bg-white p-5 text-center shadow-sm">
+          <div className="rounded-lg border border-brand-border bg-white p-5 text-center shadow-sm">
             {profile.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -266,23 +266,23 @@ export default async function EventProfilePage({
                 src={profile.avatar_url}
               />
             ) : (
-              <span className="mx-auto flex size-28 items-center justify-center rounded-md bg-[#e3f0d9] text-[#2f6f4e]">
+              <span className="mx-auto flex size-28 items-center justify-center rounded-md bg-brand-slate-100 text-brand-cyan-500">
                 <UserRound className="size-14" aria-hidden="true" />
               </span>
             )}
             <h3 className="mt-4 text-xl font-semibold">{profile.full_name}</h3>
-            <p className="mt-1 text-sm leading-6 text-[#5f625d]">
+            <p className="mt-1 text-sm leading-6 text-brand-slate-600">
               {profile.headline ?? "Agrega una descripcion para tu tarjeta."}
             </p>
             <Link
-              className="mt-4 inline-flex h-10 items-center justify-center rounded-md border border-[#d9d5cb] px-4 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+              className="mt-4 inline-flex h-10 items-center justify-center rounded-md border border-brand-border px-4 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
               href={`/e/${slug}/registered?${accessQuery}`}
             >
               Cambiar foto
             </Link>
             {profile.profile_slug ? (
               <Link
-                className="mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#102923] px-4 text-sm font-semibold text-white hover:bg-[#183b33]"
+                className="mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white hover:bg-brand-navy-900"
                 href={`/p/${profile.profile_slug}`}
                 target="_blank"
               >
@@ -306,7 +306,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="text-sm font-medium text-[#1f2723]">{label}</span>
+      <span className="text-sm font-medium text-brand-navy-950">{label}</span>
       <span className="mt-2 block">{children}</span>
     </label>
   );
@@ -323,4 +323,4 @@ function formatProfileStatus(status: "error" | "invalid" | "updated") {
 }
 
 const inputClass =
-  "h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]";
+  "h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500";

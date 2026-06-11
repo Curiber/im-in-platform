@@ -97,15 +97,15 @@ export default async function AdminEventDetailPage({
   const canDelete = membership?.role === "owner" || membership?.role === "admin";
 
   return (
-    <main className="min-h-screen bg-[#f6f4ef] text-[#171717]">
-      <header className="border-b border-[#d9d5cb] bg-white">
+    <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
+      <header className="border-b border-brand-border bg-white">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
           <div>
-            <p className="text-sm font-semibold text-[#2f6f4e]">Evento</p>
+            <p className="text-sm font-semibold text-brand-cyan-500">Evento</p>
             <h1 className="text-xl font-semibold">{event.name}</h1>
           </div>
           <Link
-            className="inline-flex items-center gap-2 rounded-md border border-[#d9d5cb] px-3 py-2 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+            className="inline-flex items-center gap-2 rounded-md border border-brand-border px-3 py-2 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
             href="/admin/events"
           >
             <ArrowLeft className="size-4" aria-hidden="true" />
@@ -115,32 +115,32 @@ export default async function AdminEventDetailPage({
       </header>
 
       <section className="mx-auto grid w-full max-w-6xl gap-6 px-5 py-8 sm:px-8 lg:grid-cols-[1fr_360px]">
-        <article className="rounded-lg border border-[#d9d5cb] bg-white p-6 shadow-sm">
+        <article className="rounded-lg border border-brand-border bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <span className="inline-flex rounded-md bg-[#e3f0d9] px-3 py-1 text-sm font-semibold text-[#2f6f4e]">
+              <span className="inline-flex rounded-md bg-brand-slate-100 px-3 py-1 text-sm font-semibold text-brand-cyan-500">
                 {formatStatus(event.status)}
               </span>
               <h2 className="mt-4 text-3xl font-semibold">{event.name}</h2>
-              <p className="mt-2 text-[#5f625d]">
+              <p className="mt-2 text-brand-slate-600">
                 {event.organizations?.name ?? "Organizacion"}
               </p>
             </div>
             <div className="flex gap-2">
               <Link
-                className="inline-flex h-10 items-center rounded-md border border-[#d9d5cb] px-4 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+                className="inline-flex h-10 items-center rounded-md border border-brand-border px-4 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
                 href={`/admin/events/${event.id}/edit`}
               >
                 Editar
               </Link>
               <Link
-                className="inline-flex h-10 items-center rounded-md border border-[#d9d5cb] px-4 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+                className="inline-flex h-10 items-center rounded-md border border-brand-border px-4 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
                 href={`/admin/events/${event.id}/check-in`}
               >
                 Check-in
               </Link>
               <Link
-                className="inline-flex h-10 items-center rounded-md border border-[#d9d5cb] px-4 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+                className="inline-flex h-10 items-center rounded-md border border-brand-border px-4 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
                 href={`/admin/events/${event.id}/dashboard`}
               >
                 Dashboard
@@ -150,7 +150,7 @@ export default async function AdminEventDetailPage({
                   <input name="eventId" type="hidden" value={event.id} />
                   <input name="slug" type="hidden" value={event.slug} />
                   <button
-                    className="h-10 rounded-md bg-[#102923] px-4 text-sm font-semibold text-white hover:bg-[#183b33]"
+                    className="h-10 rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white hover:bg-brand-navy-900"
                     type="submit"
                   >
                     Publicar
@@ -162,7 +162,7 @@ export default async function AdminEventDetailPage({
                   <input name="eventId" type="hidden" value={event.id} />
                   <input name="slug" type="hidden" value={event.slug} />
                   <button
-                    className="h-10 rounded-md border border-[#d9d5cb] px-4 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+                    className="h-10 rounded-md border border-brand-border px-4 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
                     type="submit"
                   >
                     Cerrar
@@ -172,7 +172,7 @@ export default async function AdminEventDetailPage({
             </div>
           </div>
 
-          <p className="mt-6 max-w-3xl leading-7 text-[#4a4d49]">
+          <p className="mt-6 max-w-3xl leading-7 text-brand-slate-600">
             {event.description || "Sin descripcion por ahora."}
           </p>
 
@@ -197,7 +197,7 @@ export default async function AdminEventDetailPage({
           <div className="mt-10">
             <h3 className="flex items-center gap-2 text-xl font-semibold">
               <CalendarClock
-                className="size-5 text-[#2f6f4e]"
+                className="size-5 text-brand-cyan-500"
                 aria-hidden="true"
               />
               Agenda
@@ -207,21 +207,21 @@ export default async function AdminEventDetailPage({
               <div className="mt-4 space-y-3">
                 {agendaItems.map((item) => (
                   <div
-                    className="flex items-start justify-between gap-4 rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4"
+                    className="flex items-start justify-between gap-4 rounded-md border border-brand-border/60 bg-brand-surface-soft p-4"
                     key={item.id}
                   >
                     <div>
-                      <p className="text-sm font-semibold text-[#254f74]">
+                      <p className="text-sm font-semibold text-brand-blue-700">
                         {formatTimeRange(item.starts_at, item.ends_at)}
                       </p>
                       <p className="mt-1 font-semibold">{item.title}</p>
                       {item.description ? (
-                        <p className="mt-1 text-sm leading-6 text-[#5f625d]">
+                        <p className="mt-1 text-sm leading-6 text-brand-slate-600">
                           {item.description}
                         </p>
                       ) : null}
                       {item.location ? (
-                        <p className="mt-1 text-sm text-[#5f625d]">
+                        <p className="mt-1 text-sm text-brand-slate-600">
                           {item.location}
                         </p>
                       ) : null}
@@ -232,7 +232,7 @@ export default async function AdminEventDetailPage({
                       <input name="slug" type="hidden" value={event.slug} />
                       <button
                         aria-label="Eliminar bloque"
-                        className="rounded-md border border-[#d9d5cb] p-2 text-[#8a2f24] hover:bg-white"
+                        className="rounded-md border border-brand-border p-2 text-red-700 hover:bg-white"
                         type="submit"
                       >
                         <Trash2 className="size-4" aria-hidden="true" />
@@ -242,24 +242,24 @@ export default async function AdminEventDetailPage({
                 ))}
               </div>
             ) : (
-              <p className="mt-4 rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4 text-sm text-[#5f625d]">
+              <p className="mt-4 rounded-md border border-brand-border/60 bg-brand-surface-soft p-4 text-sm text-brand-slate-600">
                 Sin bloques de agenda todavia. Agrega el primero abajo.
               </p>
             )}
 
             <form
               action={createAgendaItem}
-              className="mt-4 grid gap-4 rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4 sm:grid-cols-2"
+              className="mt-4 grid gap-4 rounded-md border border-brand-border/60 bg-brand-surface-soft p-4 sm:grid-cols-2"
             >
               <input name="eventId" type="hidden" value={event.id} />
               <input name="slug" type="hidden" value={event.slug} />
 
               <label className="block sm:col-span-2">
-                <span className="text-sm font-medium text-[#1f2723]">
+                <span className="text-sm font-medium text-brand-navy-950">
                   Titulo
                 </span>
                 <input
-                  className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
+                  className="mt-2 h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
                   name="title"
                   placeholder="Charla, panel, networking..."
                   required
@@ -267,11 +267,11 @@ export default async function AdminEventDetailPage({
               </label>
 
               <label className="block">
-                <span className="text-sm font-medium text-[#1f2723]">
+                <span className="text-sm font-medium text-brand-navy-950">
                   Inicio
                 </span>
                 <input
-                  className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
+                  className="mt-2 h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
                   name="startsAt"
                   type="datetime-local"
                   required
@@ -279,40 +279,40 @@ export default async function AdminEventDetailPage({
               </label>
 
               <label className="block">
-                <span className="text-sm font-medium text-[#1f2723]">
+                <span className="text-sm font-medium text-brand-navy-950">
                   Termino opcional
                 </span>
                 <input
-                  className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
+                  className="mt-2 h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
                   name="endsAt"
                   type="datetime-local"
                 />
               </label>
 
               <label className="block">
-                <span className="text-sm font-medium text-[#1f2723]">
+                <span className="text-sm font-medium text-brand-navy-950">
                   Lugar opcional
                 </span>
                 <input
-                  className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
+                  className="mt-2 h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
                   name="location"
                   placeholder="Sala, escenario..."
                 />
               </label>
 
               <label className="block">
-                <span className="text-sm font-medium text-[#1f2723]">
+                <span className="text-sm font-medium text-brand-navy-950">
                   Descripcion opcional
                 </span>
                 <input
-                  className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
+                  className="mt-2 h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
                   name="description"
                   placeholder="Detalle breve del bloque"
                 />
               </label>
 
               <button
-                className="h-11 rounded-md bg-[#102923] px-4 text-sm font-semibold text-white hover:bg-[#183b33] sm:col-span-2 sm:justify-self-start sm:px-6"
+                className="h-11 rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white hover:bg-brand-navy-900 sm:col-span-2 sm:justify-self-start sm:px-6"
                 type="submit"
               >
                 Agregar bloque
@@ -322,18 +322,18 @@ export default async function AdminEventDetailPage({
         </article>
 
         <aside className="space-y-4">
-          <div className="rounded-lg border border-[#d9d5cb] bg-white p-5 shadow-sm">
+          <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
             <h2 className="text-lg font-semibold">Link de inscripcion</h2>
-            <div className="mt-4 rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-3">
+            <div className="mt-4 rounded-md border border-brand-border/60 bg-brand-surface-soft p-3">
               <p className="break-all font-mono text-sm">{publicPath}</p>
             </div>
             {event.status === "draft" ? (
-              <p className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-md border border-[#d9d5cb] text-sm font-semibold text-[#5f625d]">
+              <p className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-md border border-brand-border text-sm font-semibold text-brand-slate-600">
                 Publica el evento para ver la pagina
               </p>
             ) : (
               <Link
-                className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-[#d9d5cb] text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+                className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-brand-border text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
                 href={publicPath}
               >
                 <Link2 className="size-4" aria-hidden="true" />
@@ -342,7 +342,7 @@ export default async function AdminEventDetailPage({
             )}
           </div>
 
-          <div className="rounded-lg border border-[#d9d5cb] bg-white p-5 shadow-sm">
+          <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
             <h2 className="text-lg font-semibold">Configuracion</h2>
             <dl className="mt-4 space-y-3 text-sm">
               <Row label="Tipo" value={event.event_type} />
@@ -354,11 +354,11 @@ export default async function AdminEventDetailPage({
             </dl>
           </div>
 
-          <div className="rounded-lg border border-[#e0b4ad] bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-[#8a2f24]">
+          <div className="rounded-lg border border-red-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-red-700">
               Zona de peligro
             </h2>
-            <p className="mt-2 text-sm leading-6 text-[#5f625d]">
+            <p className="mt-2 text-sm leading-6 text-brand-slate-600">
               Elimina este evento de la operacion normal. Los datos historicos
               se conservan para auditoria.
             </p>
@@ -367,25 +367,25 @@ export default async function AdminEventDetailPage({
                 <input name="eventId" type="hidden" value={event.id} />
                 <input name="slug" type="hidden" value={event.slug} />
                 <label className="block">
-                  <span className="text-sm font-medium text-[#1f2723]">
+                  <span className="text-sm font-medium text-brand-navy-950">
                     Motivo
                   </span>
                   <textarea
-                    className="mt-2 min-h-24 w-full rounded-md border border-[#d9d5cb] bg-white px-3 py-3 text-sm outline-none focus:border-[#8a2f24]"
+                    className="mt-2 min-h-24 w-full rounded-md border border-brand-border bg-white px-3 py-3 text-sm outline-none focus:border-red-400"
                     name="reason"
                     placeholder="Duplicado, cancelado, creado por error..."
                     required
                   />
                 </label>
                 <button
-                  className="inline-flex h-10 items-center rounded-md bg-[#8a2f24] px-4 text-sm font-semibold text-white hover:bg-[#72261d]"
+                  className="inline-flex h-10 items-center rounded-md bg-red-700 px-4 text-sm font-semibold text-white hover:bg-red-800"
                   type="submit"
                 >
                   Eliminar evento
                 </button>
               </form>
             ) : (
-              <p className="mt-4 rounded-md bg-[#fbfaf7] p-3 text-sm leading-6 text-[#5f625d]">
+              <p className="mt-4 rounded-md bg-brand-surface-soft p-3 text-sm leading-6 text-brand-slate-600">
                 Solo owners y admins pueden eliminar eventos.
               </p>
             )}
@@ -406,9 +406,9 @@ function InfoBlock({
   value: string;
 }) {
   return (
-    <div className="rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4">
-      <span className="text-[#2f6f4e]">{icon}</span>
-      <p className="mt-3 text-sm text-[#5f625d]">{label}</p>
+    <div className="rounded-md border border-brand-border/60 bg-brand-surface-soft p-4">
+      <span className="text-brand-cyan-500">{icon}</span>
+      <p className="mt-3 text-sm text-brand-slate-600">{label}</p>
       <p className="mt-1 font-semibold">{value}</p>
     </div>
   );
@@ -417,7 +417,7 @@ function InfoBlock({
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <dt className="text-[#5f625d]">{label}</dt>
+      <dt className="text-brand-slate-600">{label}</dt>
       <dd className="font-semibold">{value}</dd>
     </div>
   );

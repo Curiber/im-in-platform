@@ -24,11 +24,11 @@ export function LoginForm() {
     <div className="space-y-5">
     <form action={formAction} className="space-y-5">
       <label className="block">
-        <span className="text-sm font-medium text-[#1f2723]">Email</span>
-        <span className="mt-2 flex items-center gap-3 rounded-md border border-[#d9d5cb] bg-white px-3 py-3 shadow-sm">
-          <Mail className="size-5 text-[#5f625d]" aria-hidden="true" />
+        <span className="text-sm font-medium text-brand-navy-950">Email</span>
+        <span className="mt-2 flex items-center gap-3 rounded-md border border-brand-border bg-white px-3 py-3 shadow-sm">
+          <Mail className="size-5 text-brand-slate-600" aria-hidden="true" />
           <input
-            className="w-full bg-transparent text-base outline-none placeholder:text-[#888b85]"
+            className="w-full bg-transparent text-base outline-none placeholder:text-brand-slate-600/60"
             name="email"
             type="email"
             autoComplete="email"
@@ -39,7 +39,7 @@ export function LoginForm() {
       </label>
 
       <button
-        className="flex h-12 w-full items-center justify-center gap-2 rounded-md bg-[#102923] px-4 text-sm font-semibold text-white transition hover:bg-[#183b33] disabled:cursor-not-allowed disabled:opacity-65"
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white transition hover:bg-brand-navy-900 disabled:cursor-not-allowed disabled:opacity-65"
         disabled={isPending}
         type="submit"
       >
@@ -51,8 +51,8 @@ export function LoginForm() {
         <p
           className={
             state.status === "success"
-              ? "rounded-md bg-[#e3f0d9] px-3 py-2 text-sm text-[#2f6f4e]"
-              : "rounded-md bg-[#f8ded8] px-3 py-2 text-sm text-[#8a2f24]"
+              ? "rounded-md bg-brand-slate-100 px-3 py-2 text-sm text-brand-cyan-500"
+              : "rounded-md bg-red-50 px-3 py-2 text-sm text-red-700"
           }
         >
           {state.message}
@@ -61,16 +61,16 @@ export function LoginForm() {
     </form>
 
     <div className="flex items-center gap-3">
-      <span className="h-px flex-1 bg-[#d9d5cb]" aria-hidden="true" />
-      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#888b85]">
+      <span className="h-px flex-1 bg-brand-border" aria-hidden="true" />
+      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-slate-600/60">
         o
       </span>
-      <span className="h-px flex-1 bg-[#d9d5cb]" aria-hidden="true" />
+      <span className="h-px flex-1 bg-brand-border" aria-hidden="true" />
     </div>
 
     <form action={signInWithLinkedIn}>
       <button
-        className="flex h-12 w-full items-center justify-center gap-2 rounded-md border border-[#d9d5cb] bg-white px-4 text-sm font-semibold text-[#1f2723] transition hover:bg-[#f6f4ef]"
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-md border border-brand-border bg-white px-4 text-sm font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft"
         type="submit"
       >
         <LinkedInIcon className="size-4 text-[#0a66c2]" />

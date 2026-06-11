@@ -40,18 +40,18 @@ export default async function AdminEventsPage() {
     .returns<AdminEvent[]>();
 
   return (
-    <main className="min-h-screen bg-[#f6f4ef] text-[#171717]">
+    <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
       <AdminHeader />
       <section className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8">
         <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2f6f4e]">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-cyan-500">
               Eventos
             </p>
             <h1 className="mt-1 text-3xl font-semibold">Administracion</h1>
           </div>
           <Link
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#102923] px-4 text-sm font-semibold text-white hover:bg-[#183b33]"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white hover:bg-brand-navy-900"
             href="/admin/events/new"
           >
             <CalendarPlus className="size-4" aria-hidden="true" />
@@ -59,35 +59,35 @@ export default async function AdminEventsPage() {
           </Link>
         </div>
 
-        <div className="rounded-lg border border-[#d9d5cb] bg-white shadow-sm">
+        <div className="rounded-lg border border-brand-border bg-white shadow-sm">
           {error ? (
-            <p className="p-5 text-sm text-[#8a2f24]">
+            <p className="p-5 text-sm text-red-700">
               No se pudieron cargar los eventos.
             </p>
           ) : null}
 
           {!error && events?.length ? (
-            <div className="divide-y divide-[#e5e0d6]">
+            <div className="divide-y divide-brand-border/60">
               {events.map((event) => (
                 <Link
-                  className="grid gap-4 p-5 hover:bg-[#fbfaf7] md:grid-cols-[1fr_160px_120px_120px]"
+                  className="grid gap-4 p-5 hover:bg-brand-surface-soft md:grid-cols-[1fr_160px_120px_120px]"
                   href={`/admin/events/${event.id}`}
                   key={event.id}
                 >
                   <div>
                     <p className="font-semibold">{event.name}</p>
-                    <p className="mt-1 text-sm text-[#5f625d]">
+                    <p className="mt-1 text-sm text-brand-slate-600">
                       {event.organizations?.name ?? "Organizacion"} /{" "}
                       {event.slug}
                     </p>
                   </div>
-                  <p className="text-sm text-[#4a4d49]">
+                  <p className="text-sm text-brand-slate-600">
                     {formatDate(event.starts_at)}
                   </p>
-                  <p className="text-sm text-[#4a4d49]">
+                  <p className="text-sm text-brand-slate-600">
                     {event.capacity} cupos
                   </p>
-                  <span className="inline-flex h-8 items-center justify-center rounded-md bg-[#eef6e9] px-3 text-sm font-semibold text-[#2f6f4e]">
+                  <span className="inline-flex h-8 items-center justify-center rounded-md bg-brand-slate-100 px-3 text-sm font-semibold text-brand-cyan-500">
                     {formatStatus(event.status)}
                   </span>
                 </Link>
@@ -98,18 +98,18 @@ export default async function AdminEventsPage() {
           {!error && !events?.length ? (
             <div className="p-8 text-center">
               <CalendarPlus
-                className="mx-auto size-10 text-[#2f6f4e]"
+                className="mx-auto size-10 text-brand-cyan-500"
                 aria-hidden="true"
               />
               <h2 className="mt-4 text-xl font-semibold">
                 Crea tu primer evento
               </h2>
-              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#5f625d]">
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-brand-slate-600">
                 El MVP parte con eventos simples: fecha, lugar, cupos y link de
                 inscripcion.
               </p>
               <Link
-                className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#102923] px-4 text-sm font-semibold text-white hover:bg-[#183b33]"
+                className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white hover:bg-brand-navy-900"
                 href="/admin/events/new"
               >
                 <ExternalLink className="size-4" aria-hidden="true" />
@@ -125,14 +125,14 @@ export default async function AdminEventsPage() {
 
 function AdminHeader() {
   return (
-    <header className="border-b border-[#d9d5cb] bg-white">
+    <header className="border-b border-brand-border bg-white">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
         <Link href="/admin">
-          <p className="text-sm font-semibold text-[#2f6f4e]">I&apos;m IN</p>
+          <p className="text-sm font-semibold text-brand-cyan-500">I&apos;m IN</p>
           <p className="text-xl font-semibold">Panel organizador</p>
         </Link>
         <Link
-          className="rounded-md border border-[#d9d5cb] px-3 py-2 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+          className="rounded-md border border-brand-border px-3 py-2 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
           href="/admin"
         >
           Volver

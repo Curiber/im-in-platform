@@ -144,7 +144,7 @@ export function RegistrationForm({
       </label>
 
       {state.message ? (
-        <p className="rounded-md bg-[#f8ded8] px-3 py-2 text-sm text-[#8a2f24]">
+        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
           {state.message}
         </p>
       ) : null}
