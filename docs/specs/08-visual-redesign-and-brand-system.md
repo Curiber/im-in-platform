@@ -195,6 +195,12 @@ inspiracion y adaptar la marca I'M IN.
 - [x] Crear utilidades de gradiente y superficies.
 - [x] Actualizar favicon.
 
+Refinamiento aplicado despues del primer pase:
+
+- [x] Tipografia Geist Sans/Mono via `next/font`, reemplaza Arial.
+- [x] Utilidades `bg-brand-gradient-*` reemplazan sintaxis arbitraria.
+- [x] `favicon.ico` real generado desde `im-in-mark.png`, 1.7 KB.
+
 ### Epic 15: Marketing/home redesign
 
 - [x] Redisenar `/` con hero, beneficios, como funciona y CTA final.
