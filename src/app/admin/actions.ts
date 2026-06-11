@@ -4,11 +4,15 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { getServerEnv } from "@/lib/env";
+import { isPlatformAdmin } from "@/lib/platform-admin";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const organizationSchema = z.object({
   name: z.string().trim().min(2, "Ingresa el nombre de la organizacion."),
+  ownerEmail: z.string().trim().email("Ingresa un email valido."),
+  ownerName: z.string().trim().optional(),
   type: z.enum([
     "university",
     "company",
@@ -38,8 +42,14 @@ export async function createOrganization(formData: FormData) {
     redirect("/login");
   }
 
+  if (!isPlatformAdmin(user)) {
+    throw new Error("Solo platform admins pueden crear organizaciones.");
+  }
+
   const parsed = organizationSchema.safeParse({
     name: String(formData.get("name") ?? ""),
+    ownerEmail: String(formData.get("ownerEmail") ?? ""),
+    ownerName: String(formData.get("ownerName") ?? ""),
     type: formData.get("type"),
     websiteUrl: String(formData.get("websiteUrl") ?? ""),
   });
@@ -49,6 +59,12 @@ export async function createOrganization(formData: FormData) {
   }
 
   const adminClient = createSupabaseAdminClient();
+  const ownerEmail = parsed.data.ownerEmail.toLowerCase();
+  const ownerUser = await findOrInviteOwnerUser({
+    email: ownerEmail,
+    fullName: parsed.data.ownerName,
+  });
+
   const { data: organization, error: organizationError } = await adminClient
     .from("organizations")
     .insert({
@@ -67,7 +83,7 @@ export async function createOrganization(formData: FormData) {
     .from("organization_users")
     .insert({
       organization_id: organization.id,
-      user_id: user.id,
+      user_id: ownerUser.id,
       role: "owner",
     });
 
@@ -76,7 +92,72 @@ export async function createOrganization(formData: FormData) {
   }
 
   revalidatePath("/admin");
-  redirect("/admin");
+  revalidatePath("/admin/organizations");
+  redirect("/admin/organizations");
+}
+
+async function findOrInviteOwnerUser({
+  email,
+  fullName,
+}: {
+  email: string;
+  fullName?: string | null;
+}) {
+  const adminClient = createSupabaseAdminClient();
+  const existingUser = await findAuthUserByEmail(email);
+
+  if (existingUser) {
+    return existingUser;
+  }
+
+  const env = getServerEnv();
+  const redirectTo = `${env.APP_URL ?? "http://localhost:3000"}/auth/callback?next=/admin`;
+  const { data, error } = await adminClient.auth.admin.inviteUserByEmail(
+    email,
+    {
+      data: fullName ? { full_name: fullName } : undefined,
+      redirectTo,
+    },
+  );
+
+  if (error || !data.user) {
+    throw new Error("No se pudo crear o invitar al owner.");
+  }
+
+  return data.user;
+}
+
+async function findAuthUserByEmail(email: string) {
+  const adminClient = createSupabaseAdminClient();
+  const normalizedEmail = email.toLowerCase();
+  let page = 1;
+
+  while (page <= 20) {
+    const { data, error } = await adminClient.auth.admin.listUsers({
+      page,
+      perPage: 1000,
+    });
+
+    if (error) {
+      throw new Error("No se pudieron revisar los usuarios existentes.");
+    }
+
+    const match = data.users.find(
+      (candidate) => candidate.email?.toLowerCase() === normalizedEmail,
+    );
+
+    if (match) {
+      return match;
+    }
+
+    if (!data.nextPage) {
+      return null;
+    }
+
+    page = data.nextPage;
+  }
+
+  return null;
 }
 
 const organizationSettingsSchema = z.object({
