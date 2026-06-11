@@ -197,18 +197,18 @@ inspiracion y adaptar la marca I'M IN.
 
 ### Epic 15: Marketing/home redesign
 
-- [ ] Redisenar `/` con hero, beneficios, como funciona y CTA final.
-- [ ] Agregar visual de plataforma o mockup.
-- [ ] Agregar CTAs a perfil/eventos.
-- [ ] Verificar mobile.
+- [x] Redisenar `/` con hero, beneficios, como funciona y CTA final.
+- [x] Agregar visual de plataforma o mockup.
+- [x] Agregar CTAs a perfil/eventos.
+- [x] Verificar mobile.
 
 ### Epic 16: Public event and registration redesign
 
-- [ ] Redisenar `/e/[slug]`.
-- [ ] Redisenar `/e/[slug]/register`.
-- [ ] Redisenar `/e/[slug]/registered`.
-- [ ] Incorporar logo/event brand si existe.
-- [ ] Mejorar jerarquia de QR y acciones post-registro.
+- [x] Redisenar `/e/[slug]`.
+- [x] Redisenar `/e/[slug]/register`.
+- [x] Redisenar `/e/[slug]/registered`.
+- [x] Incorporar logo/event brand si existe.
+- [x] Mejorar jerarquia de QR y acciones post-registro.
 
 ### Epic 17: Networking UI redesign
 

@@ -123,10 +123,10 @@
 
 ## Epic 15: Rediseno publico
 
-- [ ] Redisenar home publica.
-- [ ] Redisenar pagina publica de evento.
-- [ ] Redisenar registro y confirmacion.
-- [ ] Incorporar visuales de networking y plataforma.
+- [x] Redisenar home publica.
+- [x] Redisenar pagina publica de evento.
+- [x] Redisenar registro y confirmacion.
+- [x] Incorporar visuales de networking y plataforma.
 
 ## Epic 16: Rediseno networking
 
