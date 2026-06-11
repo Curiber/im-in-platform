@@ -78,7 +78,7 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="overflow-hidden border-b border-brand-border/70 bg-[image:var(--brand-gradient-soft)]">
+      <section className="overflow-hidden border-b border-brand-border/70 bg-brand-gradient-soft">
         <div className="mx-auto grid min-h-[calc(100vh-73px)] w-full max-w-7xl items-center gap-10 px-5 py-12 sm:px-8 lg:grid-cols-[1fr_460px]">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-cyan-500">
@@ -117,7 +117,7 @@ export default function Home() {
                 <p className="text-sm font-semibold text-brand-navy-950">
                   Directorio del evento
                 </p>
-                <span className="rounded-md bg-[image:var(--brand-gradient-accent)] px-3 py-1 text-xs font-semibold text-brand-navy-950">
+                <span className="rounded-md bg-brand-gradient-accent px-3 py-1 text-xs font-semibold text-brand-navy-950">
                   En vivo
                 </span>
               </div>
@@ -166,7 +166,7 @@ export default function Home() {
                 className="rounded-lg border border-brand-border bg-white p-5 shadow-sm"
                 key={step.title}
               >
-                <span className="flex size-11 items-center justify-center rounded-md bg-[image:var(--brand-gradient-accent)] text-brand-navy-950">
+                <span className="flex size-11 items-center justify-center rounded-md bg-brand-gradient-accent text-brand-navy-950">
                   <Icon className="size-5" aria-hidden="true" />
                 </span>
                 <h3 className="mt-5 text-xl font-semibold text-brand-navy-950">
@@ -219,7 +219,7 @@ export default function Home() {
       </section>
 
       <section className="mx-auto w-full max-w-7xl px-5 py-14 sm:px-8">
-        <div className="rounded-lg bg-[image:var(--brand-gradient-primary)] px-6 py-10 text-white sm:px-10">
+        <div className="rounded-lg bg-brand-gradient-primary px-6 py-10 text-white sm:px-10">
           <h2 className="max-w-3xl text-3xl font-semibold">
             Activa networking real en tu proximo evento.
           </h2>

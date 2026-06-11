@@ -40,14 +40,26 @@
   --color-brand-surface: var(--brand-surface);
   --color-brand-surface-soft: var(--brand-surface-soft);
   --color-brand-border: var(--brand-border);
-  --font-sans: Arial, Helvetica, ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Courier New", ui-monospace, monospace;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+@utility bg-brand-gradient-primary {
+  background-image: var(--brand-gradient-primary);
+}
+
+@utility bg-brand-gradient-soft {
+  background-image: var(--brand-gradient-soft);
+}
+
+@utility bg-brand-gradient-accent {
+  background-image: var(--brand-gradient-accent);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }
 
 ::selection {

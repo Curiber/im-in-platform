@@ -63,7 +63,7 @@ export default async function PublicEventPage({
 
   return (
     <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
-      <section className="overflow-hidden bg-[image:var(--brand-gradient-primary)] text-white">
+      <section className="overflow-hidden bg-brand-gradient-primary text-white">
         <div className="mx-auto grid w-full max-w-7xl gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[1fr_340px] lg:py-16">
           <div>
             <Link className="inline-flex rounded-md bg-white p-2" href="/">
