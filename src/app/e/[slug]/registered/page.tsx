@@ -5,9 +5,10 @@ import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 
 import { uploadProfilePhoto } from "@/app/e/[slug]/registered/actions";
+import type { ProfileCardVisibility } from "@/lib/profile-card-visibility";
 import {
   createCheckInPayload,
-  hashRegistrationToken,
+  isRegistrationTokenValid,
 } from "@/lib/registration-token";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -27,6 +28,7 @@ type Registration = {
   qr_token_hash: string;
   attendee_profiles: {
     avatar_url: string | null;
+    card_visibility: ProfileCardVisibility;
     profile_slug: string | null;
   } | null;
   events: RegisteredEvent | null;
@@ -54,13 +56,13 @@ export default async function RegisteredPage({
   const { data: registration } = await adminClient
     .from("event_registrations")
     .select(
-      "id, email, full_name_snapshot, profile_id, qr_token_hash, attendee_profiles(avatar_url, profile_slug), events(name, starts_at, location)",
+      "id, email, full_name_snapshot, profile_id, qr_token_hash, attendee_profiles(avatar_url, card_visibility, profile_slug), events(name, starts_at, location)",
     )
     .eq("id", registrationId)
     .single()
     .returns<Registration>();
 
-  if (!registration || registration.qr_token_hash !== hashRegistrationToken(token)) {
+  if (!registration || !isRegistrationTokenValid(token, registration.qr_token_hash)) {
     notFound();
   }
 
@@ -202,7 +204,8 @@ export default async function RegisteredPage({
             Ver directorio del evento
           </Link>
 
-          {registration.attendee_profiles?.profile_slug ? (
+          {registration.attendee_profiles?.profile_slug &&
+          registration.attendee_profiles.card_visibility !== "private" ? (
             <Link
               className="ml-3 mt-6 inline-flex h-11 items-center justify-center rounded-md border border-brand-border px-4 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
               href={`/p/${registration.attendee_profiles.profile_slug}`}

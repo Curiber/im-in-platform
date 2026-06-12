@@ -17,6 +17,7 @@ import {
   acceptConnectionRequest,
   rejectConnectionRequest,
 } from "@/app/e/[slug]/connections/actions";
+import type { ProfileCardVisibility } from "@/lib/profile-card-visibility";
 import { verifyRegistrationAccess } from "@/lib/registrations";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -38,6 +39,7 @@ type RegistrationContact = {
   company_snapshot: string | null;
   attendee_profiles: {
     avatar_url: string | null;
+    card_visibility: ProfileCardVisibility;
     profile_slug: string | null;
   } | null;
 };
@@ -200,7 +202,10 @@ function RequestCard({
 }) {
   const canRespond = type === "received" && request.status === "pending";
   const isAccepted = request.status === "accepted";
-  const cardSlug = contact?.attendee_profiles?.profile_slug;
+  const cardSlug =
+    contact?.attendee_profiles?.card_visibility !== "private"
+      ? contact?.attendee_profiles?.profile_slug
+      : null;
 
   return (
     <article
@@ -391,7 +396,7 @@ async function loadContacts(ids: string[]) {
   const { data } = await adminClient
     .from("event_registrations")
     .select(
-      "id, email, full_name_snapshot, role_snapshot, company_snapshot, attendee_profiles(avatar_url, profile_slug)",
+      "id, email, full_name_snapshot, role_snapshot, company_snapshot, attendee_profiles(avatar_url, card_visibility, profile_slug)",
     )
     .in("id", uniqueIds)
     .returns<RegistrationContact[]>();

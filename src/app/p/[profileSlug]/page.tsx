@@ -14,12 +14,20 @@ import QRCode from "qrcode";
 import type { ReactNode } from "react";
 
 import { CopyProfileLinkButton } from "@/app/p/[profileSlug]/copy-profile-link-button";
+import {
+  canShowPublicEmail,
+  canShowPublicPhone,
+  isProfileCardPublic,
+  type ProfileCardVisibility,
+} from "@/lib/profile-card-visibility";
+import { getAppUrl } from "@/lib/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 type PublicProfile = {
   avatar_url: string | null;
+  card_visibility: ProfileCardVisibility;
   company: string | null;
   description: string | null;
   email: string;
@@ -30,6 +38,8 @@ type PublicProfile = {
   linkedin_url: string | null;
   phone: string | null;
   profile_slug: string;
+  public_email_enabled: boolean;
+  public_phone_enabled: boolean;
   role: string | null;
 };
 
@@ -43,16 +53,18 @@ export default async function PublicProfileCardPage({
   const { data: profile } = await adminClient
     .from("attendee_profiles")
     .select(
-      "avatar_url, company, description, email, full_name, headline, industry, interests, linkedin_url, phone, profile_slug, role",
+      "avatar_url, card_visibility, company, description, email, full_name, headline, industry, interests, linkedin_url, phone, profile_slug, public_email_enabled, public_phone_enabled, role",
     )
     .eq("profile_slug", profileSlug)
     .single<PublicProfile>();
 
-  if (!profile) {
+  if (!profile || !isProfileCardPublic(profile)) {
     notFound();
   }
 
   const profileUrl = buildProfileUrl(profile.profile_slug);
+  const showEmail = canShowPublicEmail(profile);
+  const showPhone = canShowPublicPhone(profile) && Boolean(profile.phone);
   const qrDataUrl = await QRCode.toDataURL(profileUrl, {
     errorCorrectionLevel: "M",
     margin: 2,
@@ -106,21 +118,33 @@ export default async function PublicProfileCardPage({
 
           <div className="px-6 py-6">
             <div className="grid gap-3">
-              <ContactItem
-                href={profile.phone ? `tel:${profile.phone}` : undefined}
-                icon={<Phone className="size-4" aria-hidden="true" />}
-                label={profile.phone ?? "Telefono no informado"}
-              />
-              <ContactItem
-                href={`mailto:${profile.email}`}
-                icon={<Mail className="size-4" aria-hidden="true" />}
-                label={profile.email}
-              />
-              <ContactItem
-                href={profile.linkedin_url ?? undefined}
-                icon={<ExternalLink className="size-4" aria-hidden="true" />}
-                label={formatLinkedIn(profile.linkedin_url)}
-              />
+              {showPhone ? (
+                <ContactItem
+                  href={`tel:${profile.phone}`}
+                  icon={<Phone className="size-4" aria-hidden="true" />}
+                  label={profile.phone as string}
+                />
+              ) : null}
+              {showEmail ? (
+                <ContactItem
+                  href={`mailto:${profile.email}`}
+                  icon={<Mail className="size-4" aria-hidden="true" />}
+                  label={profile.email}
+                />
+              ) : null}
+              {profile.linkedin_url ? (
+                <ContactItem
+                  href={profile.linkedin_url}
+                  icon={<ExternalLink className="size-4" aria-hidden="true" />}
+                  label={formatLinkedIn(profile.linkedin_url)}
+                />
+              ) : null}
+              {!showEmail && !showPhone && !profile.linkedin_url ? (
+                <ContactItem
+                  icon={<Mail className="size-4" aria-hidden="true" />}
+                  label="Datos de contacto privados"
+                />
+              ) : null}
             </div>
 
             <div className="mt-7 rounded-lg border border-[#d9efed] bg-[#f7fdfc] p-4 text-center">
@@ -264,9 +288,7 @@ function Info({
 }
 
 function buildProfileUrl(profileSlug: string) {
-  const appUrl = process.env.APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
-
-  return `${appUrl}/p/${profileSlug}`;
+  return `${getAppUrl()}/p/${profileSlug}`;
 }
 
 function formatLinkedIn(linkedinUrl: string | null) {

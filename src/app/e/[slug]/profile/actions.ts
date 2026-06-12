@@ -5,10 +5,12 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { interests as validInterests } from "@/lib/profile-options";
+import { profileCardVisibilityValues } from "@/lib/profile-card-visibility";
 import { verifyRegistrationAccess } from "@/lib/registrations";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const profileSchema = z.object({
+  cardVisibility: z.enum(profileCardVisibilityValues),
   company: z.string().trim().min(2, "Ingresa tu empresa u organizacion."),
   description: z.string().trim().max(500).optional(),
   fullName: z.string().trim().min(2, "Ingresa tu nombre."),
@@ -30,6 +32,8 @@ const profileSchema = z.object({
     .pipe(z.string().url().nullable()),
   phone: z.string().trim().optional(),
   publicProfileEnabled: z.boolean(),
+  publicEmailEnabled: z.boolean(),
+  publicPhoneEnabled: z.boolean(),
   registrationId: z.string().uuid(),
   role: z.string().trim().min(2, "Ingresa tu cargo o rol."),
   slug: z.string().min(1),
@@ -38,6 +42,7 @@ const profileSchema = z.object({
 
 export async function updateAttendeeProfile(formData: FormData) {
   const parsed = profileSchema.safeParse({
+    cardVisibility: formData.get("cardVisibility"),
     company: String(formData.get("company") ?? ""),
     description: String(formData.get("description") ?? ""),
     fullName: String(formData.get("fullName") ?? ""),
@@ -47,6 +52,8 @@ export async function updateAttendeeProfile(formData: FormData) {
     linkedinUrl: String(formData.get("linkedinUrl") ?? ""),
     phone: String(formData.get("phone") ?? ""),
     publicProfileEnabled: formData.get("publicProfileEnabled") === "on",
+    publicEmailEnabled: formData.get("publicEmailEnabled") === "on",
+    publicPhoneEnabled: formData.get("publicPhoneEnabled") === "on",
     registrationId: formData.get("registrationId"),
     role: String(formData.get("role") ?? ""),
     slug: String(formData.get("slug") ?? ""),
@@ -74,6 +81,7 @@ export async function updateAttendeeProfile(formData: FormData) {
     .from("attendee_profiles")
     .update({
       company: parsed.data.company,
+      card_visibility: parsed.data.cardVisibility,
       description: parsed.data.description || null,
       full_name: parsed.data.fullName,
       headline: parsed.data.headline || null,
@@ -81,6 +89,12 @@ export async function updateAttendeeProfile(formData: FormData) {
       interests: parsed.data.interests,
       linkedin_url: parsed.data.linkedinUrl,
       phone: parsed.data.phone || null,
+      public_email_enabled:
+        parsed.data.cardVisibility === "public_full" &&
+        parsed.data.publicEmailEnabled,
+      public_phone_enabled:
+        parsed.data.cardVisibility === "public_full" &&
+        parsed.data.publicPhoneEnabled,
       role: parsed.data.role,
     })
     .eq("id", registration.profile_id);
@@ -107,9 +121,23 @@ export async function updateAttendeeProfile(formData: FormData) {
     redirect(`${fallbackPath}&profileStatus=error`);
   }
 
+  await adminClient.from("consents").insert({
+    accepted: parsed.data.cardVisibility !== "private",
+    consent_type: "public_card",
+    email: registration.email,
+    event_id: registration.event_id,
+    registration_id: registration.id,
+    version: "2026-06-12",
+  });
+
   revalidatePath(`/e/${parsed.data.slug}/profile`);
   revalidatePath(`/e/${parsed.data.slug}/directory`);
   revalidatePath(`/e/${parsed.data.slug}/directory/${registration.id}`);
+
+  if (registration.attendee_profiles?.profile_slug) {
+    revalidatePath(`/p/${registration.attendee_profiles.profile_slug}`);
+  }
+
   redirect(
     `/e/${parsed.data.slug}/profile?registrationId=${registration.id}&token=${parsed.data.token}&profileStatus=updated`,
   );

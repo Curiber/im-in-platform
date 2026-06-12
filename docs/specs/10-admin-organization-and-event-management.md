@@ -285,6 +285,32 @@ Agregar zona de peligro:
 - [x] Invitar o reutilizar usuario owner por email.
 - [x] Crear membership owner inicial.
 
+### Epic 29: Gestion de usuarios de organizacion, V1.1
+
+Brecha detectada en revision 2026-06-12: la plataforma solo permite crear la
+organizacion con un owner inicial. No existe UI ni actions para administrar
+miembros despues, aunque las policies RLS de `organization_users` ya permiten
+a owner/admin insertar y actualizar miembros, y a owner removerlos.
+
+- [ ] Listar miembros y roles en `/admin/settings` (owner/admin).
+- [ ] Invitar o agregar miembro por email con rol `admin` o `event_admin`.
+- [ ] Cambiar rol de un miembro (owner/admin; solo owner puede crear owners).
+- [ ] Remover miembro (solo owner; impedir remover al ultimo owner).
+- [ ] Transferir ownership con confirmacion explicita.
+- [ ] Reusar invitacion de Supabase Auth para emails sin cuenta.
+
+### Epic 30: Navegacion admin consistente
+
+Brecha detectada en revision 2026-06-12: el logout existe en `/admin`,
+`/admin/events`, `/admin/settings` y `/admin/organizations`, pero no en
+detalle de evento, nuevo evento, edicion, dashboard ni check-in, porque cada
+pagina construye su propio header.
+
+- [ ] Crear `src/app/admin/layout.tsx` con header compartido: nombre de
+      organizacion, navegacion principal y `SignOutButton`.
+- [ ] Eliminar headers duplicados por pagina y dejar solo el titulo local.
+- [ ] Verificar logout accesible desde todas las rutas `/admin/*`.
+
 ## Orden recomendado
 
 Implementar antes del rediseno visual:

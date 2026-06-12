@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-import { hashRegistrationToken } from "@/lib/registration-token";
+import { isRegistrationTokenValid } from "@/lib/registration-token";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -90,7 +90,7 @@ export async function checkInAttendee(
     };
   }
 
-  if (registration.qr_token_hash !== hashRegistrationToken(payload.token)) {
+  if (!isRegistrationTokenValid(payload.token, registration.qr_token_hash)) {
     return {
       status: "error",
       message: "El token del QR no es valido.",
@@ -113,18 +113,29 @@ export async function checkInAttendee(
     };
   }
 
-  const { error } = await adminClient
+  const { data: checkedIn, error } = await adminClient
     .from("event_registrations")
     .update({
       checked_in_at: new Date().toISOString(),
       status: "checked_in",
     })
-    .eq("id", registration.id);
+    .eq("id", registration.id)
+    .eq("status", "registered")
+    .select("id")
+    .maybeSingle<{ id: string }>();
 
   if (error) {
     return {
       status: "error",
       message: "No se pudo registrar el check-in.",
+    };
+  }
+
+  if (!checkedIn) {
+    return {
+      attendeeName: registration.full_name_snapshot,
+      status: "warning",
+      message: "Este asistente ya fue acreditado.",
     };
   }
 

@@ -1,12 +1,20 @@
 import { ImageResponse } from "next/og";
 import QRCode from "qrcode";
 
+import {
+  canShowPublicEmail,
+  canShowPublicPhone,
+  isProfileCardPublic,
+  type ProfileCardVisibility,
+} from "@/lib/profile-card-visibility";
+import { getAppUrl } from "@/lib/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 type CardProfile = {
   avatar_url: string | null;
+  card_visibility: ProfileCardVisibility;
   company: string | null;
   email: string;
   full_name: string;
@@ -14,6 +22,8 @@ type CardProfile = {
   linkedin_url: string | null;
   phone: string | null;
   profile_slug: string;
+  public_email_enabled: boolean;
+  public_phone_enabled: boolean;
   role: string | null;
 };
 
@@ -29,18 +39,16 @@ export async function GET(
   const { data: profile } = await adminClient
     .from("attendee_profiles")
     .select(
-      "avatar_url, company, email, full_name, headline, linkedin_url, phone, profile_slug, role",
+      "avatar_url, card_visibility, company, email, full_name, headline, linkedin_url, phone, profile_slug, public_email_enabled, public_phone_enabled, role",
     )
     .eq("profile_slug", profileSlug)
     .single<CardProfile>();
 
-  if (!profile) {
+  if (!profile || !isProfileCardPublic(profile)) {
     return new Response("Perfil no encontrado", { status: 404 });
   }
 
-  const appUrl =
-    process.env.APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
-  const profileUrl = `${appUrl}/p/${profile.profile_slug}`;
+  const profileUrl = `${getAppUrl()}/p/${profile.profile_slug}`;
   const qrDataUrl = await QRCode.toDataURL(profileUrl, {
     errorCorrectionLevel: "M",
     margin: 1,
@@ -50,6 +58,9 @@ export async function GET(
   const roleLine = [profile.role, profile.company]
     .filter(Boolean)
     .join(" · ");
+
+  const showEmail = canShowPublicEmail(profile);
+  const showPhone = canShowPublicPhone(profile) && Boolean(profile.phone);
 
   return new ImageResponse(
     (
@@ -199,9 +210,9 @@ export async function GET(
             gap: 18,
           }}
         >
-          <ContactRow label="Email" value={profile.email} />
-          {profile.phone ? (
-            <ContactRow label="Telefono" value={profile.phone} />
+          {showEmail ? <ContactRow label="Email" value={profile.email} /> : null}
+          {showPhone ? (
+            <ContactRow label="Telefono" value={profile.phone as string} />
           ) : null}
           {profile.linkedin_url ? (
             <ContactRow

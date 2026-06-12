@@ -15,6 +15,7 @@ Este directorio contiene la base de spec-driven development para el MVP.
 9. [08-visual-redesign-and-brand-system.md](08-visual-redesign-and-brand-system.md)
 10. [09-next-execution-plan.md](09-next-execution-plan.md)
 11. [10-admin-organization-and-event-management.md](10-admin-organization-and-event-management.md)
+12. [11-security-privacy-and-data-integrity-hardening.md](11-security-privacy-and-data-integrity-hardening.md)
 
 ## Criterio de spec-driven development
 
