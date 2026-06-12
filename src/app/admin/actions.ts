@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { getServerEnv } from "@/lib/env";
+import { getAppUrl } from "@/lib/env";
 import { isPlatformAdmin } from "@/lib/platform-admin";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -110,8 +110,7 @@ async function findOrInviteOwnerUser({
     return existingUser;
   }
 
-  const env = getServerEnv();
-  const redirectTo = `${env.APP_URL ?? "http://localhost:3000"}/auth/callback?next=/admin`;
+  const redirectTo = `${getAppUrl()}/auth/callback?next=/admin`;
   const { data, error } = await adminClient.auth.admin.inviteUserByEmail(
     email,
     {

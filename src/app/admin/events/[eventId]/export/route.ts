@@ -103,13 +103,21 @@ function toCsv(rows: ExportRegistration[]) {
 }
 
 function escapeCsv(value: string | null | undefined) {
-  const normalized = value ?? "";
+  const normalized = neutralizeSpreadsheetFormula(value ?? "");
 
-  if (/[",\n]/.test(normalized)) {
+  if (/[",\n\r]/.test(normalized)) {
     return `"${normalized.replaceAll('"', '""')}"`;
   }
 
   return normalized;
+}
+
+function neutralizeSpreadsheetFormula(value: string) {
+  if (/^[=+\-@\t\r]/.test(value)) {
+    return `'${value}`;
+  }
+
+  return value;
 }
 
 function slugify(value: string) {

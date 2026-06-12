@@ -1,9 +1,9 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { getAppUrl } from "@/lib/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const loginSchema = z.object({
@@ -30,15 +30,13 @@ export async function sendMagicLink(
     };
   }
 
-  const headerStore = await headers();
-  const origin =
-    headerStore.get("origin") ?? process.env.APP_URL ?? "http://localhost:3000";
+  const appUrl = getAppUrl();
   const supabase = await createSupabaseServerClient();
 
   const { error } = await supabase.auth.signInWithOtp({
     email: parsed.data.email,
     options: {
-      emailRedirectTo: `${origin}/auth/callback?next=/admin`,
+      emailRedirectTo: `${appUrl}/auth/callback?next=/admin`,
     },
   });
 
@@ -56,15 +54,13 @@ export async function sendMagicLink(
 }
 
 export async function signInWithLinkedIn() {
-  const headerStore = await headers();
-  const origin =
-    headerStore.get("origin") ?? process.env.APP_URL ?? "http://localhost:3000";
+  const appUrl = getAppUrl();
   const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "linkedin_oidc",
     options: {
-      redirectTo: `${origin}/auth/callback?next=/admin`,
+      redirectTo: `${appUrl}/auth/callback?next=/admin`,
     },
   });
 

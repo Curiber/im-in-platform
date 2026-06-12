@@ -1,11 +1,11 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { z } from "zod";
 
 import { upsertAttendeeProfileFromRegistration } from "@/lib/attendee-profiles";
 import { sendRegistrationConfirmationEmail } from "@/lib/email";
+import { getAppUrl } from "@/lib/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   createRegistrationToken,
@@ -188,14 +188,12 @@ export async function registerForEvent(
   ]);
 
   const confirmationPath = `/e/${parsed.data.slug}/registered?registrationId=${registration.id}&token=${token}`;
-  const headerStore = await headers();
-  const origin =
-    headerStore.get("origin") ?? process.env.APP_URL ?? "http://localhost:3000";
+  const appUrl = getAppUrl();
 
   try {
     await sendRegistrationConfirmationEmail({
       attendeeName: parsed.data.fullName,
-      confirmationUrl: `${origin}${confirmationPath}`,
+      confirmationUrl: `${appUrl}${confirmationPath}`,
       eventDate: formatDate(event.starts_at),
       eventName: event.name,
       to: parsed.data.email,
