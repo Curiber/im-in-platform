@@ -137,9 +137,9 @@
 
 ## Epic 17: Admin polish
 
-- [ ] Redisenar listado/detalle de eventos.
-- [ ] Redisenar dashboard.
-- [ ] Redisenar check-in para uso en puerta.
+- [x] Redisenar listado/detalle de eventos.
+- [x] Redisenar dashboard.
+- [x] Redisenar check-in para uso en puerta.
 
 ## Epic 18: Organization settings
 
