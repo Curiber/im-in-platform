@@ -6,9 +6,9 @@
 - [x] Agregar dependencias iniciales de Supabase.
 - [x] Crear helpers lazy para Supabase browser/server.
 - [x] Crear `.env.example`.
-- [ ] Configurar proyecto Supabase real.
+- [x] Configurar proyecto Supabase real.
 - [ ] Configurar proyecto Vercel real.
-- [ ] Crear repositorio remoto GitHub.
+- [x] Crear repositorio remoto GitHub.
 
 ## Epic 2: Auth y roles
 
@@ -143,21 +143,21 @@
 
 ## Epic 18: Organization settings
 
-- [ ] Crear ruta `/admin/settings`.
-- [ ] Crear formulario para editar nombre de empresa.
-- [ ] Crear server action `updateOrganizationSettings`.
-- [ ] Validar permisos `owner/admin`.
-- [ ] Bloquear edicion para `event_admin`.
+- [x] Crear ruta `/admin/settings`.
+- [x] Crear formulario para editar nombre de empresa.
+- [x] Crear server action `updateOrganizationSettings`.
+- [x] Validar permisos `owner/admin`.
+- [x] Bloquear edicion para `event_admin`.
 
 ## Epic 19: Event deletion
 
-- [ ] Agregar soft delete a `events`.
-- [ ] Guardar `deleted_at`, `deleted_by` y `delete_reason`.
-- [ ] Crear server action `deleteEvent`.
-- [ ] Validar permisos `owner/admin`.
-- [ ] Requerir motivo de eliminacion.
-- [ ] Ocultar eventos eliminados de listados activos.
-- [ ] Bloquear pagina publica, registro, check-in, dashboard y export.
+- [x] Agregar soft delete a `events`.
+- [x] Guardar `deleted_at`, `deleted_by` y `delete_reason`.
+- [x] Crear server action `deleteEvent`.
+- [x] Validar permisos `owner/admin`.
+- [x] Requerir motivo de eliminacion.
+- [x] Ocultar eventos eliminados de listados activos.
+- [x] Bloquear pagina publica, registro, check-in, dashboard y export.
 
 ## Epic 20: Deleted event recovery, V1.1
 

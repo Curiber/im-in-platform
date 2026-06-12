@@ -246,27 +246,27 @@ Agregar zona de peligro:
 
 ### Epic 18: Organization settings
 
-- [ ] Crear ruta `/admin/settings`.
-- [ ] Crear formulario para editar `organizations.name`.
-- [ ] Crear server action `updateOrganizationSettings`.
-- [ ] Validar rol `owner/admin`.
-- [ ] Mostrar error si usuario no tiene permisos.
-- [ ] Actualizar admin header/listados para usar nombre editado.
+- [x] Crear ruta `/admin/settings`.
+- [x] Crear formulario para editar `organizations.name`.
+- [x] Crear server action `updateOrganizationSettings`.
+- [x] Validar rol `owner/admin`.
+- [x] Mostrar error si usuario no tiene permisos.
+- [x] Actualizar admin header/listados para usar nombre editado.
 
 ### Epic 19: Event deletion
 
-- [ ] Crear migracion para `events.deleted_at`, `deleted_by`,
+- [x] Crear migracion para `events.deleted_at`, `deleted_by`,
   `delete_reason`.
-- [ ] Agregar indices para eventos activos/eliminados.
-- [ ] Crear helper de permisos `canManageOrganization`.
-- [ ] Crear server action `deleteEvent`.
-- [ ] Validar rol `owner/admin`.
-- [ ] Requerir motivo de eliminacion.
-- [ ] Ocultar eventos eliminados de listados activos.
-- [ ] Bloquear pagina publica, registro, check-in, dashboard y export si
+- [x] Agregar indices para eventos activos/eliminados.
+- [x] Crear helper de permisos `canManageOrganization`.
+- [x] Crear server action `deleteEvent`.
+- [x] Validar rol `owner/admin`.
+- [x] Requerir motivo de eliminacion.
+- [x] Ocultar eventos eliminados de listados activos.
+- [x] Bloquear pagina publica, registro, check-in, dashboard y export si
   `deleted_at` no es null.
-- [ ] Agregar UI de zona de peligro en detalle de evento.
-- [ ] Verificar que inscripciones/conexiones permanecen en DB.
+- [x] Agregar UI de zona de peligro en detalle de evento.
+- [x] Verificar que inscripciones/conexiones permanecen en DB.
 
 ### Epic 20: Deleted event recovery, V1.1
 
