@@ -1,4 +1,5 @@
 import {
+  ArchiveRestore,
   ArrowLeft,
   Calendar,
   CalendarClock,
@@ -17,7 +18,9 @@ import {
   deleteEvent,
   deleteAgendaItem,
   publishEvent,
+  restoreEvent,
 } from "@/app/admin/events/actions";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +40,9 @@ type EventDetail = {
   event_type: "open" | "closed";
   modality: "in_person" | "online" | "hybrid";
   networking_enabled: boolean;
+  deleted_at: string | null;
+  deleted_by: string | null;
+  delete_reason: string | null;
   organizations: {
     name: string;
   } | null;
@@ -69,10 +75,9 @@ export default async function AdminEventDetailPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, organization_id, name, slug, description, starts_at, arrival_starts_at, ends_at, location, capacity, status, event_type, modality, networking_enabled, organizations(name)",
+      "id, organization_id, name, slug, description, starts_at, arrival_starts_at, ends_at, location, capacity, status, event_type, modality, networking_enabled, deleted_at, deleted_by, delete_reason, organizations(name)",
     )
     .eq("id", eventId)
-    .is("deleted_at", null)
     .single()
     .returns<EventDetail>();
 
@@ -95,6 +100,106 @@ export default async function AdminEventDetailPage({
 
   const publicPath = `/e/${event.slug}`;
   const canDelete = membership?.role === "owner" || membership?.role === "admin";
+
+  if (event.deleted_at) {
+    let deletedByEmail: string | null = null;
+
+    if (event.deleted_by) {
+      const adminClient = createSupabaseAdminClient();
+      const { data } = await adminClient.auth.admin.getUserById(
+        event.deleted_by,
+      );
+      deletedByEmail = data.user?.email ?? null;
+    }
+
+    return (
+      <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
+        <header className="border-b border-brand-border bg-white">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-red-700">
+                Evento eliminado
+              </p>
+              <h1 className="text-xl font-semibold">{event.name}</h1>
+            </div>
+            <Link
+              className="inline-flex items-center gap-2 rounded-md border border-brand-border px-3 py-2 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
+              href="/admin/events?filter=deleted"
+            >
+              <ArrowLeft className="size-4" aria-hidden="true" />
+              Volver
+            </Link>
+          </div>
+        </header>
+
+        <section className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8">
+          <article className="rounded-lg border border-brand-border bg-white p-6 shadow-sm">
+            <div className="rounded-md border border-red-200 bg-red-50 p-4">
+              <p className="font-semibold text-red-700">
+                Este evento fue eliminado el {formatDate(event.deleted_at)}
+                {deletedByEmail ? ` por ${deletedByEmail}` : ""}.
+              </p>
+              <p className="mt-1 text-sm leading-6 text-brand-slate-600">
+                Motivo: {event.delete_reason ?? "Sin motivo registrado"}
+              </p>
+              <p className="mt-1 text-sm leading-6 text-brand-slate-600">
+                Los datos historicos se conservan. La pagina publica, el
+                registro y el check-in estan bloqueados.
+              </p>
+            </div>
+
+            <h2 className="mt-6 text-3xl font-semibold">{event.name}</h2>
+            <p className="mt-2 text-brand-slate-600">
+              {event.organizations?.name ?? "Organizacion"}
+            </p>
+            <p className="mt-4 max-w-3xl leading-7 text-brand-slate-600">
+              {event.description || "Sin descripcion."}
+            </p>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+              <InfoBlock
+                icon={<Calendar className="size-5" aria-hidden="true" />}
+                label="Fecha"
+                value={formatDate(event.starts_at)}
+              />
+              <InfoBlock
+                icon={<MapPin className="size-5" aria-hidden="true" />}
+                label="Lugar"
+                value={event.location ?? "Por definir"}
+              />
+              <InfoBlock
+                icon={<Users className="size-5" aria-hidden="true" />}
+                label="Cupos"
+                value={`${event.capacity}`}
+              />
+            </div>
+
+            {membership?.role === "owner" ? (
+              <form action={restoreEvent} className="mt-8">
+                <input name="eventId" type="hidden" value={event.id} />
+                <input name="slug" type="hidden" value={event.slug} />
+                <button
+                  className="inline-flex h-11 items-center gap-2 rounded-md bg-brand-navy-950 px-5 text-sm font-semibold text-white transition hover:bg-brand-navy-900"
+                  type="submit"
+                >
+                  <ArchiveRestore className="size-4" aria-hidden="true" />
+                  Restaurar evento
+                </button>
+                <p className="mt-2 text-sm text-brand-slate-600">
+                  Al restaurar, el evento vuelve a listados y recupera su
+                  operacion normal.
+                </p>
+              </form>
+            ) : (
+              <p className="mt-8 rounded-md border border-brand-border/60 bg-brand-surface-soft p-4 text-sm leading-6 text-brand-slate-600">
+                Solo el owner de la organizacion puede restaurar este evento.
+              </p>
+            )}
+          </article>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
