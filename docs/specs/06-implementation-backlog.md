@@ -112,7 +112,8 @@
 - [x] Renderizar tarjeta vertical responsive.
 - [x] Generar QR para conectar por I'M IN.
 - [x] Agregar copiar link.
-- [ ] Evaluar descarga PNG como V1.1.
+- [x] Evaluar descarga PNG como V1.1. Implementada con endpoint server-side
+  `/p/[profileSlug]/card` usando `ImageResponse`.
 
 ## Epic 14: Brand foundation
 
