@@ -270,10 +270,10 @@ Agregar zona de peligro:
 
 ### Epic 20: Deleted event recovery, V1.1
 
-- [ ] Agregar filtro `Eliminados` en listado admin.
-- [ ] Crear vista de detalle read-only para evento eliminado.
-- [ ] Crear action `restoreEvent` solo para owner.
-- [ ] Registrar `restored_at` y `restored_by` si se implementa auditoria.
+- [x] Agregar filtro `Eliminados` en listado admin.
+- [x] Crear vista de detalle read-only para evento eliminado.
+- [x] Crear action `restoreEvent` solo para owner.
+- [ ] Registrar `restored_at` y `restored_by` si se implementa auditoria. Pendiente: V1.1 restaura limpiando los campos de eliminacion sin auditoria adicional.
 
 ### Epic 21: Platform admin organizations
 
