@@ -1,4 +1,5 @@
 import { CalendarPlus, ExternalLink } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -87,9 +88,7 @@ export default async function AdminEventsPage() {
                   <p className="text-sm text-brand-slate-600">
                     {event.capacity} cupos
                   </p>
-                  <span className="inline-flex h-8 items-center justify-center rounded-md bg-brand-slate-100 px-3 text-sm font-semibold text-brand-cyan-500">
-                    {formatStatus(event.status)}
-                  </span>
+                  <StatusBadge status={event.status} />
                 </Link>
               ))}
             </div>
@@ -125,21 +124,47 @@ export default async function AdminEventsPage() {
 
 function AdminHeader() {
   return (
-    <header className="border-b border-brand-border bg-white">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
-        <Link href="/admin">
-          <p className="text-sm font-semibold text-brand-cyan-500">I&apos;m IN</p>
-          <p className="text-xl font-semibold">Panel organizador</p>
+    <header className="sticky top-0 z-40 border-b border-brand-border/70 bg-white/90 backdrop-blur">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-5 py-4 sm:px-8">
+        <Link className="flex items-center gap-3" href="/admin">
+          <Image
+            alt="I'M IN"
+            className="h-auto w-28"
+            height={35}
+            src="/brand/im-in-logo.png"
+            width={140}
+          />
+          <span className="hidden border-l border-brand-border pl-3 text-sm font-semibold text-brand-slate-600 sm:inline">
+            Panel organizador
+          </span>
         </Link>
-        <Link
-          className="rounded-md border border-brand-border px-3 py-2 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
-          href="/admin"
-        >
-          Volver
-        </Link>
-        <SignOutButton />
+        <div className="flex items-center gap-2">
+          <Link
+            className="rounded-md border border-brand-border bg-white px-3 py-2 text-sm font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft"
+            href="/admin"
+          >
+            Volver
+          </Link>
+          <SignOutButton />
+        </div>
       </div>
     </header>
+  );
+}
+
+function StatusBadge({ status }: { status: AdminEvent["status"] }) {
+  const styles = {
+    draft: "bg-brand-slate-100 text-brand-slate-600",
+    published: "bg-brand-navy-950 text-brand-mint-300",
+    closed: "bg-white text-brand-slate-600 ring-1 ring-brand-border",
+  };
+
+  return (
+    <span
+      className={`inline-flex h-8 items-center justify-center self-start rounded-md px-3 text-sm font-semibold md:self-center ${styles[status]}`}
+    >
+      {formatStatus(status)}
+    </span>
   );
 }
 

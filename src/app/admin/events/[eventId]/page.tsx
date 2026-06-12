@@ -118,7 +118,13 @@ export default async function AdminEventDetailPage({
         <article className="rounded-lg border border-brand-border bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <span className="inline-flex rounded-md bg-brand-slate-100 px-3 py-1 text-sm font-semibold text-brand-cyan-500">
+              <span
+                className={`inline-flex rounded-md px-3 py-1 text-sm font-semibold ${
+                  event.status === "published"
+                    ? "bg-brand-navy-950 text-brand-mint-300"
+                    : "bg-brand-slate-100 text-brand-slate-600"
+                }`}
+              >
                 {formatStatus(event.status)}
               </span>
               <h2 className="mt-4 text-3xl font-semibold">{event.name}</h2>
