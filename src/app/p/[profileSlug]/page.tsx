@@ -1,6 +1,7 @@
 import {
   BriefcaseBusiness,
   Building2,
+  Download,
   ExternalLink,
   Mail,
   Phone,
@@ -152,6 +153,14 @@ export default async function PublicProfileCardPage({
 
           <div className="mt-7 flex flex-wrap gap-3">
             <CopyProfileLinkButton profileUrl={profileUrl} />
+            <a
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-[#b9ddd8] bg-white/90 px-4 text-sm font-semibold text-[#073b4c] shadow-sm hover:bg-white"
+              download
+              href={`/p/${profile.profile_slug}/card`}
+            >
+              <Download className="size-4" aria-hidden="true" />
+              Descargar PNG
+            </a>
             <Link
               className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#073b4c] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#0a4f66]"
               href={profileUrl}
