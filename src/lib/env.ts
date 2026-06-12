@@ -25,3 +25,17 @@ export function getServerEnv() {
     APP_URL: process.env.APP_URL,
   });
 }
+
+export function getAppUrl() {
+  const parsed = z.string().url().safeParse(process.env.APP_URL);
+
+  if (parsed.success) {
+    return parsed.data.replace(/\/$/, "");
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("APP_URL must be configured in production.");
+  }
+
+  return "http://localhost:3000";
+}

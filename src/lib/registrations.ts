@@ -1,4 +1,5 @@
-import { hashRegistrationToken } from "@/lib/registration-token";
+import type { ProfileCardVisibility } from "@/lib/profile-card-visibility";
+import { isRegistrationTokenValid } from "@/lib/registration-token";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type VerifiedRegistration = {
@@ -12,6 +13,7 @@ export type VerifiedRegistration = {
   status: "registered" | "checked_in" | "cancelled" | "no_show";
   qr_token_hash: string;
   attendee_profiles: {
+    card_visibility: ProfileCardVisibility;
     profile_slug: string | null;
   } | null;
   events: {
@@ -40,7 +42,7 @@ export async function verifyRegistrationAccess({
   const { data: registration } = await adminClient
     .from("event_registrations")
     .select(
-      "id, event_id, profile_id, email, full_name_snapshot, interests, public_profile_enabled, status, qr_token_hash, attendee_profiles(profile_slug), events(id, slug, name, networking_enabled, deleted_at)",
+      "id, event_id, profile_id, email, full_name_snapshot, interests, public_profile_enabled, status, qr_token_hash, attendee_profiles(card_visibility, profile_slug), events(id, slug, name, networking_enabled, deleted_at)",
     )
     .eq("id", registrationId)
     .single()
@@ -54,7 +56,7 @@ export async function verifyRegistrationAccess({
     return null;
   }
 
-  if (registration.qr_token_hash !== hashRegistrationToken(token)) {
+  if (!isRegistrationTokenValid(token, registration.qr_token_hash)) {
     return null;
   }
 

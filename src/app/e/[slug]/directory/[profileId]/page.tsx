@@ -10,6 +10,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { createConnectionRequest } from "@/app/e/[slug]/connections/actions";
+import type { ProfileCardVisibility } from "@/lib/profile-card-visibility";
 import { verifyRegistrationAccess } from "@/lib/registrations";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -26,6 +27,7 @@ type DirectoryProfileDetail = {
     headline: string | null;
     description: string | null;
     avatar_url: string | null;
+    card_visibility: ProfileCardVisibility;
     profile_slug: string | null;
   } | null;
 };
@@ -53,7 +55,7 @@ export default async function EventDirectoryProfilePage({
   const { data: profile } = await adminClient
     .from("event_registrations")
     .select(
-      "id, full_name_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, attendee_profiles(headline, description, avatar_url, profile_slug)",
+      "id, full_name_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, attendee_profiles(headline, description, avatar_url, card_visibility, profile_slug)",
     )
     .eq("id", profileId)
     .eq("event_id", viewer.event_id)
@@ -93,7 +95,10 @@ export default async function EventDirectoryProfilePage({
 
   const accessQuery = `registrationId=${viewer.id}&token=${token}`;
   const isConnected = existingConnection?.status === "accepted";
-  const cardSlug = profile.attendee_profiles?.profile_slug;
+  const cardSlug =
+    profile.attendee_profiles?.card_visibility !== "private"
+      ? profile.attendee_profiles?.profile_slug
+      : null;
   const showCardLink =
     cardSlug && (profile.id === viewer.id || isConnected);
 

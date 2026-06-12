@@ -103,7 +103,10 @@ export default async function EventDirectoryPage({
     (profiles ?? []).flatMap((profile) => profile.interests),
   );
   const accessQuery = `registrationId=${viewer.id}&token=${token}`;
-  const viewerCardSlug = viewer.attendee_profiles?.profile_slug;
+  const viewerCardSlug =
+    viewer.attendee_profiles?.card_visibility !== "private"
+      ? viewer.attendee_profiles?.profile_slug
+      : null;
   const viewerInterests = new Set(viewer.interests);
   const suggestedMatches = (profiles ?? [])
     .filter((profile) => profile.id !== viewer.id)

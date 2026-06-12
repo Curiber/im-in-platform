@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { updateAttendeeProfile } from "@/app/e/[slug]/profile/actions";
 import { industries, interests } from "@/lib/profile-options";
+import type { ProfileCardVisibility } from "@/lib/profile-card-visibility";
 import { verifyRegistrationAccess } from "@/lib/registrations";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -12,6 +13,7 @@ export const dynamic = "force-dynamic";
 
 type AttendeeProfile = {
   avatar_url: string | null;
+  card_visibility: ProfileCardVisibility;
   company: string | null;
   description: string | null;
   full_name: string;
@@ -21,6 +23,8 @@ type AttendeeProfile = {
   linkedin_url: string | null;
   phone: string | null;
   profile_slug: string | null;
+  public_email_enabled: boolean;
+  public_phone_enabled: boolean;
   role: string | null;
 };
 
@@ -51,7 +55,7 @@ export default async function EventProfilePage({
   const { data: profile } = await adminClient
     .from("attendee_profiles")
     .select(
-      "avatar_url, company, description, full_name, headline, industry, interests, linkedin_url, phone, profile_slug, role",
+      "avatar_url, card_visibility, company, description, full_name, headline, industry, interests, linkedin_url, phone, profile_slug, public_email_enabled, public_phone_enabled, role",
     )
     .eq("id", registration.profile_id)
     .single<AttendeeProfile>();
@@ -247,6 +251,84 @@ export default async function EventProfilePage({
             </span>
           </label>
 
+          <fieldset className="mt-6 rounded-md border border-brand-border/60 bg-white p-4">
+            <legend className="px-1 text-sm font-semibold text-brand-navy-950">
+              Tarjeta virtual
+            </legend>
+            <div className="mt-3 grid gap-2">
+              <label className="flex items-start gap-3 rounded-md border border-brand-border/60 bg-brand-surface-soft p-3">
+                <input
+                  className="mt-1 size-4"
+                  defaultChecked={profile.card_visibility === "private"}
+                  name="cardVisibility"
+                  type="radio"
+                  value="private"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-brand-navy-950">
+                    Privada
+                  </span>
+                  <span className="mt-1 block text-sm leading-6 text-brand-slate-600">
+                    No se publica una tarjeta accesible por link.
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-3 rounded-md border border-brand-border/60 bg-brand-surface-soft p-3">
+                <input
+                  className="mt-1 size-4"
+                  defaultChecked={profile.card_visibility === "public_limited"}
+                  name="cardVisibility"
+                  type="radio"
+                  value="public_limited"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-brand-navy-950">
+                    Publica limitada
+                  </span>
+                  <span className="mt-1 block text-sm leading-6 text-brand-slate-600">
+                    Muestra nombre, cargo, empresa, descripcion, intereses y
+                    LinkedIn si lo completaste.
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-3 rounded-md border border-brand-border/60 bg-brand-surface-soft p-3">
+                <input
+                  className="mt-1 size-4"
+                  defaultChecked={profile.card_visibility === "public_full"}
+                  name="cardVisibility"
+                  type="radio"
+                  value="public_full"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-brand-navy-950">
+                    Publica completa
+                  </span>
+                  <span className="mt-1 block text-sm leading-6 text-brand-slate-600">
+                    Puedes sumar email y telefono con consentimiento explicito.
+                  </span>
+                </span>
+              </label>
+            </div>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <label className="flex items-center gap-3 rounded-md border border-brand-border/60 bg-brand-surface-soft p-3 text-sm">
+                <input
+                  defaultChecked={profile.public_email_enabled}
+                  name="publicEmailEnabled"
+                  type="checkbox"
+                />
+                <span>Mostrar email en tarjeta completa</span>
+              </label>
+              <label className="flex items-center gap-3 rounded-md border border-brand-border/60 bg-brand-surface-soft p-3 text-sm">
+                <input
+                  defaultChecked={profile.public_phone_enabled}
+                  name="publicPhoneEnabled"
+                  type="checkbox"
+                />
+                <span>Mostrar telefono en tarjeta completa</span>
+              </label>
+            </div>
+          </fieldset>
+
           <button
             className="mt-6 inline-flex h-11 items-center gap-2 rounded-md bg-brand-navy-950 px-5 text-sm font-semibold text-white hover:bg-brand-navy-900"
             type="submit"
@@ -280,7 +362,7 @@ export default async function EventProfilePage({
             >
               Cambiar foto
             </Link>
-            {profile.profile_slug ? (
+            {profile.profile_slug && profile.card_visibility !== "private" ? (
               <Link
                 className="mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white hover:bg-brand-navy-900"
                 href={`/p/${profile.profile_slug}`}
