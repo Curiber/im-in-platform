@@ -214,6 +214,68 @@ export async function deleteEvent(formData: FormData) {
   redirect("/admin/events");
 }
 
+export async function restoreEvent(formData: FormData) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const eventId = String(formData.get("eventId") ?? "");
+  const slug = String(formData.get("slug") ?? "");
+
+  if (!eventId) {
+    throw new Error("Evento invalido.");
+  }
+
+  const { data: event } = await supabase
+    .from("events")
+    .select("id, organization_id")
+    .eq("id", eventId)
+    .not("deleted_at", "is", null)
+    .single<{ id: string; organization_id: string }>();
+
+  if (!event) {
+    throw new Error("Evento invalido.");
+  }
+
+  const { data: membership } = await supabase
+    .from("organization_users")
+    .select("role")
+    .eq("organization_id", event.organization_id)
+    .eq("user_id", user.id)
+    .single<{ role: "owner" | "admin" | "event_admin" }>();
+
+  if (membership?.role !== "owner") {
+    throw new Error("Solo el owner puede restaurar eventos eliminados.");
+  }
+
+  const { error } = await supabase
+    .from("events")
+    .update({
+      delete_reason: null,
+      deleted_at: null,
+      deleted_by: null,
+    })
+    .eq("id", event.id);
+
+  if (error) {
+    throw new Error("No se pudo restaurar el evento.");
+  }
+
+  revalidatePath("/admin/events");
+  revalidatePath(`/admin/events/${event.id}`);
+
+  if (slug) {
+    revalidatePath(`/e/${slug}`);
+  }
+
+  redirect(`/admin/events/${event.id}`);
+}
+
 async function updateEventStatus(
   formData: FormData,
   status: "published" | "closed",

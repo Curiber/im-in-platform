@@ -1,9 +1,10 @@
-import { CalendarPlus, ExternalLink } from "lucide-react";
+import { Archive, CalendarPlus, ExternalLink } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { SignOutButton } from "@/app/admin/sign-out-button";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,19 @@ type AdminEvent = {
   } | null;
 };
 
-export default async function AdminEventsPage() {
+type DeletedAdminEvent = AdminEvent & {
+  deleted_at: string;
+  deleted_by: string | null;
+  delete_reason: string | null;
+};
+
+export default async function AdminEventsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: string }>;
+}) {
+  const { filter } = await searchParams;
+  const showDeleted = filter === "deleted";
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -31,14 +44,28 @@ export default async function AdminEventsPage() {
     redirect("/login");
   }
 
-  const { data: events, error } = await supabase
+  const query = supabase
     .from("events")
     .select(
-      "id, name, slug, status, starts_at, capacity, networking_enabled, organizations(name)",
-    )
-    .is("deleted_at", null)
-    .order("starts_at", { ascending: true })
-    .returns<AdminEvent[]>();
+      showDeleted
+        ? "id, name, slug, status, starts_at, capacity, networking_enabled, deleted_at, deleted_by, delete_reason, organizations(name)"
+        : "id, name, slug, status, starts_at, capacity, networking_enabled, organizations(name)",
+    );
+
+  const { data: events, error } = await (showDeleted
+    ? query.not("deleted_at", "is", null).order("deleted_at", {
+        ascending: false,
+      })
+    : query.is("deleted_at", null).order("starts_at", { ascending: true })
+  ).returns<DeletedAdminEvent[]>();
+
+  const deletedByEmails = showDeleted
+    ? await loadUserEmails(
+        (events ?? [])
+          .map((event) => event.deleted_by)
+          .filter((value): value is string => Boolean(value)),
+      )
+    : new Map<string, string>();
 
   return (
     <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
@@ -60,6 +87,29 @@ export default async function AdminEventsPage() {
           </Link>
         </div>
 
+        <div className="mb-5 inline-flex rounded-md border border-brand-border bg-white p-1">
+          <Link
+            className={`rounded px-4 py-2 text-sm font-semibold transition ${
+              showDeleted
+                ? "text-brand-slate-600 hover:text-brand-navy-950"
+                : "bg-brand-navy-950 text-white"
+            }`}
+            href="/admin/events"
+          >
+            Activos
+          </Link>
+          <Link
+            className={`rounded px-4 py-2 text-sm font-semibold transition ${
+              showDeleted
+                ? "bg-brand-navy-950 text-white"
+                : "text-brand-slate-600 hover:text-brand-navy-950"
+            }`}
+            href="/admin/events?filter=deleted"
+          >
+            Eliminados
+          </Link>
+        </div>
+
         <div className="rounded-lg border border-brand-border bg-white shadow-sm">
           {error ? (
             <p className="p-5 text-sm text-red-700">
@@ -67,7 +117,7 @@ export default async function AdminEventsPage() {
             </p>
           ) : null}
 
-          {!error && events?.length ? (
+          {!error && events?.length && !showDeleted ? (
             <div className="divide-y divide-brand-border/60">
               {events.map((event) => (
                 <Link
@@ -94,7 +144,57 @@ export default async function AdminEventsPage() {
             </div>
           ) : null}
 
-          {!error && !events?.length ? (
+          {!error && events?.length && showDeleted ? (
+            <div className="divide-y divide-brand-border/60">
+              {events.map((event) => (
+                <Link
+                  className="grid gap-4 p-5 hover:bg-brand-surface-soft md:grid-cols-[1fr_200px_220px]"
+                  href={`/admin/events/${event.id}`}
+                  key={event.id}
+                >
+                  <div>
+                    <p className="font-semibold">{event.name}</p>
+                    <p className="mt-1 text-sm text-brand-slate-600">
+                      {event.organizations?.name ?? "Organizacion"} /{" "}
+                      {formatDate(event.starts_at)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-red-700">
+                      Eliminado {formatDate(event.deleted_at)}
+                    </p>
+                    <p className="mt-1 text-sm text-brand-slate-600">
+                      {event.deleted_by
+                        ? (deletedByEmails.get(event.deleted_by) ??
+                          "Usuario desconocido")
+                        : "Usuario desconocido"}
+                    </p>
+                  </div>
+                  <p className="text-sm leading-6 text-brand-slate-600">
+                    {event.delete_reason ?? "Sin motivo registrado"}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          ) : null}
+
+          {!error && !events?.length && showDeleted ? (
+            <div className="p-8 text-center">
+              <Archive
+                className="mx-auto size-10 text-brand-cyan-500"
+                aria-hidden="true"
+              />
+              <h2 className="mt-4 text-xl font-semibold">
+                No hay eventos eliminados
+              </h2>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-brand-slate-600">
+                Cuando un owner o admin elimine un evento, quedara visible aqui
+                con su motivo y podra restaurarse.
+              </p>
+            </div>
+          ) : null}
+
+          {!error && !events?.length && !showDeleted ? (
             <div className="p-8 text-center">
               <CalendarPlus
                 className="mx-auto size-10 text-brand-cyan-500"
@@ -166,6 +266,28 @@ function StatusBadge({ status }: { status: AdminEvent["status"] }) {
       {formatStatus(status)}
     </span>
   );
+}
+
+async function loadUserEmails(userIds: string[]) {
+  const uniqueIds = Array.from(new Set(userIds));
+  const emails = new Map<string, string>();
+
+  if (!uniqueIds.length) {
+    return emails;
+  }
+
+  const adminClient = createSupabaseAdminClient();
+  await Promise.all(
+    uniqueIds.map(async (id) => {
+      const { data } = await adminClient.auth.admin.getUserById(id);
+
+      if (data.user?.email) {
+        emails.set(id, data.user.email);
+      }
+    }),
+  );
+
+  return emails;
 }
 
 function formatDate(value: string) {

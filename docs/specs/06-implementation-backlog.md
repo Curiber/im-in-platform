@@ -161,9 +161,9 @@
 
 ## Epic 20: Deleted event recovery, V1.1
 
-- [ ] Agregar filtro de eventos eliminados.
-- [ ] Agregar vista read-only de evento eliminado.
-- [ ] Permitir restaurar solo a owner.
+- [x] Agregar filtro de eventos eliminados.
+- [x] Agregar vista read-only de evento eliminado.
+- [x] Permitir restaurar solo a owner.
 
 ## Epic 21: Platform admin organizations
 
