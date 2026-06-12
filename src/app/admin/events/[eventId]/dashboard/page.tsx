@@ -101,15 +101,15 @@ export default async function EventDashboardPage({
     : 0;
 
   return (
-    <main className="min-h-screen bg-[#f6f4ef] text-[#171717]">
-      <header className="border-b border-[#d9d5cb] bg-white">
+    <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
+      <header className="border-b border-brand-border bg-white">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
           <div>
-            <p className="text-sm font-semibold text-[#2f6f4e]">Dashboard</p>
+            <p className="text-sm font-semibold text-brand-cyan-500">Dashboard</p>
             <h1 className="text-xl font-semibold">{event.name}</h1>
           </div>
           <Link
-            className="inline-flex items-center gap-2 rounded-md border border-[#d9d5cb] px-3 py-2 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+            className="inline-flex items-center gap-2 rounded-md border border-brand-border px-3 py-2 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
             href={`/admin/events/${event.id}`}
           >
             <ArrowLeft className="size-4" aria-hidden="true" />
@@ -121,7 +121,7 @@ export default async function EventDashboardPage({
       <section className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8">
         <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2f6f4e]">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-cyan-500">
               Metricas del evento
             </p>
             <h2 className="mt-1 text-3xl font-semibold">
@@ -129,7 +129,7 @@ export default async function EventDashboardPage({
             </h2>
           </div>
           <Link
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#102923] px-4 text-sm font-semibold text-white hover:bg-[#183b33]"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white hover:bg-brand-navy-900"
             href={`/admin/events/${event.id}/export`}
           >
             <Download className="size-4" aria-hidden="true" />
@@ -191,9 +191,9 @@ function MetricCard({
   value: number | string;
 }) {
   return (
-    <article className="rounded-lg border border-[#d9d5cb] bg-white p-5 shadow-sm">
-      <p className="flex items-center gap-2 text-sm text-[#5f625d]">
-        <Users className="size-4 text-[#2f6f4e]" aria-hidden="true" />
+    <article className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
+      <p className="flex items-center gap-2 text-sm text-brand-slate-600">
+        <Users className="size-4 text-brand-cyan-500" aria-hidden="true" />
         {label}
       </p>
       <p className="mt-3 text-3xl font-semibold">{value}</p>
@@ -209,13 +209,13 @@ function Ranking({
   title: string;
 }) {
   return (
-    <article className="rounded-lg border border-[#d9d5cb] bg-white p-5 shadow-sm">
+    <article className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
       <h3 className="text-xl font-semibold">{title}</h3>
       <div className="mt-4 space-y-3">
         {rows.length ? (
           rows.slice(0, 8).map((row) => (
             <div
-              className="flex items-center justify-between rounded-md bg-[#fbfaf7] px-3 py-2"
+              className="flex items-center justify-between rounded-md bg-brand-surface-soft px-3 py-2"
               key={row.label}
             >
               <span className="text-sm">{row.label}</span>
@@ -223,7 +223,7 @@ function Ranking({
             </div>
           ))
         ) : (
-          <p className="text-sm text-[#5f625d]">Sin datos todavia.</p>
+          <p className="text-sm text-brand-slate-600">Sin datos todavia.</p>
         )}
       </div>
     </article>

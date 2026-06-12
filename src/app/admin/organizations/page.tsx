@@ -59,16 +59,16 @@ export default async function PlatformOrganizationsPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#f6f4ef] text-[#171717]">
-      <header className="border-b border-[#d9d5cb] bg-white">
+    <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
+      <header className="border-b border-brand-border bg-white">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
           <Link href="/admin">
-            <p className="text-sm font-semibold text-[#2f6f4e]">I&apos;m IN</p>
+            <p className="text-sm font-semibold text-brand-cyan-500">I&apos;m IN</p>
             <h1 className="text-xl font-semibold">Platform admin</h1>
           </Link>
           <div className="flex items-center gap-2">
             <Link
-              className="rounded-md border border-[#d9d5cb] px-3 py-2 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+              className="rounded-md border border-brand-border px-3 py-2 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
               href="/admin"
             >
               Panel
@@ -79,19 +79,19 @@ export default async function PlatformOrganizationsPage() {
       </header>
 
       <section className="mx-auto grid w-full max-w-7xl gap-6 px-5 py-8 sm:px-8 lg:grid-cols-[1fr_400px]">
-        <div className="rounded-lg border border-[#d9d5cb] bg-white p-6 shadow-sm">
+        <div className="rounded-lg border border-brand-border bg-white p-6 shadow-sm">
           <div className="flex items-start gap-4">
-            <span className="flex size-11 items-center justify-center rounded-md bg-[#e3f0d9] text-[#2f6f4e]">
+            <span className="flex size-11 items-center justify-center rounded-md bg-brand-slate-100 text-brand-cyan-500">
               <ShieldCheck className="size-6" aria-hidden="true" />
             </span>
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#2f6f4e]">
+              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-cyan-500">
                 Organizaciones
               </p>
               <h2 className="mt-2 text-3xl font-semibold">
                 Crear clientes y asignar ownership
               </h2>
-              <p className="mt-3 max-w-2xl leading-7 text-[#4a4d49]">
+              <p className="mt-3 max-w-2xl leading-7 text-brand-slate-600">
                 Esta vista es solo para administradores de plataforma. Crea una
                 organizacion, invita o reutiliza el usuario owner y deja lista
                 la relacion en Supabase.
@@ -99,7 +99,7 @@ export default async function PlatformOrganizationsPage() {
             </div>
           </div>
 
-          <div className="mt-8 divide-y divide-[#e5e0d6] rounded-lg border border-[#e5e0d6]">
+          <div className="mt-8 divide-y divide-brand-border/60 rounded-lg border border-brand-border/60">
             {organizations?.length ? (
               organizations.map((organization) => (
                 <OrganizationRow
@@ -112,13 +112,13 @@ export default async function PlatformOrganizationsPage() {
             ) : (
               <div className="p-8 text-center">
                 <Building2
-                  className="mx-auto size-10 text-[#2f6f4e]"
+                  className="mx-auto size-10 text-brand-cyan-500"
                   aria-hidden="true"
                 />
                 <h3 className="mt-4 text-xl font-semibold">
                   Aun no hay organizaciones
                 </h3>
-                <p className="mt-2 text-sm text-[#5f625d]">
+                <p className="mt-2 text-sm text-brand-slate-600">
                   Crea la primera organizacion desde el formulario lateral.
                 </p>
               </div>
@@ -126,9 +126,9 @@ export default async function PlatformOrganizationsPage() {
           </div>
         </div>
 
-        <aside className="rounded-lg border border-[#d9d5cb] bg-white p-5 shadow-sm">
+        <aside className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
           <h2 className="flex items-center gap-2 text-lg font-semibold">
-            <UserPlus className="size-5 text-[#2f6f4e]" aria-hidden="true" />
+            <UserPlus className="size-5 text-brand-cyan-500" aria-hidden="true" />
             Nueva organizacion
           </h2>
           <CreateOrganizationForm />
@@ -142,11 +142,11 @@ function CreateOrganizationForm() {
   return (
     <form action={createOrganization} className="mt-5 space-y-4">
       <label className="block">
-        <span className="text-sm font-medium text-[#1f2723]">
+        <span className="text-sm font-medium text-brand-navy-950">
           Nombre organizacion
         </span>
         <input
-          className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
+          className="mt-2 h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
           name="name"
           placeholder="Universidad, empresa o comunidad"
           required
@@ -154,9 +154,9 @@ function CreateOrganizationForm() {
       </label>
 
       <label className="block">
-        <span className="text-sm font-medium text-[#1f2723]">Tipo</span>
+        <span className="text-sm font-medium text-brand-navy-950">Tipo</span>
         <select
-          className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
+          className="mt-2 h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
           defaultValue="company"
           name="type"
           required
@@ -174,29 +174,29 @@ function CreateOrganizationForm() {
       </label>
 
       <label className="block">
-        <span className="text-sm font-medium text-[#1f2723]">
+        <span className="text-sm font-medium text-brand-navy-950">
           Sitio web opcional
         </span>
         <input
-          className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
+          className="mt-2 h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
           name="websiteUrl"
           placeholder="https://..."
           type="url"
         />
       </label>
 
-      <div className="rounded-md border border-[#e5e0d6] bg-[#fbfaf7] p-4">
-        <p className="text-sm font-semibold text-[#1f2723]">Owner inicial</p>
-        <p className="mt-1 text-sm leading-6 text-[#5f625d]">
+      <div className="rounded-md border border-brand-border/60 bg-brand-surface-soft p-4">
+        <p className="text-sm font-semibold text-brand-navy-950">Owner inicial</p>
+        <p className="mt-1 text-sm leading-6 text-brand-slate-600">
           Si el usuario no existe, se enviara una invitacion por email.
         </p>
 
         <label className="mt-4 block">
-          <span className="text-sm font-medium text-[#1f2723]">
+          <span className="text-sm font-medium text-brand-navy-950">
             Email owner
           </span>
           <input
-            className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
+            className="mt-2 h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
             name="ownerEmail"
             placeholder="owner@empresa.com"
             required
@@ -205,11 +205,11 @@ function CreateOrganizationForm() {
         </label>
 
         <label className="mt-4 block">
-          <span className="text-sm font-medium text-[#1f2723]">
+          <span className="text-sm font-medium text-brand-navy-950">
             Nombre opcional
           </span>
           <input
-            className="mt-2 h-11 w-full rounded-md border border-[#d9d5cb] bg-white px-3 text-sm outline-none focus:border-[#2f6f4e]"
+            className="mt-2 h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
             name="ownerName"
             placeholder="Nombre y apellido"
           />
@@ -217,7 +217,7 @@ function CreateOrganizationForm() {
       </div>
 
       <button
-        className="h-11 w-full rounded-md bg-[#102923] px-4 text-sm font-semibold text-white hover:bg-[#183b33]"
+        className="h-11 w-full rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white hover:bg-brand-navy-900"
         type="submit"
       >
         Crear y asignar owner
@@ -246,21 +246,21 @@ function OrganizationRow({
     <div className="grid gap-4 p-5 md:grid-cols-[1fr_240px_120px]">
       <div>
         <p className="font-semibold">{organization.name}</p>
-        <p className="mt-1 text-sm text-[#5f625d]">
+        <p className="mt-1 text-sm text-brand-slate-600">
           {formatOrganizationType(organization.type)}
           {organization.website_url ? ` / ${organization.website_url}` : ""}
         </p>
       </div>
       <div>
-        <p className="flex items-center gap-2 text-sm font-semibold text-[#1f2723]">
-          <Users className="size-4 text-[#2f6f4e]" aria-hidden="true" />
+        <p className="flex items-center gap-2 text-sm font-semibold text-brand-navy-950">
+          <Users className="size-4 text-brand-cyan-500" aria-hidden="true" />
           Owners
         </p>
-        <p className="mt-1 text-sm text-[#5f625d]">
+        <p className="mt-1 text-sm text-brand-slate-600">
           {ownerEmails.length ? ownerEmails.join(", ") : "Sin owner"}
         </p>
       </div>
-      <p className="text-sm text-[#5f625d]">
+      <p className="text-sm text-brand-slate-600">
         {new Intl.DateTimeFormat("es-CL", {
           dateStyle: "medium",
         }).format(new Date(organization.created_at))}

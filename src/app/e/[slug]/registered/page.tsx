@@ -180,7 +180,7 @@ export default async function RegisteredPage({
                 className={
                   photoStatus === "uploaded"
                     ? "mt-3 text-sm font-semibold text-brand-cyan-500"
-                    : "mt-3 text-sm font-semibold text-[#8a2f24]"
+                    : "mt-3 text-sm font-semibold text-red-700"
                 }
               >
                 {formatPhotoStatus(photoStatus)}

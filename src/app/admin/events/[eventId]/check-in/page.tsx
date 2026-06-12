@@ -42,17 +42,17 @@ export default async function CheckInPage({
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f4ef] text-[#171717]">
-      <header className="border-b border-[#d9d5cb] bg-white">
+    <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
+      <header className="border-b border-brand-border bg-white">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-5 py-4 sm:px-8">
           <div>
-            <p className="text-sm font-semibold text-[#2f6f4e]">
+            <p className="text-sm font-semibold text-brand-cyan-500">
               Acreditacion
             </p>
             <h1 className="text-xl font-semibold">{event.name}</h1>
           </div>
           <Link
-            className="inline-flex items-center gap-2 rounded-md border border-[#d9d5cb] px-3 py-2 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+            className="inline-flex items-center gap-2 rounded-md border border-brand-border px-3 py-2 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
             href={`/admin/events/${event.id}`}
           >
             <ArrowLeft className="size-4" aria-hidden="true" />
@@ -62,14 +62,14 @@ export default async function CheckInPage({
       </header>
 
       <section className="mx-auto grid w-full max-w-5xl gap-6 px-5 py-8 sm:px-8 lg:grid-cols-[1fr_320px]">
-        <div className="rounded-lg border border-[#d9d5cb] bg-white p-6 shadow-sm">
+        <div className="rounded-lg border border-brand-border bg-white p-6 shadow-sm">
           <div className="mb-6 flex items-start gap-4">
-            <span className="flex size-11 items-center justify-center rounded-md bg-[#e3f0d9] text-[#2f6f4e]">
+            <span className="flex size-11 items-center justify-center rounded-md bg-brand-slate-100 text-brand-cyan-500">
               <QrCode className="size-6" aria-hidden="true" />
             </span>
             <div>
               <h2 className="text-2xl font-semibold">Escanear QR</h2>
-              <p className="mt-2 text-sm leading-6 text-[#5f625d]">
+              <p className="mt-2 text-sm leading-6 text-brand-slate-600">
                 Usa un lector QR externo o pega el payload del QR para registrar
                 la llegada del asistente.
               </p>
@@ -79,12 +79,12 @@ export default async function CheckInPage({
         </div>
 
         <aside className="space-y-3">
-          <div className="rounded-lg border border-[#d9d5cb] bg-white p-5 shadow-sm">
-            <p className="text-sm text-[#5f625d]">Fecha</p>
+          <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
+            <p className="text-sm text-brand-slate-600">Fecha</p>
             <p className="mt-1 font-semibold">{formatDate(event.starts_at)}</p>
           </div>
-          <div className="rounded-lg border border-[#d9d5cb] bg-white p-5 shadow-sm">
-            <p className="text-sm text-[#5f625d]">Inscritos</p>
+          <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
+            <p className="text-sm text-brand-slate-600">Inscritos</p>
             <p className="mt-1 text-3xl font-semibold">
               {event.event_registrations[0]?.count ?? 0}
             </p>

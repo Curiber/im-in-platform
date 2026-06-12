@@ -2,7 +2,7 @@ export function SignOutButton() {
   return (
     <form action="/auth/sign-out" method="post">
       <button
-        className="rounded-md border border-[#d9d5cb] px-3 py-2 text-sm font-semibold text-[#1f2723] hover:bg-[#f6f4ef]"
+        className="rounded-md border border-brand-border px-3 py-2 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
         type="submit"
       >
         Salir

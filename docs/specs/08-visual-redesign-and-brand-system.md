@@ -234,11 +234,13 @@ Refinamiento aplicado despues del primer pase:
 
 ### Epic 18: Admin UI polish
 
-- [ ] Redisenar listado de eventos.
-- [ ] Redisenar detalle de evento.
-- [ ] Redisenar dashboard.
-- [ ] Redisenar check-in para uso rapido en puerta.
-- [ ] Mantener densidad y claridad operativa.
+- [x] Redisenar listado de eventos.
+- [x] Redisenar detalle de evento.
+- [x] Redisenar dashboard.
+- [x] Redisenar check-in para uso rapido en puerta.
+- [x] Mantener densidad y claridad operativa.
+- [x] Rebrand completo de admin home, settings, organizaciones, formularios
+  de evento, login y edicion de perfil del asistente a tokens de marca.
 
 ## Orden recomendado
 
