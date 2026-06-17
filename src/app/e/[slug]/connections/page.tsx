@@ -107,7 +107,7 @@ export default async function ConnectionsPage({
             </h1>
           </div>
           <Link
-            className="inline-flex items-center gap-2 rounded-md border border-brand-border bg-white px-3 py-2 text-sm font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft"
+            className="inline-flex items-center gap-2 rounded-xl border border-brand-border bg-white px-3 py-2 text-sm font-semibold text-brand-navy-950 transition hover:-translate-y-0.5 hover:bg-brand-surface-soft"
             href={`/e/${slug}/directory?${accessQuery}`}
           >
             <ArrowLeft className="size-4" aria-hidden="true" />
@@ -118,7 +118,7 @@ export default async function ConnectionsPage({
 
       <section className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8">
         {pendingReceivedCount ? (
-          <div className="mb-5 flex gap-3 rounded-lg border border-brand-border bg-brand-gradient-soft p-4 text-brand-navy-950 shadow-sm">
+          <div className="mb-5 flex gap-3 rounded-2xl border border-brand-border bg-brand-gradient-soft p-5 text-brand-navy-950 shadow-sm">
             <Bell
               className="mt-0.5 size-5 shrink-0 text-brand-cyan-500"
               aria-hidden="true"
@@ -180,7 +180,7 @@ export default async function ConnectionsPage({
 
 function Panel({ children, title }: { children: ReactNode; title: string }) {
   return (
-    <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
+    <div className="rounded-3xl border border-brand-border bg-white p-6 shadow-sm">
       <h2 className="text-xl font-semibold text-brand-navy-950">{title}</h2>
       <div className="mt-4 space-y-3">{children}</div>
     </div>
@@ -209,7 +209,7 @@ function RequestCard({
 
   return (
     <article
-      className={`rounded-md border p-4 ${
+      className={`rounded-2xl border p-4 transition hover:shadow-md ${
         isAccepted
           ? "border-brand-aqua-400/50 bg-brand-gradient-soft"
           : "border-brand-border bg-brand-surface-soft"
@@ -237,7 +237,7 @@ function RequestCard({
       </div>
 
       {isAccepted && contact?.email ? (
-        <p className="mt-3 inline-flex items-center gap-2 rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-brand-navy-950 shadow-sm">
+        <p className="mt-3 inline-flex items-center gap-2 rounded-xl bg-white px-3 py-1.5 text-sm font-semibold text-brand-navy-950 shadow-sm">
           <Mail className="size-4 text-brand-cyan-500" aria-hidden="true" />
           {contact.email}
         </p>
@@ -252,7 +252,7 @@ function RequestCard({
               slug={slug}
             />
             <button
-              className="inline-flex h-9 items-center gap-2 rounded-md bg-brand-navy-950 px-3 text-sm font-semibold text-white transition hover:bg-brand-navy-900"
+              className="inline-flex h-9 items-center gap-2 rounded-xl bg-brand-navy-950 px-3.5 text-sm font-semibold text-white transition hover:bg-brand-navy-900"
               type="submit"
             >
               <Check className="size-4" aria-hidden="true" />
@@ -266,7 +266,7 @@ function RequestCard({
               slug={slug}
             />
             <button
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-brand-border bg-white px-3 text-sm font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft"
+              className="inline-flex h-9 items-center gap-2 rounded-xl border border-brand-border bg-white px-3.5 text-sm font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft"
               type="submit"
             >
               <X className="size-4" aria-hidden="true" />
@@ -278,7 +278,7 @@ function RequestCard({
 
       {isAccepted && cardSlug ? (
         <Link
-          className="mt-3 inline-flex h-9 items-center gap-2 rounded-md border border-brand-border bg-white px-3 text-sm font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft"
+          className="mt-3 inline-flex h-9 items-center gap-2 rounded-xl border border-brand-border bg-white px-3 text-sm font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft"
           href={`/p/${cardSlug}?source=connection`}
         >
           <IdCard className="size-4 text-brand-cyan-500" aria-hidden="true" />
@@ -335,7 +335,7 @@ function Avatar({
   }
 
   return (
-    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-navy-950 text-sm font-semibold text-white">
+    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-blue-700 to-brand-aqua-400 text-sm font-semibold text-white ring-2 ring-white">
       {initials(name)}
     </span>
   );
@@ -378,7 +378,7 @@ function HiddenFields({
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <p className="rounded-md border border-brand-border bg-brand-surface-soft p-4 text-sm text-brand-slate-600">
+    <p className="rounded-2xl border border-brand-border bg-brand-surface-soft p-4 text-sm text-brand-slate-600">
       {text}
     </p>
   );
