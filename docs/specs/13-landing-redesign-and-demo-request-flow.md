@@ -62,7 +62,14 @@ spec 08 y el analisis de [12-product-evolution-gap-analysis-and-roadmap.md](12-p
   via `images.remotePatterns` en `next.config.ts`. Pendiente: reemplazar por
   fotografia propia/owned antes de publicar.
 - **Caras humanas**: avatares con gradiente e iniciales en chips flotantes
-  sobre las fotos del hero y la seccion de matchmaking.
+  sobre la foto del hero.
+- **Tarjeta de producto (Directorio del evento)**: en la seccion de
+  matchmaking, en vez de una foto, se muestra una tarjeta de UI real
+  (glass sobre panel con gradiente de marca) con indicador "en vivo", filas
+  de asistentes con estado, badges de afinidad y pie con metricas.
+- **Narrativa de matchmaking**: el match no es solo por intereses y objetivos;
+  hay IA que analiza los perfiles de los usuarios para generar el porcentaje
+  de afinidad. El copy de la seccion lo comunica explicitamente.
 - **Prueba social**: franja con logos de organizaciones (placeholder) y un stat
   con peso. Marcar claramente como pendiente de datos reales.
 - **Aire**: secciones a `py-24`+.

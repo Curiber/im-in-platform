@@ -3,6 +3,7 @@ import {
   Award,
   BadgeCheck,
   CalendarDays,
+  ChevronRight,
   Handshake,
   Network,
   PlayCircle,
@@ -20,10 +21,51 @@ const UNSPLASH = "https://images.unsplash.com";
 
 const photos = {
   hero: `${UNSPLASH}/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1920&q=80`,
-  matchmaking: `${UNSPLASH}/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=1200&q=80`,
   operations: `${UNSPLASH}/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=1200&q=80`,
   community: `${UNSPLASH}/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=1600&q=80`,
 };
+
+type DirectoryMatch =
+  | { type: "score"; value: string; tone: "teal" | "blue" }
+  | { type: "connect" };
+
+type DirectoryPerson = {
+  initials: string;
+  name: string;
+  role: string;
+  gradient: string;
+  textDark?: boolean;
+  status: "online" | "away";
+  match: DirectoryMatch;
+};
+
+const directoryPeople: DirectoryPerson[] = [
+  {
+    initials: "MT",
+    name: "Marcela Tapia",
+    role: "Directora de Innovacion · UAI",
+    gradient: "from-brand-blue-700 to-brand-aqua-400",
+    status: "online",
+    match: { type: "score", value: "92%", tone: "teal" },
+  },
+  {
+    initials: "JM",
+    name: "Javier Munoz",
+    role: "Founder · busca inversion",
+    gradient: "from-brand-navy-950 to-brand-cyan-500",
+    status: "online",
+    match: { type: "connect" },
+  },
+  {
+    initials: "SH",
+    name: "Sofia Herrera",
+    role: "Head of Talent · ofrece mentoria",
+    gradient: "from-brand-aqua-400 to-brand-mint-300",
+    textDark: true,
+    status: "away",
+    match: { type: "score", value: "78%", tone: "blue" },
+  },
+];
 
 const awards = [
   { icon: Award, label: "Setup mas simple" },
@@ -56,9 +98,9 @@ const steps = [
 ];
 
 const matchmakingPoints = [
-  "Recomendaciones por objetivos e intereses, no por azar.",
+  "IA que analiza los perfiles para calcular el porcentaje de afinidad.",
+  "Recomendaciones por intereses y objetivos, no por azar.",
   "Reuniones 1:1 con hora y punto de encuentro.",
-  "Conexiones con consentimiento: el contacto se comparte al aceptar.",
 ];
 
 const operationPoints = [
@@ -207,14 +249,15 @@ export default function Home() {
         <div className="mx-auto grid w-full max-w-7xl items-center gap-12 px-5 py-24 sm:px-8 lg:grid-cols-2">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-cyan-500">
-              Matchmaking por intencion
+              Matchmaking con inteligencia artificial
             </p>
             <h2 className="mt-3 text-4xl font-semibold tracking-tight text-brand-navy-950">
               No es azar. Es la persona correcta.
             </h2>
             <p className="mt-5 text-lg leading-8 text-brand-slate-600">
-              Cruzamos lo que cada persona busca con lo que ofrece, para que cada
-              reunion tenga sentido y cada conexion valga la pena.
+              Nuestra IA analiza los perfiles, intereses y objetivos de cada
+              asistente para calcular su afinidad y recomendarte a las personas
+              correctas. Cada reunion tiene sentido.
             </p>
             <ul className="mt-8 space-y-4">
               {matchmakingPoints.map((point) => (
@@ -229,25 +272,9 @@ export default function Home() {
           </div>
           <div className="relative">
             <div className="absolute -right-6 -top-6 size-40 rounded-full bg-brand-aqua-400/20 blur-3xl" />
-            <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-brand-border shadow-2xl shadow-brand-blue-700/20">
-              <Image
-                alt="Dos profesionales conversando en un evento"
-                className="object-cover"
-                fill
-                sizes="(min-width: 1024px) 40vw, 100vw"
-                src={photos.matchmaking}
-              />
-              <div className="absolute bottom-4 left-4 flex items-center gap-3 rounded-2xl bg-white/95 p-3 shadow-lg backdrop-blur">
-                <span className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-brand-blue-700 to-brand-aqua-400 text-sm font-semibold text-white">
-                  MT
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-brand-navy-950">
-                    92% de afinidad
-                  </p>
-                  <p className="text-xs text-brand-slate-600">3 intereses en comun</p>
-                </div>
-              </div>
+            <div className="absolute -bottom-6 -left-6 size-40 rounded-full bg-brand-blue-700/20 blur-3xl" />
+            <div className="relative overflow-hidden rounded-3xl bg-brand-gradient-primary p-6 shadow-2xl shadow-brand-blue-700/25 sm:p-9">
+              <DirectoryCard />
             </div>
           </div>
         </div>
@@ -404,6 +431,102 @@ export default function Home() {
         </div>
       </footer>
     </main>
+  );
+}
+
+function DirectoryCard() {
+  return (
+    <div className="rounded-2xl border border-white/60 bg-white/95 p-4 shadow-2xl backdrop-blur sm:p-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-brand-navy-950">
+            Directorio del evento
+          </p>
+          <p className="mt-0.5 text-xs text-brand-slate-600/80">
+            Cumbre de Innovacion 2026
+          </p>
+        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-mint-300/40 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-brand-navy-950">
+          <span className="relative flex size-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-aqua-400 opacity-75" />
+            <span className="relative inline-flex size-1.5 rounded-full bg-brand-aqua-400" />
+          </span>
+          En vivo
+        </span>
+      </div>
+
+      <div className="my-3 h-px bg-gradient-to-r from-transparent via-brand-border to-transparent" />
+
+      <div className="space-y-2.5">
+        {directoryPeople.map((person) => (
+          <DirectoryRow key={person.initials} person={person} />
+        ))}
+      </div>
+
+      <div className="mt-3.5 flex items-center justify-between px-1">
+        <p className="flex items-center gap-1.5 text-xs text-brand-slate-600/80">
+          <Users className="size-3.5" aria-hidden="true" />
+          128 asistentes · 37 conexiones
+        </p>
+        <span className="inline-flex items-center gap-1 text-xs font-semibold text-brand-cyan-500">
+          Ver directorio
+          <ChevronRight className="size-3.5" aria-hidden="true" />
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function DirectoryRow({ person }: { person: DirectoryPerson }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-brand-border/70 bg-white p-2.5 transition hover:-translate-y-0.5 hover:shadow-md">
+      <div className="relative shrink-0">
+        <span
+          className={`flex size-10 items-center justify-center rounded-full bg-gradient-to-br ${person.gradient} text-sm font-semibold ring-2 ring-white ${
+            person.textDark ? "text-brand-navy-950" : "text-white"
+          }`}
+        >
+          {person.initials}
+        </span>
+        <span
+          className={`absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-white ${
+            person.status === "online" ? "bg-brand-aqua-400" : "bg-slate-300"
+          }`}
+        />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-brand-navy-950">
+          {person.name}
+        </p>
+        <p className="truncate text-xs text-brand-slate-600">{person.role}</p>
+      </div>
+      <MatchBadge match={person.match} />
+    </div>
+  );
+}
+
+function MatchBadge({ match }: { match: DirectoryMatch }) {
+  if (match.type === "connect") {
+    return (
+      <span className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-brand-navy-950 px-3 py-1.5 text-xs font-semibold text-white">
+        Conectar
+        <ArrowRight className="size-3" aria-hidden="true" />
+      </span>
+    );
+  }
+
+  const tone =
+    match.tone === "teal"
+      ? "bg-brand-mint-300/40 text-brand-navy-950"
+      : "bg-brand-blue-700/10 text-brand-blue-700";
+
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${tone}`}
+    >
+      <Sparkles className="size-3" aria-hidden="true" />
+      {match.value}
+    </span>
   );
 }
 
