@@ -16,6 +16,8 @@ Este directorio contiene la base de spec-driven development para el MVP.
 10. [09-next-execution-plan.md](09-next-execution-plan.md)
 11. [10-admin-organization-and-event-management.md](10-admin-organization-and-event-management.md)
 12. [11-security-privacy-and-data-integrity-hardening.md](11-security-privacy-and-data-integrity-hardening.md)
+13. [12-product-evolution-gap-analysis-and-roadmap.md](12-product-evolution-gap-analysis-and-roadmap.md)
+14. [13-landing-redesign-and-demo-request-flow.md](13-landing-redesign-and-demo-request-flow.md)
 
 ## Criterio de spec-driven development
 

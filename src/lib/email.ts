@@ -16,6 +16,16 @@ type ConnectionAcceptedInput = {
   eventName: string;
 };
 
+type DemoRequestNotificationInput = {
+  email: string;
+  fullName: string;
+  organizationName: string;
+  country?: string;
+  organizationType?: string;
+  annualAttendees?: string;
+  message?: string;
+};
+
 export async function sendRegistrationConfirmationEmail({
   attendeeName,
   confirmationUrl,
@@ -96,6 +106,48 @@ export async function sendConnectionAcceptedEmail({
       ].join("\n"),
     }),
   ]);
+
+  return { sent: true };
+}
+
+export async function sendDemoRequestNotification({
+  annualAttendees,
+  country,
+  email,
+  fullName,
+  message,
+  organizationName,
+  organizationType,
+}: DemoRequestNotificationInput) {
+  const apiKey = process.env.EMAIL_PROVIDER_API_KEY;
+  const from = process.env.EMAIL_FROM;
+  const to = process.env.SALES_NOTIFICATION_EMAIL ?? from;
+
+  if (!apiKey || !from || !to) {
+    return { sent: false };
+  }
+
+  const resend = new Resend(apiKey);
+
+  await resend.emails.send({
+    from,
+    to,
+    replyTo: email,
+    subject: `Nueva solicitud de demo: ${organizationName}`,
+    text: [
+      "Nueva solicitud de demo en I'm IN.",
+      "",
+      `Nombre: ${fullName}`,
+      `Email: ${email}`,
+      `Organizacion: ${organizationName}`,
+      `Pais: ${country || "No informado"}`,
+      `Tipo: ${organizationType || "No informado"}`,
+      `Asistentes anuales: ${annualAttendees || "No informado"}`,
+      "",
+      "Mensaje:",
+      message || "(sin mensaje)",
+    ].join("\n"),
+  });
 
   return { sent: true };
 }
