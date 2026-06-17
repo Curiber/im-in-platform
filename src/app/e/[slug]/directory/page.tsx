@@ -1,14 +1,8 @@
-import {
-  Bell,
-  IdCard,
-  Search,
-  Sparkles,
-  UserRoundPen,
-  Users,
-} from "lucide-react";
+import { Search, Sparkles, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { NetworkingNav } from "@/app/e/[slug]/_components/networking-nav";
 import { resolveEventCover } from "@/lib/event-cover";
 import { verifyRegistrationAccess } from "@/lib/registrations";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -128,64 +122,17 @@ export default async function EventDirectoryPage({
 
   return (
     <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
-      <header className="relative isolate overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          alt={viewer.events.name}
-          className="absolute inset-0 size-full object-cover"
-          src={coverUrl}
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-navy-950/95 via-brand-navy-950/85 to-brand-navy-950/70" />
-        <div className="relative z-10 mx-auto w-full max-w-7xl px-5 py-7 sm:px-8">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-mint-300">
-                Directorio privado
-              </p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                {viewer.events.name}
-              </h1>
-              <p className="mt-1 text-sm text-white/75">
-                {filteredProfiles.length} personas disponibles para conectar
-              </p>
-            </div>
-            <nav className="flex flex-wrap gap-2 rounded-2xl border border-white/15 bg-white/10 p-1.5 backdrop-blur">
-              <span className="inline-flex items-center gap-2 rounded-xl bg-white px-3.5 py-2 text-sm font-semibold text-brand-navy-950">
-                <Users className="size-4" aria-hidden="true" />
-                Personas
-              </span>
-              <Link
-                className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white/85 transition hover:bg-white/10"
-                href={`/e/${slug}/connections?${accessQuery}`}
-              >
-                <Bell className="size-4" aria-hidden="true" />
-                Conexiones
-                {pendingReceivedCount ? (
-                  <span className="rounded-full bg-brand-aqua-400 px-2 py-0.5 text-xs font-bold text-brand-navy-950">
-                    {pendingReceivedCount}
-                  </span>
-                ) : null}
-              </Link>
-              {viewerCardSlug ? (
-                <Link
-                  className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white/85 transition hover:bg-white/10"
-                  href={`/p/${viewerCardSlug}?source=event`}
-                >
-                  <IdCard className="size-4" aria-hidden="true" />
-                  Mi tarjeta
-                </Link>
-              ) : null}
-              <Link
-                className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white/85 transition hover:bg-white/10"
-                href={`/e/${slug}/profile?${accessQuery}`}
-              >
-                <UserRoundPen className="size-4" aria-hidden="true" />
-                Mi perfil
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <NetworkingNav
+        accessQuery={accessQuery}
+        active="personas"
+        cardSlug={viewerCardSlug}
+        coverUrl={coverUrl}
+        eventName={viewer.events.name}
+        eyebrow="Directorio privado"
+        pendingCount={pendingReceivedCount ?? 0}
+        slug={slug}
+        subtitle={`${filteredProfiles.length} personas disponibles para conectar`}
+      />
 
       <section className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8">
         {suggestedMatches.length ? (

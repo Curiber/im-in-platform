@@ -39,6 +39,15 @@ sugeridos se calculan por **intereses en comun reales** (logica ya existente) y
 se etiquetan como tal ("N intereses en comun", "Sugeridos para ti"). El lugar
 queda listo para enchufar el % cuando exista el motor de IA.
 
+### Navegacion persistente (shell)
+
+Las vistas de networking comparten un encabezado de navegacion
+(`NetworkingNav`) con la portada del evento y pestañas Personas / Conexiones /
+Mi tarjeta / Mi perfil. La pestaña de la vista actual se marca en blanco; las
+demas navegan dentro del mismo shell en vez de saltar a pantallas con headers
+distintos. Se usa en directorio, conexiones y "Mi perfil"; "Mi tarjeta" abre
+la tarjeta publica en otra pestaña.
+
 ### Directorio `/e/[slug]/directory`
 
 - Encabezado inmersivo: portada del evento (`resolveEventCover`) + overlay

@@ -1,5 +1,4 @@
 import {
-  ArrowLeft,
   Bell,
   Check,
   CheckCircle2,
@@ -13,10 +12,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { NetworkingNav } from "@/app/e/[slug]/_components/networking-nav";
 import {
   acceptConnectionRequest,
   rejectConnectionRequest,
 } from "@/app/e/[slug]/connections/actions";
+import { resolveEventCover } from "@/lib/event-cover";
 import type { ProfileCardVisibility } from "@/lib/profile-card-visibility";
 import { verifyRegistrationAccess } from "@/lib/registrations";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -93,28 +94,24 @@ export default async function ConnectionsPage({
   const accessQuery = `registrationId=${viewer.id}&token=${token}`;
   const pendingReceivedCount =
     received?.filter((request) => request.status === "pending").length ?? 0;
+  const viewerCardSlug =
+    viewer.attendee_profiles?.card_visibility !== "private"
+      ? viewer.attendee_profiles?.profile_slug
+      : null;
+  const coverUrl = resolveEventCover(viewer.events?.cover_image_url);
 
   return (
     <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
-      <header className="sticky top-0 z-40 border-b border-brand-border/70 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-5 py-4 sm:px-8">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-cyan-500">
-              Conexiones
-            </p>
-            <h1 className="text-xl font-semibold text-brand-navy-950">
-              {viewer.events?.name}
-            </h1>
-          </div>
-          <Link
-            className="inline-flex items-center gap-2 rounded-xl border border-brand-border bg-white px-3 py-2 text-sm font-semibold text-brand-navy-950 transition hover:-translate-y-0.5 hover:bg-brand-surface-soft"
-            href={`/e/${slug}/directory?${accessQuery}`}
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-            Directorio
-          </Link>
-        </div>
-      </header>
+      <NetworkingNav
+        accessQuery={accessQuery}
+        active="conexiones"
+        cardSlug={viewerCardSlug}
+        coverUrl={coverUrl}
+        eventName={viewer.events?.name ?? "Evento"}
+        eyebrow="Conexiones"
+        pendingCount={pendingReceivedCount}
+        slug={slug}
+      />
 
       <section className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8">
         {pendingReceivedCount ? (

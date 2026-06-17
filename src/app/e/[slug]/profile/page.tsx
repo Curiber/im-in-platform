@@ -1,10 +1,12 @@
-import { ArrowLeft, ExternalLink, Save, UserRound } from "lucide-react";
+import { ExternalLink, Save, UserRound } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { NetworkingNav } from "@/app/e/[slug]/_components/networking-nav";
 import { updateAttendeeProfile } from "@/app/e/[slug]/profile/actions";
 import { LinkedInUrlField } from "@/app/e/[slug]/profile/linkedin-url-field";
+import { resolveEventCover } from "@/lib/event-cover";
 import { industries, interests } from "@/lib/profile-options";
 import type { ProfileCardVisibility } from "@/lib/profile-card-visibility";
 import { verifyRegistrationAccess } from "@/lib/registrations";
@@ -66,31 +68,33 @@ export default async function EventProfilePage({
   }
 
   const accessQuery = `registrationId=${registration.id}&token=${token}`;
+  const coverUrl = resolveEventCover(registration.events?.cover_image_url);
+  const cardSlug =
+    profile.card_visibility !== "private" ? profile.profile_slug : null;
+  const { count: pendingReceivedCount } = await adminClient
+    .from("connection_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("event_id", registration.event_id)
+    .eq("receiver_registration_id", registration.id)
+    .eq("status", "pending");
 
   return (
     <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
-      <header className="border-b border-brand-border bg-white">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-5 py-4 sm:px-8">
-          <div>
-            <p className="text-sm font-semibold text-brand-cyan-500">
-              Perfil profesional
-            </p>
-            <h1 className="text-xl font-semibold">{registration.events?.name}</h1>
-          </div>
-          <Link
-            className="inline-flex items-center gap-2 rounded-md border border-brand-border px-3 py-2 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
-            href={`/e/${slug}/registered?${accessQuery}`}
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-            Volver
-          </Link>
-        </div>
-      </header>
+      <NetworkingNav
+        accessQuery={accessQuery}
+        active="perfil"
+        cardSlug={cardSlug}
+        coverUrl={coverUrl}
+        eventName={registration.events?.name ?? "Evento"}
+        eyebrow="Mi perfil"
+        pendingCount={pendingReceivedCount ?? 0}
+        slug={slug}
+      />
 
       <section className="mx-auto grid w-full max-w-5xl gap-6 px-5 py-8 sm:px-8 lg:grid-cols-[1fr_300px]">
         <form
           action={updateAttendeeProfile}
-          className="rounded-lg border border-brand-border bg-white p-6 shadow-sm"
+          className="rounded-3xl border border-brand-border bg-white p-6 shadow-sm sm:p-7"
         >
           <input name="slug" type="hidden" value={slug} />
           <input name="registrationId" type="hidden" value={registration.id} />
@@ -111,8 +115,8 @@ export default async function EventProfilePage({
             <p
               className={
                 profileStatus === "updated"
-                  ? "mt-5 rounded-md bg-brand-slate-100 p-3 text-sm font-semibold text-brand-cyan-500"
-                  : "mt-5 rounded-md bg-red-50 p-3 text-sm font-semibold text-red-700"
+                  ? "mt-5 rounded-xl bg-brand-slate-100 p-3 text-sm font-semibold text-brand-cyan-500"
+                  : "mt-5 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700"
               }
             >
               {formatProfileStatus(profileStatus)}
@@ -194,7 +198,7 @@ export default async function EventProfilePage({
                 Bio breve
               </span>
               <textarea
-                className="mt-2 min-h-28 w-full rounded-md border border-brand-border bg-white px-3 py-3 text-sm outline-none focus:border-brand-cyan-500"
+                className="mt-2 min-h-28 w-full rounded-xl border border-brand-border bg-white px-3.5 py-3 text-sm outline-none transition focus:border-brand-cyan-500 focus:ring-2 focus:ring-brand-cyan-500/20"
                 defaultValue={profile.description ?? ""}
                 maxLength={500}
                 name="description"
@@ -210,19 +214,19 @@ export default async function EventProfilePage({
             <p className="mt-1 text-sm text-brand-slate-600">
               Selecciona hasta 5 temas para mejorar tus matches.
             </p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <div className="mt-3 flex flex-wrap gap-2">
               {interests.map((interest) => (
-                <label
-                  className="flex items-center gap-3 rounded-md border border-brand-border/60 bg-brand-surface-soft p-3 text-sm"
-                  key={interest}
-                >
+                <label className="cursor-pointer" key={interest}>
                   <input
+                    className="peer sr-only"
                     defaultChecked={profile.interests.includes(interest)}
                     name="interests"
                     type="checkbox"
                     value={interest}
                   />
-                  <span>{interest}</span>
+                  <span className="inline-flex items-center rounded-xl border border-brand-border bg-white px-3.5 py-2 text-sm font-medium text-brand-slate-600 transition hover:border-brand-cyan-500/50 peer-checked:border-brand-navy-950 peer-checked:bg-brand-navy-950 peer-checked:text-white">
+                    {interest}
+                  </span>
                 </label>
               ))}
             </div>
@@ -325,7 +329,7 @@ export default async function EventProfilePage({
           </fieldset>
 
           <button
-            className="mt-6 inline-flex h-11 items-center gap-2 rounded-md bg-brand-navy-950 px-5 text-sm font-semibold text-white hover:bg-brand-navy-900"
+            className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-brand-navy-950 px-5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-brand-navy-900"
             type="submit"
           >
             <Save className="size-4" aria-hidden="true" />
@@ -334,16 +338,16 @@ export default async function EventProfilePage({
         </form>
 
         <aside className="space-y-4">
-          <div className="rounded-lg border border-brand-border bg-white p-5 text-center shadow-sm">
+          <div className="rounded-3xl border border-brand-border bg-white p-6 text-center shadow-sm">
             {profile.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 alt={profile.full_name}
-                className="mx-auto size-28 rounded-md object-cover"
+                className="mx-auto size-28 rounded-2xl object-cover"
                 src={profile.avatar_url}
               />
             ) : (
-              <span className="mx-auto flex size-28 items-center justify-center rounded-md bg-brand-slate-100 text-brand-cyan-500">
+              <span className="mx-auto flex size-28 items-center justify-center rounded-2xl bg-brand-mint-300/40 text-brand-navy-950">
                 <UserRound className="size-14" aria-hidden="true" />
               </span>
             )}
@@ -352,14 +356,14 @@ export default async function EventProfilePage({
               {profile.headline ?? "Agrega una descripcion para tu tarjeta."}
             </p>
             <Link
-              className="mt-4 inline-flex h-10 items-center justify-center rounded-md border border-brand-border px-4 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
+              className="mt-4 inline-flex h-10 items-center justify-center rounded-xl border border-brand-border px-4 text-sm font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft"
               href={`/e/${slug}/registered?${accessQuery}`}
             >
               Cambiar foto
             </Link>
             {profile.profile_slug && profile.card_visibility !== "private" ? (
               <Link
-                className="mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white hover:bg-brand-navy-900"
+                className="mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-navy-950 px-4 text-sm font-semibold text-white transition hover:bg-brand-navy-900"
                 href={`/p/${profile.profile_slug}`}
                 target="_blank"
               >
@@ -400,4 +404,4 @@ function formatProfileStatus(status: "error" | "invalid" | "updated") {
 }
 
 const inputClass =
-  "h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500";
+  "h-11 w-full rounded-xl border border-brand-border bg-white px-3.5 text-sm text-brand-navy-950 outline-none transition focus:border-brand-cyan-500 focus:ring-2 focus:ring-brand-cyan-500/20";
