@@ -14,20 +14,16 @@ export function NetworkingNav({
   cardSlug,
   coverUrl,
   eventName,
-  eyebrow = "Networking",
   pendingCount = 0,
   slug,
-  subtitle,
 }: {
   accessQuery: string;
   active: NetworkingTab;
   cardSlug?: string | null;
   coverUrl: string;
   eventName: string;
-  eyebrow?: string;
   pendingCount?: number;
   slug: string;
-  subtitle?: string;
 }) {
   return (
     <header className="relative isolate overflow-hidden">
@@ -39,17 +35,14 @@ export function NetworkingNav({
       />
       <div className="absolute inset-0 bg-gradient-to-br from-brand-navy-950/95 via-brand-navy-950/85 to-brand-navy-950/70" />
       <div className="relative z-10 mx-auto w-full max-w-7xl px-5 py-7 sm:px-8">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-mint-300">
-              {eyebrow}
+              Networking
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
               {eventName}
             </h1>
-            {subtitle ? (
-              <p className="mt-1 text-sm text-white/75">{subtitle}</p>
-            ) : null}
           </div>
           <nav className="flex flex-wrap gap-2 rounded-2xl border border-white/15 bg-white/10 p-1.5 backdrop-blur">
             {active === "personas" ? (

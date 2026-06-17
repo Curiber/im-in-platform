@@ -86,7 +86,6 @@ export default async function EventProfilePage({
         cardSlug={cardSlug}
         coverUrl={coverUrl}
         eventName={registration.events?.name ?? "Evento"}
-        eyebrow="Mi perfil"
         pendingCount={pendingReceivedCount ?? 0}
         slug={slug}
       />

@@ -108,7 +108,6 @@ export default async function ConnectionsPage({
         cardSlug={viewerCardSlug}
         coverUrl={coverUrl}
         eventName={viewer.events?.name ?? "Evento"}
-        eyebrow="Conexiones"
         pendingCount={pendingReceivedCount}
         slug={slug}
       />

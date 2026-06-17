@@ -128,13 +128,16 @@ export default async function EventDirectoryPage({
         cardSlug={viewerCardSlug}
         coverUrl={coverUrl}
         eventName={viewer.events.name}
-        eyebrow="Directorio privado"
         pendingCount={pendingReceivedCount ?? 0}
         slug={slug}
-        subtitle={`${filteredProfiles.length} personas disponibles para conectar`}
       />
 
       <section className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8">
+        <p className="mb-5 flex items-center gap-2 text-sm font-semibold text-brand-slate-600">
+          <Users className="size-4 text-brand-cyan-500" aria-hidden="true" />
+          {filteredProfiles.length} personas disponibles para conectar
+        </p>
+
         {suggestedMatches.length ? (
           <div className="mb-6 rounded-3xl border border-brand-border bg-white p-6 shadow-sm">
             <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-brand-cyan-500">
