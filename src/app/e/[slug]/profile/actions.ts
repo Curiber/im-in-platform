@@ -26,10 +26,12 @@ const profileSchema = z.object({
     ),
   linkedinUrl: z
     .string()
-    .trim()
-    .optional()
-    .transform((value) => (value ? value : null))
-    .pipe(z.string().url().nullable()),
+    .url()
+    .nullable()
+    .refine(
+      (value) => !value || isLinkedInUrl(value),
+      "Ingresa una URL de LinkedIn valida.",
+    ),
   phone: z.string().trim().optional(),
   publicProfileEnabled: z.boolean(),
   publicEmailEnabled: z.boolean(),
@@ -49,7 +51,7 @@ export async function updateAttendeeProfile(formData: FormData) {
     headline: String(formData.get("headline") ?? ""),
     industry: String(formData.get("industry") ?? ""),
     interests: formData.getAll("interests"),
-    linkedinUrl: String(formData.get("linkedinUrl") ?? ""),
+    linkedinUrl: normalizeLinkedInUrl(String(formData.get("linkedinUrl") ?? "")),
     phone: String(formData.get("phone") ?? ""),
     publicProfileEnabled: formData.get("publicProfileEnabled") === "on",
     publicEmailEnabled: formData.get("publicEmailEnabled") === "on",
@@ -141,4 +143,31 @@ export async function updateAttendeeProfile(formData: FormData) {
   redirect(
     `/e/${parsed.data.slug}/profile?registrationId=${registration.id}&token=${parsed.data.token}&profileStatus=updated`,
   );
+}
+
+function normalizeLinkedInUrl(value: string) {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (/^(www\.)?linkedin\.com\//i.test(trimmed)) {
+    return `https://${trimmed}`;
+  }
+
+  return trimmed;
+}
+
+function isLinkedInUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.hostname.toLowerCase().replace(/^www\./, "") === "linkedin.com";
+  } catch {
+    return false;
+  }
 }

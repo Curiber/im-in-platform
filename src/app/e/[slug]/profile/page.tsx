@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { updateAttendeeProfile } from "@/app/e/[slug]/profile/actions";
+import { LinkedInUrlField } from "@/app/e/[slug]/profile/linkedin-url-field";
 import { industries, interests } from "@/lib/profile-options";
 import type { ProfileCardVisibility } from "@/lib/profile-card-visibility";
 import { verifyRegistrationAccess } from "@/lib/registrations";
@@ -175,13 +176,7 @@ export default async function EventProfilePage({
             </Field>
 
             <Field label="LinkedIn">
-              <input
-                className={inputClass}
-                defaultValue={profile.linkedin_url ?? ""}
-                name="linkedinUrl"
-                placeholder="https://linkedin.com/in/..."
-                type="url"
-              />
+              <LinkedInUrlField defaultValue={profile.linkedin_url ?? ""} />
             </Field>
 
             <Field label="Descripcion en una linea">
