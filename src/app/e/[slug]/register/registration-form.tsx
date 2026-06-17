@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { useActionState } from "react";
 
@@ -104,38 +104,49 @@ export function RegistrationForm({
           Intereses
         </legend>
         <p className="mt-1 text-sm text-brand-slate-600">
-          Selecciona hasta 5 temas para ayudarte a descubrir personas afines.
+          Selecciona hasta 5 temas para descubrir personas afines.
         </p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <div className="mt-3 flex flex-wrap gap-2">
           {interests.map((interest) => (
-            <label
-              className="flex items-center gap-3 rounded-md border border-brand-border bg-brand-surface-soft p-3 text-sm"
-              key={interest}
-            >
-              <input name="interests" type="checkbox" value={interest} />
-              <span>{interest}</span>
+            <label className="cursor-pointer" key={interest}>
+              <input
+                className="peer sr-only"
+                name="interests"
+                type="checkbox"
+                value={interest}
+              />
+              <span className="inline-flex items-center rounded-xl border border-brand-border bg-white px-3.5 py-2 text-sm font-medium text-brand-slate-600 transition hover:border-brand-cyan-500/50 peer-checked:border-brand-navy-950 peer-checked:bg-brand-navy-950 peer-checked:text-white">
+                {interest}
+              </span>
             </label>
           ))}
         </div>
       </fieldset>
 
-      <div className="space-y-3 rounded-md border border-brand-border bg-brand-surface-soft p-4">
+      <div className="rounded-2xl border border-brand-cyan-500/30 bg-[#eef9f6] p-4">
         <label className="flex items-start gap-3">
           <input className="mt-1 size-4" name="networkingOptIn" type="checkbox" />
           <span>
-            <span className="block text-sm font-semibold text-brand-navy-950">
+            <span className="flex items-center gap-2 text-sm font-semibold text-brand-navy-950">
+              <ShieldCheck
+                className="size-4 text-brand-cyan-500"
+                aria-hidden="true"
+              />
               Quiero participar en networking y aparecer en el directorio
             </span>
-            <span className="mt-1 block text-sm leading-6 text-brand-slate-600">
+            <span className="mt-1.5 block text-sm leading-6 text-brand-slate-600">
               Otros asistentes inscritos podran ver tu nombre, cargo, empresa,
-              area e intereses. Tu email y telefono solo se comparten si aceptas
-              una conexion.
+              area e intereses.{" "}
+              <span className="font-semibold text-brand-navy-950">
+                Tu email y telefono solo se comparten cuando aceptas una
+                conexion.
+              </span>
             </span>
           </span>
         </label>
       </div>
 
-      <label className="flex items-start gap-3 rounded-md border border-brand-border bg-white p-4">
+      <label className="flex items-start gap-3 rounded-2xl border border-brand-border bg-white p-4">
         <input className="mt-1 size-4" name="dataConsent" required type="checkbox" />
         <span className="text-sm leading-6 text-brand-slate-600">
           Acepto que el organizador use mis datos para gestionar la inscripcion,
@@ -144,13 +155,13 @@ export function RegistrationForm({
       </label>
 
       {state.message ? (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
           {state.message}
         </p>
       ) : null}
 
       <button
-        className="flex h-12 w-full items-center justify-center gap-2 rounded-md bg-brand-navy-950 px-5 text-sm font-semibold text-white hover:bg-brand-navy-900 disabled:cursor-not-allowed disabled:opacity-65"
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-navy-950 px-5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-brand-navy-900 disabled:cursor-not-allowed disabled:opacity-65"
         disabled={isPending}
         type="submit"
       >
@@ -175,11 +186,13 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="text-sm font-medium text-brand-navy-950">{label}</span>
-      <span className="mt-2 block">{children}</span>
+      <span className="mb-2 block text-sm font-medium text-brand-navy-950">
+        {label}
+      </span>
+      {children}
     </label>
   );
 }
 
 const inputClass =
-  "h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500";
+  "h-11 w-full rounded-xl border border-brand-border bg-white px-3.5 text-sm text-brand-navy-950 outline-none transition focus:border-brand-cyan-500 focus:ring-2 focus:ring-brand-cyan-500/20";

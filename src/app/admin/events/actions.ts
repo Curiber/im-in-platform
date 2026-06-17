@@ -4,7 +4,129 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+const MAX_COVER_BYTES = 5 * 1024 * 1024;
+const EVENT_COVER_BUCKET = "event-covers";
+const allowedCoverTypes = new Map([
+  ["image/jpeg", "jpg"],
+  ["image/png", "png"],
+  ["image/webp", "webp"],
+]);
+
+async function authorizeEventManager(eventId: string) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: event } = await supabase
+    .from("events")
+    .select("id, organization_id, slug")
+    .eq("id", eventId)
+    .is("deleted_at", null)
+    .single<{ id: string; organization_id: string; slug: string }>();
+
+  if (!event) {
+    throw new Error("Evento invalido.");
+  }
+
+  const { data: membership } = await supabase
+    .from("organization_users")
+    .select("role")
+    .eq("organization_id", event.organization_id)
+    .eq("user_id", user.id)
+    .single<{ role: "owner" | "admin" | "event_admin" }>();
+
+  if (!membership) {
+    throw new Error("No tienes permisos sobre este evento.");
+  }
+
+  return event;
+}
+
+export async function uploadEventCover(formData: FormData) {
+  const eventId = String(formData.get("eventId") ?? "");
+
+  if (!eventId) {
+    throw new Error("Evento invalido.");
+  }
+
+  const event = await authorizeEventManager(eventId);
+  const redirectPath = `/admin/events/${eventId}/edit`;
+  const file = formData.get("cover");
+
+  if (!(file instanceof File) || file.size === 0) {
+    redirect(`${redirectPath}?coverStatus=missing`);
+  }
+
+  const extension = allowedCoverTypes.get(file.type);
+
+  if (!extension || file.size > MAX_COVER_BYTES) {
+    redirect(`${redirectPath}?coverStatus=invalid`);
+  }
+
+  const adminClient = createSupabaseAdminClient();
+  const storagePath = [
+    "events",
+    eventId,
+    `${Date.now()}-${crypto.randomUUID()}.${extension}`,
+  ].join("/");
+
+  const { error: uploadError } = await adminClient.storage
+    .from(EVENT_COVER_BUCKET)
+    .upload(storagePath, file, { contentType: file.type, upsert: false });
+
+  if (uploadError) {
+    redirect(`${redirectPath}?coverStatus=error`);
+  }
+
+  const { data } = adminClient.storage
+    .from(EVENT_COVER_BUCKET)
+    .getPublicUrl(storagePath);
+
+  const { error: updateError } = await adminClient
+    .from("events")
+    .update({ cover_image_url: data.publicUrl })
+    .eq("id", eventId);
+
+  if (updateError) {
+    redirect(`${redirectPath}?coverStatus=error`);
+  }
+
+  revalidatePath(redirectPath);
+  revalidatePath(`/e/${event.slug}`);
+  redirect(`${redirectPath}?coverStatus=uploaded`);
+}
+
+export async function removeEventCover(formData: FormData) {
+  const eventId = String(formData.get("eventId") ?? "");
+
+  if (!eventId) {
+    throw new Error("Evento invalido.");
+  }
+
+  const event = await authorizeEventManager(eventId);
+  const adminClient = createSupabaseAdminClient();
+
+  const { error } = await adminClient
+    .from("events")
+    .update({ cover_image_url: null })
+    .eq("id", eventId);
+
+  if (error) {
+    throw new Error("No se pudo quitar la portada.");
+  }
+
+  revalidatePath(`/admin/events/${eventId}/edit`);
+  revalidatePath(`/e/${event.slug}`);
+  redirect(`/admin/events/${eventId}/edit?coverStatus=removed`);
+}
 
 const eventSchema = z.object({
   organizationId: z.string().uuid(),
