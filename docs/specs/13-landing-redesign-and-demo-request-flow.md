@@ -56,8 +56,13 @@ spec 08 y el analisis de [12-product-evolution-gap-analysis-and-roadmap.md](12-p
   hover:shadow-lg`) en cards y CTAs clicables.
 - **Gradientes de marca** (`brand-gradient-primary/soft/accent`) usados en CTA
   primario, badges, iconos y blobs de fondo del hero.
-- **Caras humanas**: avatares con gradiente e iniciales en la tarjeta de
-  directorio del hero (placeholder hasta tener fotos/clientes reales).
+- **Imagenes de alto impacto**: hero a pantalla completa con fotografia de
+  evento (overlay navy para legibilidad) y secciones de feature con imagen
+  grande. Fuente: stock con licencia (Unsplash) como placeholder, configurado
+  via `images.remotePatterns` en `next.config.ts`. Pendiente: reemplazar por
+  fotografia propia/owned antes de publicar.
+- **Caras humanas**: avatares con gradiente e iniciales en chips flotantes
+  sobre las fotos del hero y la seccion de matchmaking.
 - **Prueba social**: franja con logos de organizaciones (placeholder) y un stat
   con peso. Marcar claramente como pendiente de datos reales.
 - **Aire**: secciones a `py-24`+.
@@ -155,6 +160,10 @@ otorga acceso publico a la tabla.
 - [ ] Usar el logo real en header y footer.
 - [ ] Agregar hover-lift y transiciones a cards y CTAs.
 - [ ] Agregar franja de prueba social (placeholder marcado).
+- [ ] Hero inmersivo a pantalla completa con foto + overlay y sellos de
+      confianza; secciones de feature con imagen grande.
+- [ ] Configurar `images.remotePatterns` para el stock placeholder.
+- [ ] Reemplazar stock por fotografia propia antes de publicar (pendiente).
 
 ### Epic 32: Flujo de solicitud de demo
 
