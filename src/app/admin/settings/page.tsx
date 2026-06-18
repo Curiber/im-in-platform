@@ -1,8 +1,14 @@
-import { Building2, Save } from "lucide-react";
+import { Building2, Mail, Save, Trash2, UserPlus } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { AdminShell } from "@/app/admin/_components/admin-shell";
-import { updateOrganizationSettings } from "@/app/admin/actions";
+import {
+  addOrganizationMember,
+  removeOrganizationMember,
+  updateOrganizationMemberRole,
+  updateOrganizationSettings,
+} from "@/app/admin/actions";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -58,13 +64,16 @@ export default async function AdminSettingsPage() {
         ) : null}
 
         {!error && memberships?.length ? (
-          <div className="space-y-4">
+          <div className="space-y-8">
             {memberships.map((membership) =>
               membership.organizations ? (
-                <OrganizationSettingsForm
-                  key={membership.organizations.id}
-                  membership={membership}
-                />
+                <div className="space-y-4" key={membership.organizations.id}>
+                  <OrganizationSettingsForm membership={membership} />
+                  <MembersPanel
+                    organizationId={membership.organizations.id}
+                    viewerRole={membership.role}
+                  />
+                </div>
               ) : null,
             )}
           </div>
@@ -167,6 +176,135 @@ function OrganizationSettingsForm({
         </p>
       )}
     </form>
+  );
+}
+
+type Member = { user_id: string; role: "owner" | "admin" | "event_admin" };
+
+async function MembersPanel({
+  organizationId,
+  viewerRole,
+}: {
+  organizationId: string;
+  viewerRole: "owner" | "admin" | "event_admin";
+}) {
+  if (viewerRole !== "owner" && viewerRole !== "admin") {
+    return null;
+  }
+
+  const adminClient = createSupabaseAdminClient();
+  const { data: members } = await adminClient
+    .from("organization_users")
+    .select("user_id, role")
+    .eq("organization_id", organizationId)
+    .order("created_at", { ascending: true })
+    .returns<Member[]>();
+
+  const emails = new Map<string, string>();
+  await Promise.all(
+    (members ?? []).map(async (member) => {
+      const { data } = await adminClient.auth.admin.getUserById(member.user_id);
+
+      if (data.user?.email) {
+        emails.set(member.user_id, data.user.email);
+      }
+    }),
+  );
+
+  const isOwner = viewerRole === "owner";
+
+  return (
+    <div className="rounded-2xl border border-brand-border bg-white p-5 shadow-sm">
+      <h3 className="flex items-center gap-2 text-lg font-semibold">
+        <UserPlus className="size-5 text-brand-cyan-500" aria-hidden="true" />
+        Equipo
+      </h3>
+      <p className="mt-1 text-sm text-brand-slate-600">
+        Invita miembros y define su rol. Los owners se gestionan aparte.
+      </p>
+
+      <div className="mt-4 space-y-2">
+        {(members ?? []).map((member) => (
+          <div
+            className="flex flex-col gap-3 rounded-xl border border-brand-border/60 bg-brand-surface-soft p-3 sm:flex-row sm:items-center sm:justify-between"
+            key={member.user_id}
+          >
+            <p className="flex items-center gap-2 text-sm font-medium text-brand-navy-950">
+              <Mail className="size-4 text-brand-cyan-500" aria-hidden="true" />
+              {emails.get(member.user_id) ?? member.user_id}
+            </p>
+            {member.role === "owner" ? (
+              <span className="inline-flex h-9 items-center self-start rounded-lg bg-brand-navy-950 px-3 text-sm font-semibold text-brand-mint-300">
+                Owner
+              </span>
+            ) : (
+              <div className="flex items-center gap-2">
+                <form action={updateOrganizationMemberRole}>
+                  <input name="organizationId" type="hidden" value={organizationId} />
+                  <input name="userId" type="hidden" value={member.user_id} />
+                  <select
+                    className="h-9 rounded-lg border border-brand-border bg-white px-2 text-sm outline-none focus:border-brand-cyan-500"
+                    defaultValue={member.role}
+                    name="role"
+                  >
+                    <option value="admin">Admin</option>
+                    <option value="event_admin">Admin de evento</option>
+                  </select>
+                  <button
+                    className="ml-2 inline-flex h-9 items-center rounded-lg border border-brand-border bg-white px-3 text-sm font-semibold text-brand-navy-950 transition hover:bg-white"
+                    type="submit"
+                  >
+                    Guardar
+                  </button>
+                </form>
+                {isOwner ? (
+                  <form action={removeOrganizationMember}>
+                    <input name="organizationId" type="hidden" value={organizationId} />
+                    <input name="userId" type="hidden" value={member.user_id} />
+                    <button
+                      aria-label="Quitar miembro"
+                      className="inline-flex size-9 items-center justify-center rounded-lg border border-brand-border bg-white text-red-700 transition hover:bg-brand-surface-soft"
+                      type="submit"
+                    >
+                      <Trash2 className="size-4" aria-hidden="true" />
+                    </button>
+                  </form>
+                ) : null}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <form
+        action={addOrganizationMember}
+        className="mt-4 grid gap-3 rounded-xl border border-brand-border/60 bg-brand-surface-soft p-4 sm:grid-cols-[1fr_180px_auto]"
+      >
+        <input name="organizationId" type="hidden" value={organizationId} />
+        <input
+          className="h-10 rounded-lg border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
+          name="email"
+          placeholder="email@empresa.com"
+          required
+          type="email"
+        />
+        <select
+          className="h-10 rounded-lg border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
+          defaultValue="event_admin"
+          name="role"
+        >
+          <option value="admin">Admin</option>
+          <option value="event_admin">Admin de evento</option>
+        </select>
+        <button
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-brand-navy-950 px-4 text-sm font-semibold text-white transition hover:bg-brand-navy-900"
+          type="submit"
+        >
+          <UserPlus className="size-4" aria-hidden="true" />
+          Invitar
+        </button>
+      </form>
+    </div>
   );
 }
 
