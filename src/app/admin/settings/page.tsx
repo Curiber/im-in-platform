@@ -1,9 +1,8 @@
-import { ArrowLeft, Building2, Save } from "lucide-react";
-import Link from "next/link";
+import { Building2, Save } from "lucide-react";
 import { redirect } from "next/navigation";
 
+import { AdminShell } from "@/app/admin/_components/admin-shell";
 import { updateOrganizationSettings } from "@/app/admin/actions";
-import { SignOutButton } from "@/app/admin/sign-out-button";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -37,26 +36,7 @@ export default async function AdminSettingsPage() {
     .returns<OrganizationMembership[]>();
 
   return (
-    <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
-      <header className="border-b border-brand-border bg-white">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-5 py-4 sm:px-8">
-          <div>
-            <p className="text-sm font-semibold text-brand-cyan-500">I&apos;m IN</p>
-            <h1 className="text-xl font-semibold">Configuracion</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              className="inline-flex items-center gap-2 rounded-md border border-brand-border px-3 py-2 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
-              href="/admin"
-            >
-              <ArrowLeft className="size-4" aria-hidden="true" />
-              Volver
-            </Link>
-            <SignOutButton />
-          </div>
-        </div>
-      </header>
-
+    <AdminShell>
       <section className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8">
         <div className="mb-6">
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-cyan-500">
@@ -106,7 +86,7 @@ export default async function AdminSettingsPage() {
           </div>
         ) : null}
       </section>
-    </main>
+    </AdminShell>
   );
 }
 

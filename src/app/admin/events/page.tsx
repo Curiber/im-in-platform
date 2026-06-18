@@ -1,9 +1,8 @@
 import { Archive, CalendarPlus, ExternalLink } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { SignOutButton } from "@/app/admin/sign-out-button";
+import { AdminShell } from "@/app/admin/_components/admin-shell";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -68,8 +67,7 @@ export default async function AdminEventsPage({
     : new Map<string, string>();
 
   return (
-    <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
-      <AdminHeader />
+    <AdminShell>
       <section className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8">
         <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
@@ -218,37 +216,7 @@ export default async function AdminEventsPage({
           ) : null}
         </div>
       </section>
-    </main>
-  );
-}
-
-function AdminHeader() {
-  return (
-    <header className="sticky top-0 z-40 border-b border-brand-border/70 bg-white/90 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-5 py-4 sm:px-8">
-        <Link className="flex items-center gap-3" href="/admin">
-          <Image
-            alt="I'M IN"
-            className="h-auto w-28"
-            height={35}
-            src="/brand/im-in-logo.png"
-            width={140}
-          />
-          <span className="hidden border-l border-brand-border pl-3 text-sm font-semibold text-brand-slate-600 sm:inline">
-            Panel organizador
-          </span>
-        </Link>
-        <div className="flex items-center gap-2">
-          <Link
-            className="rounded-md border border-brand-border bg-white px-3 py-2 text-sm font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft"
-            href="/admin"
-          >
-            Volver
-          </Link>
-          <SignOutButton />
-        </div>
-      </div>
-    </header>
+    </AdminShell>
   );
 }
 

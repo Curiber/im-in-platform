@@ -77,11 +77,14 @@ export default async function PublicProfileCardPage({
         <article className="overflow-hidden rounded-3xl border border-[#b9ddd8] bg-white shadow-xl shadow-[#0b6b8a]/10">
           <div className="bg-[#071f35] px-6 pb-10 pt-6 text-white">
             <div className="flex items-center justify-between gap-4">
-              <Link
-                className="text-2xl font-semibold tracking-[0.18em]"
-                href="/"
-              >
-                I&apos;M IN
+              <Link className="inline-flex items-center" href="/">
+                <Image
+                  alt="I'M IN"
+                  className="h-auto w-28"
+                  height={35}
+                  src="/brand/im-in-logo-white.png"
+                  width={140}
+                />
               </Link>
               <span className="rounded-md bg-[#15b8a6]/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#9ff4ec]">
                 Tarjeta

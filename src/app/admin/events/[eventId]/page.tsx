@@ -1,6 +1,5 @@
 import {
   ArchiveRestore,
-  ArrowLeft,
   Calendar,
   CalendarClock,
   Link2,
@@ -20,6 +19,7 @@ import {
   publishEvent,
   restoreEvent,
 } from "@/app/admin/events/actions";
+import { AdminShell } from "@/app/admin/_components/admin-shell";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -113,25 +113,7 @@ export default async function AdminEventDetailPage({
     }
 
     return (
-      <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
-        <header className="border-b border-brand-border bg-white">
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-red-700">
-                Evento eliminado
-              </p>
-              <h1 className="text-xl font-semibold">{event.name}</h1>
-            </div>
-            <Link
-              className="inline-flex items-center gap-2 rounded-md border border-brand-border px-3 py-2 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
-              href="/admin/events?filter=deleted"
-            >
-              <ArrowLeft className="size-4" aria-hidden="true" />
-              Volver
-            </Link>
-          </div>
-        </header>
-
+      <AdminShell>
         <section className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8">
           <article className="rounded-lg border border-brand-border bg-white p-6 shadow-sm">
             <div className="rounded-md border border-red-200 bg-red-50 p-4">
@@ -197,28 +179,12 @@ export default async function AdminEventDetailPage({
             )}
           </article>
         </section>
-      </main>
+      </AdminShell>
     );
   }
 
   return (
-    <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
-      <header className="border-b border-brand-border bg-white">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
-          <div>
-            <p className="text-sm font-semibold text-brand-cyan-500">Evento</p>
-            <h1 className="text-xl font-semibold">{event.name}</h1>
-          </div>
-          <Link
-            className="inline-flex items-center gap-2 rounded-md border border-brand-border px-3 py-2 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
-            href="/admin/events"
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-            Volver
-          </Link>
-        </div>
-      </header>
-
+    <AdminShell>
       <section className="mx-auto grid w-full max-w-6xl gap-6 px-5 py-8 sm:px-8 lg:grid-cols-[1fr_360px]">
         <article className="rounded-lg border border-brand-border bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -503,7 +469,7 @@ export default async function AdminEventDetailPage({
           </div>
         </aside>
       </section>
-    </main>
+    </AdminShell>
   );
 }
 
