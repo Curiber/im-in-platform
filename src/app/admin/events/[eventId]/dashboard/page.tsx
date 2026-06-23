@@ -2,6 +2,7 @@ import { ArrowLeft, Download, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { AdminShell } from "@/app/admin/_components/admin-shell";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -101,25 +102,16 @@ export default async function EventDashboardPage({
     : 0;
 
   return (
-    <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
-      <header className="border-b border-brand-border bg-white">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
-          <div>
-            <p className="text-sm font-semibold text-brand-cyan-500">Dashboard</p>
-            <h1 className="text-xl font-semibold">{event.name}</h1>
-          </div>
-          <Link
-            className="inline-flex items-center gap-2 rounded-md border border-brand-border px-3 py-2 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
-            href={`/admin/events/${event.id}`}
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-            Volver
-          </Link>
-        </div>
-      </header>
-
+    <AdminShell>
       <section className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8">
-        <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <Link
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-slate-600 transition hover:text-brand-navy-950"
+          href={`/admin/events/${event.id}`}
+        >
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          {event.name}
+        </Link>
+        <div className="mb-6 mt-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-cyan-500">
               Metricas del evento
@@ -179,7 +171,7 @@ export default async function EventDashboardPage({
           />
         </div>
       </section>
-    </main>
+    </AdminShell>
   );
 }
 

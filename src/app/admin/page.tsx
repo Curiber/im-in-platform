@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { SignOutButton } from "@/app/admin/sign-out-button";
+import { AdminShell } from "@/app/admin/_components/admin-shell";
 import { isPlatformAdmin } from "@/lib/platform-admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -38,17 +38,7 @@ export default async function AdminHomePage() {
     .returns<OrganizationMembership[]>();
 
   return (
-    <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
-      <header className="border-b border-brand-border bg-white">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
-          <div>
-            <p className="text-sm font-semibold text-brand-cyan-500">I&apos;m IN</p>
-            <h1 className="text-xl font-semibold">Panel organizador</h1>
-          </div>
-          <SignOutButton />
-        </div>
-      </header>
-
+    <AdminShell>
       <section className="mx-auto grid w-full max-w-7xl gap-6 px-5 py-8 sm:px-8 lg:grid-cols-[1fr_360px]">
         <div className="rounded-lg border border-brand-border bg-white p-6 shadow-sm">
           <div className="flex items-start gap-4">
@@ -128,7 +118,7 @@ export default async function AdminHomePage() {
           </div>
         </aside>
       </section>
-    </main>
+    </AdminShell>
   );
 }
 

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { LoginForm } from "@/app/(auth)/login/login-form";
@@ -7,11 +8,15 @@ export default function LoginPage() {
     <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
       <section className="mx-auto grid min-h-screen w-full max-w-6xl items-center gap-8 px-5 py-10 md:grid-cols-[1fr_420px]">
         <div className="max-w-2xl">
-          <Link
-            className="text-sm font-semibold text-brand-cyan-500"
-            href="/"
-          >
-            I&apos;m IN
+          <Link className="inline-flex items-center" href="/">
+            <Image
+              alt="I'M IN"
+              className="h-auto w-32"
+              height={38}
+              priority
+              src="/brand/im-in-logo.png"
+              width={152}
+            />
           </Link>
           <h1 className="mt-8 text-4xl font-semibold leading-tight sm:text-5xl">
             Acceso para organizadores de eventos

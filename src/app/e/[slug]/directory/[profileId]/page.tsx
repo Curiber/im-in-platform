@@ -125,18 +125,20 @@ export default async function EventDirectoryProfilePage({
       </header>
 
       <section className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8">
-        <article className="overflow-hidden rounded-lg border border-brand-border bg-white shadow-sm">
-          <div className="bg-brand-gradient-primary px-6 py-8 text-white">
+        <article className="overflow-hidden rounded-3xl border border-brand-border bg-white shadow-sm">
+          <div className="relative isolate overflow-hidden px-6 py-10 text-white sm:px-8">
+            <div className="absolute inset-0 -z-10 bg-brand-gradient-primary" />
+            <div className="pointer-events-none absolute -right-10 -top-10 size-44 rounded-full bg-brand-mint-300/20 blur-3xl" />
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
               {profile.attendee_profiles?.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   alt={profile.full_name_snapshot}
-                  className="size-20 shrink-0 rounded-full border-2 border-white/30 object-cover"
+                  className="size-24 shrink-0 rounded-2xl border-2 border-white/30 object-cover"
                   src={profile.attendee_profiles.avatar_url}
                 />
               ) : (
-                <span className="flex size-20 shrink-0 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 text-2xl font-semibold">
+                <span className="flex size-24 shrink-0 items-center justify-center rounded-2xl border-2 border-white/30 bg-white/10 text-2xl font-semibold">
                   {initials(profile.full_name_snapshot)}
                 </span>
               )}
@@ -190,7 +192,7 @@ export default async function EventDirectoryProfilePage({
               <div className="mt-3 flex flex-wrap gap-2">
                 {profile.interests.map((interest) => (
                   <span
-                    className="rounded-md bg-brand-slate-100 px-3 py-1 text-sm font-semibold text-brand-navy-900"
+                    className="rounded-full bg-brand-slate-100 px-3 py-1 text-sm font-semibold text-brand-navy-900"
                     key={interest}
                   >
                     {interest}
@@ -201,7 +203,7 @@ export default async function EventDirectoryProfilePage({
 
             {showCardLink ? (
               <Link
-                className="mt-8 inline-flex h-10 items-center gap-2 rounded-md border border-brand-border bg-white px-4 text-sm font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft"
+                className="mt-8 inline-flex h-11 items-center gap-2 rounded-xl border border-brand-border bg-white px-4 text-sm font-semibold text-brand-navy-950 transition hover:-translate-y-0.5 hover:bg-brand-surface-soft"
                 href={`/p/${cardSlug}?source=event`}
               >
                 <IdCard className="size-4 text-brand-cyan-500" aria-hidden="true" />
@@ -212,7 +214,7 @@ export default async function EventDirectoryProfilePage({
             {profile.id !== viewer.id && !existingConnection ? (
               <form
                 action={createConnectionRequest}
-                className="mt-8 rounded-md border border-brand-border bg-brand-gradient-soft p-5"
+                className="mt-8 rounded-2xl border border-brand-border bg-brand-gradient-soft p-5"
               >
                 <input name="slug" type="hidden" value={slug} />
                 <input name="registrationId" type="hidden" value={viewer.id} />
@@ -229,7 +231,7 @@ export default async function EventDirectoryProfilePage({
                   Si acepta, ambos recibiran los datos de contacto por email.
                 </p>
                 <button
-                  className="mt-4 inline-flex h-10 items-center gap-2 rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white transition hover:bg-brand-navy-900"
+                  className="mt-4 inline-flex h-11 items-center gap-2 rounded-xl bg-brand-navy-950 px-4 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-brand-navy-900"
                   type="submit"
                 >
                   <UserRoundPlus className="size-4" aria-hidden="true" />
@@ -239,7 +241,7 @@ export default async function EventDirectoryProfilePage({
             ) : null}
 
             {profile.id !== viewer.id && existingConnection ? (
-              <div className="mt-8 rounded-md border border-brand-border bg-brand-surface-soft p-5">
+              <div className="mt-8 rounded-2xl border border-brand-border bg-brand-surface-soft p-5">
                 <p className="text-sm font-semibold text-brand-navy-950">
                   {isConnected ? "Conexion aceptada" : "Conexion ya solicitada"}
                 </p>
@@ -305,8 +307,10 @@ function Info({
   value: string;
 }) {
   return (
-    <div className="rounded-md border border-brand-border bg-brand-surface-soft p-4">
-      <span className="text-brand-cyan-500">{icon}</span>
+    <div className="rounded-2xl border border-brand-border bg-brand-surface-soft p-4">
+      <span className="flex size-9 items-center justify-center rounded-xl bg-brand-mint-300/40 text-brand-navy-950">
+        {icon}
+      </span>
       <p className="mt-3 text-sm text-brand-slate-600">{label}</p>
       <p className="mt-1 font-semibold text-brand-navy-950">{value}</p>
     </div>

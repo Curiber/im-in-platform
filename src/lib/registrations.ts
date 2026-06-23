@@ -22,6 +22,7 @@ export type VerifiedRegistration = {
     name: string;
     networking_enabled: boolean;
     deleted_at: string | null;
+    cover_image_url: string | null;
   } | null;
 };
 
@@ -42,7 +43,7 @@ export async function verifyRegistrationAccess({
   const { data: registration } = await adminClient
     .from("event_registrations")
     .select(
-      "id, event_id, profile_id, email, full_name_snapshot, interests, public_profile_enabled, status, qr_token_hash, attendee_profiles(card_visibility, profile_slug), events(id, slug, name, networking_enabled, deleted_at)",
+      "id, event_id, profile_id, email, full_name_snapshot, interests, public_profile_enabled, status, qr_token_hash, attendee_profiles(card_visibility, profile_slug), events(id, slug, name, networking_enabled, deleted_at, cover_image_url)",
     )
     .eq("id", registrationId)
     .single()

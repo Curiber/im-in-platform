@@ -1,9 +1,8 @@
 import { Building2, ShieldCheck, UserPlus, Users } from "lucide-react";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { AdminShell } from "@/app/admin/_components/admin-shell";
 import { createOrganization } from "@/app/admin/actions";
-import { SignOutButton } from "@/app/admin/sign-out-button";
 import { isPlatformAdmin } from "@/lib/platform-admin";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -59,25 +58,7 @@ export default async function PlatformOrganizationsPage() {
   );
 
   return (
-    <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
-      <header className="border-b border-brand-border bg-white">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
-          <Link href="/admin">
-            <p className="text-sm font-semibold text-brand-cyan-500">I&apos;m IN</p>
-            <h1 className="text-xl font-semibold">Platform admin</h1>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link
-              className="rounded-md border border-brand-border px-3 py-2 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
-              href="/admin"
-            >
-              Panel
-            </Link>
-            <SignOutButton />
-          </div>
-        </div>
-      </header>
-
+    <AdminShell>
       <section className="mx-auto grid w-full max-w-7xl gap-6 px-5 py-8 sm:px-8 lg:grid-cols-[1fr_400px]">
         <div className="rounded-lg border border-brand-border bg-white p-6 shadow-sm">
           <div className="flex items-start gap-4">
@@ -134,7 +115,7 @@ export default async function PlatformOrganizationsPage() {
           <CreateOrganizationForm />
         </aside>
       </section>
-    </main>
+    </AdminShell>
   );
 }
 

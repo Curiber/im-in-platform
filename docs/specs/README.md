@@ -18,6 +18,9 @@ Este directorio contiene la base de spec-driven development para el MVP.
 12. [11-security-privacy-and-data-integrity-hardening.md](11-security-privacy-and-data-integrity-hardening.md)
 13. [12-product-evolution-gap-analysis-and-roadmap.md](12-product-evolution-gap-analysis-and-roadmap.md)
 14. [13-landing-redesign-and-demo-request-flow.md](13-landing-redesign-and-demo-request-flow.md)
+15. [14-attendee-event-experience-redesign.md](14-attendee-event-experience-redesign.md)
+16. [15-networking-surfaces-redesign.md](15-networking-surfaces-redesign.md)
+17. [16-admin-shell-and-team-management.md](16-admin-shell-and-team-management.md)
 
 ## Criterio de spec-driven development
 
