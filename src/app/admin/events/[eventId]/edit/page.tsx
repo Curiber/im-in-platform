@@ -1,4 +1,4 @@
-import { ArrowLeft, ImageOff, ImageUp } from "lucide-react";
+import { ImageOff, ImageUp } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -7,6 +7,7 @@ import {
   updateEvent,
   uploadEventCover,
 } from "@/app/admin/events/actions";
+import { AdminShell } from "@/app/admin/_components/admin-shell";
 import { DEFAULT_EVENT_COVER } from "@/lib/event-cover";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -63,24 +64,14 @@ export default async function EditEventPage({
   }
 
   return (
-    <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
-      <header className="border-b border-brand-border bg-white">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-5 py-4 sm:px-8">
-          <div>
-            <p className="text-sm font-semibold text-brand-cyan-500">Eventos</p>
-            <h1 className="text-xl font-semibold">Editar evento</h1>
-          </div>
-          <Link
-            className="inline-flex items-center gap-2 rounded-md border border-brand-border px-3 py-2 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
-            href={`/admin/events/${event.id}`}
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-            Volver
-          </Link>
-        </div>
-      </header>
-
+    <AdminShell>
       <section className="mx-auto w-full max-w-5xl space-y-6 px-5 py-8 sm:px-8">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-cyan-500">
+            Editar evento
+          </p>
+          <h1 className="mt-1 text-3xl font-semibold">{event.name}</h1>
+        </div>
         <div className="overflow-hidden rounded-2xl border border-brand-border bg-white shadow-sm">
           <div className="relative h-44 w-full">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -311,7 +302,7 @@ export default async function EditEventPage({
           </div>
         </form>
       </section>
-    </main>
+    </AdminShell>
   );
 }
 

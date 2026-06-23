@@ -218,3 +218,134 @@ export async function updateOrganizationSettings(formData: FormData) {
   revalidatePath("/admin/settings");
   redirect("/admin/settings");
 }
+
+async function requireOrgManager(organizationId: string) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: membership } = await supabase
+    .from("organization_users")
+    .select("role")
+    .eq("organization_id", organizationId)
+    .eq("user_id", user.id)
+    .single<{ role: "owner" | "admin" | "event_admin" }>();
+
+  if (!membership || !["owner", "admin"].includes(membership.role)) {
+    throw new Error("No tienes permisos para gestionar el equipo.");
+  }
+
+  return { role: membership.role, userId: user.id };
+}
+
+const addMemberSchema = z.object({
+  organizationId: z.string().uuid(),
+  email: z.string().trim().email("Ingresa un email valido.").toLowerCase(),
+  role: z.enum(["admin", "event_admin"]),
+});
+
+export async function addOrganizationMember(formData: FormData) {
+  const parsed = addMemberSchema.safeParse({
+    organizationId: formData.get("organizationId"),
+    email: formData.get("email"),
+    role: formData.get("role"),
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
+  }
+
+  await requireOrgManager(parsed.data.organizationId);
+
+  const adminClient = createSupabaseAdminClient();
+  const member = await findOrInviteOwnerUser({ email: parsed.data.email });
+  const { error } = await adminClient.from("organization_users").insert({
+    organization_id: parsed.data.organizationId,
+    role: parsed.data.role,
+    user_id: member.id,
+  });
+
+  if (error && error.code !== "23505") {
+    throw new Error("No se pudo agregar al miembro.");
+  }
+
+  revalidatePath("/admin/settings");
+  redirect("/admin/settings");
+}
+
+const updateMemberRoleSchema = z.object({
+  organizationId: z.string().uuid(),
+  userId: z.string().uuid(),
+  role: z.enum(["admin", "event_admin"]),
+});
+
+export async function updateOrganizationMemberRole(formData: FormData) {
+  const parsed = updateMemberRoleSchema.safeParse({
+    organizationId: formData.get("organizationId"),
+    userId: formData.get("userId"),
+    role: formData.get("role"),
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
+  }
+
+  await requireOrgManager(parsed.data.organizationId);
+
+  const adminClient = createSupabaseAdminClient();
+  const { error } = await adminClient
+    .from("organization_users")
+    .update({ role: parsed.data.role })
+    .eq("organization_id", parsed.data.organizationId)
+    .eq("user_id", parsed.data.userId)
+    .neq("role", "owner");
+
+  if (error) {
+    throw new Error("No se pudo actualizar el rol.");
+  }
+
+  revalidatePath("/admin/settings");
+  redirect("/admin/settings");
+}
+
+const removeMemberSchema = z.object({
+  organizationId: z.string().uuid(),
+  userId: z.string().uuid(),
+});
+
+export async function removeOrganizationMember(formData: FormData) {
+  const parsed = removeMemberSchema.safeParse({
+    organizationId: formData.get("organizationId"),
+    userId: formData.get("userId"),
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
+  }
+
+  const { role } = await requireOrgManager(parsed.data.organizationId);
+
+  if (role !== "owner") {
+    throw new Error("Solo el owner puede quitar miembros.");
+  }
+
+  const adminClient = createSupabaseAdminClient();
+  const { error } = await adminClient
+    .from("organization_users")
+    .delete()
+    .eq("organization_id", parsed.data.organizationId)
+    .eq("user_id", parsed.data.userId)
+    .neq("role", "owner");
+
+  if (error) {
+    throw new Error("No se pudo quitar al miembro.");
+  }
+
+  revalidatePath("/admin/settings");
+  redirect("/admin/settings");
+}
