@@ -1,10 +1,11 @@
-import { ArrowLeft, Calendar, MapPin } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { RegistrationForm } from "@/app/e/[slug]/register/registration-form";
+import { resolveEventCover } from "@/lib/event-cover";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,7 @@ type RegistrationEvent = {
   location: string | null;
   capacity: number;
   networking_enabled: boolean;
+  cover_image_url: string | null;
   organizations: {
     name: string;
   } | null;
@@ -33,7 +35,7 @@ export default async function RegisterPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, name, description, starts_at, location, capacity, networking_enabled, organizations(name)",
+      "id, name, description, starts_at, location, capacity, networking_enabled, cover_image_url, organizations(name)",
     )
     .eq("slug", slug)
     .eq("status", "published")
@@ -45,23 +47,23 @@ export default async function RegisterPage({
     notFound();
   }
 
+  const coverUrl = resolveEventCover(event.cover_image_url);
+
   return (
     <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
-      <header className="border-b border-brand-border bg-white">
+      <header className="border-b border-brand-border/70 bg-white/90 backdrop-blur">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
-          <div>
-            <Link className="inline-flex items-center" href="/">
-              <Image
-                alt="I'M IN"
-                className="h-auto w-32"
-                height={38}
-                src="/brand/im-in-logo.png"
-                width={152}
-              />
-            </Link>
-          </div>
+          <Link className="inline-flex items-center" href="/">
+            <Image
+              alt="I'M IN"
+              className="h-auto w-32"
+              height={38}
+              src="/brand/im-in-logo.png"
+              width={152}
+            />
+          </Link>
           <Link
-            className="inline-flex items-center gap-2 rounded-md border border-brand-border px-3 py-2 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
+            className="inline-flex items-center gap-2 rounded-xl border border-brand-border px-3 py-2 text-sm font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft"
             href={`/e/${slug}`}
           >
             <ArrowLeft className="size-4" aria-hidden="true" />
@@ -70,47 +72,66 @@ export default async function RegisterPage({
         </div>
       </header>
 
-      <section className="mx-auto grid w-full max-w-7xl gap-6 px-5 py-8 sm:px-8 lg:grid-cols-[1fr_360px]">
-        <div className="rounded-lg border border-brand-border bg-white p-6 shadow-sm">
+      <section className="mx-auto grid w-full max-w-7xl gap-6 px-5 py-10 sm:px-8 lg:grid-cols-[1fr_360px]">
+        <div className="rounded-3xl border border-brand-border bg-white p-7 shadow-sm sm:p-8">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-cyan-500">
             Inscripcion
           </p>
-          <h1 className="mt-2 text-3xl font-semibold text-brand-navy-950">
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-brand-navy-950">
             {event.name}
           </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-brand-slate-600">
+          <p className="mt-3 flex items-start gap-2 text-sm leading-6 text-brand-slate-600">
+            <ShieldCheck
+              className="mt-0.5 size-4 shrink-0 text-brand-cyan-500"
+              aria-hidden="true"
+            />
             Te tomara cerca de 2 minutos. Tu email y telefono solo se comparten
             cuando aceptas una conexion.
           </p>
-          <div className="mt-6">
+          <div className="mt-7">
             <RegistrationForm eventId={event.id} slug={slug} />
           </div>
         </div>
 
-        <aside className="space-y-3">
-          <div className="rounded-lg bg-brand-gradient-primary p-5 text-white shadow-sm">
-            <p className="text-sm text-white/70">Organiza</p>
-            <p className="mt-1 font-semibold text-white">
-              {event.organizations?.name ?? "Organizacion"}
-            </p>
+        <aside className="space-y-4">
+          <div className="overflow-hidden rounded-3xl border border-brand-border bg-white shadow-sm">
+            <div className="relative h-32 w-full">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                alt={event.name}
+                className="size-full object-cover"
+                src={coverUrl}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-brand-navy-950/80 to-transparent" />
+              <div className="absolute bottom-3 left-4 right-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-mint-300">
+                  Organiza
+                </p>
+                <p className="truncate font-semibold text-white">
+                  {event.organizations?.name ?? "Organizacion"}
+                </p>
+              </div>
+            </div>
+            <div className="space-y-3 p-5">
+              <DetailRow
+                icon={<Calendar className="size-5" aria-hidden="true" />}
+                label="Fecha"
+                value={formatDate(event.starts_at)}
+              />
+              <DetailRow
+                icon={<MapPin className="size-5" aria-hidden="true" />}
+                label="Lugar"
+                value={event.location ?? "Por definir"}
+              />
+            </div>
           </div>
-          <Info
-            icon={<Calendar className="size-5" aria-hidden="true" />}
-            label="Fecha"
-            value={formatDate(event.starts_at)}
-          />
-          <Info
-            icon={<MapPin className="size-5" aria-hidden="true" />}
-            label="Lugar"
-            value={event.location ?? "Por definir"}
-          />
         </aside>
       </section>
     </main>
   );
 }
 
-function Info({
+function DetailRow({
   icon,
   label,
   value,
@@ -120,10 +141,14 @@ function Info({
   value: string;
 }) {
   return (
-    <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
-      <span className="text-brand-cyan-500">{icon}</span>
-      <p className="mt-3 text-sm text-brand-slate-600">{label}</p>
-      <p className="mt-1 font-semibold text-brand-navy-950">{value}</p>
+    <div className="flex items-center gap-3">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-mint-300/40 text-brand-navy-950">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-xs text-brand-slate-600">{label}</p>
+        <p className="truncate font-semibold text-brand-navy-950">{value}</p>
+      </div>
     </div>
   );
 }
