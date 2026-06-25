@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 
+import { escapeCsvValue } from "@/lib/csv";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type ExportRegistration = {
@@ -96,28 +97,10 @@ function toCsv(rows: ExportRegistration[]) {
         row.registered_at,
         row.checked_in_at,
       ]
-        .map(escapeCsv)
+        .map(escapeCsvValue)
         .join(","),
     ),
   ].join("\n");
-}
-
-function escapeCsv(value: string | null | undefined) {
-  const normalized = neutralizeSpreadsheetFormula(value ?? "");
-
-  if (/[",\n\r]/.test(normalized)) {
-    return `"${normalized.replaceAll('"', '""')}"`;
-  }
-
-  return normalized;
-}
-
-function neutralizeSpreadsheetFormula(value: string) {
-  if (/^[=+\-@\t\r]/.test(value)) {
-    return `'${value}`;
-  }
-
-  return value;
 }
 
 function slugify(value: string) {

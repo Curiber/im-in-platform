@@ -279,8 +279,9 @@ no hay compensacion ni registro del error.
 
 ### Epic 27: Entorno, observabilidad y base de tests (P7, P8, P10)
 
-- [ ] Completar schema de `src/lib/env.ts` (email vars, `APP_URL` en prod).
-- [ ] Instalar Vitest + script `test` + primeros tests unitarios.
+- [x] Completar schema de `src/lib/env.ts` (email vars, `APP_URL` en prod).
+- [x] Instalar Vitest + script `test` + primeros tests unitarios (csv,
+      visibilidad de tarjeta, token de registro, `getAppUrl`).
 - [ ] Borrar foto anterior del bucket al subir una nueva.
 - [ ] Migrar actions admin de `throw` a estado de formulario inline.
 - [ ] Reemplazar `findAuthUserByEmail` paginado por lookup directo (tabla
