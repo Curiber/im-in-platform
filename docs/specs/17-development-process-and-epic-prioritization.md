@@ -123,7 +123,7 @@ Estado a 2026-06-25. `[x]` = hecho, `[~]` = parcial, `[ ]` = pendiente.
 
 | Orden | Epica | Que cierra | Estado |
 | --- | --- | --- | --- |
-| 1.0 | **Epic 27** — Entorno + Vitest | Schema completo de `env.ts`, Vitest + script `test`, primeros tests, limpieza de foto en bucket, actions admin a estado inline, reemplazo de `findAuthUserByEmail` | `[ ]` |
+| 1.0 | **Epic 27** — Entorno + Vitest | Schema completo de `env.ts`, Vitest + script `test`, primeros tests, limpieza de foto en bucket, actions admin a estado inline, reemplazo de `findAuthUserByEmail` | `[~]` (red de tests + env/boot en PR #13; faltan bucket, actions inline, `findAuthUserByEmail`) |
 | 1.1 | **Epic 24** — RLS alineada con roles | RPCs `security definer` para soft delete/restore + trigger de guardia (hoy un `event_admin` borra via PostgREST directo) | `[ ]` |
 | 1.2 | **Epic 28** — Org atomica | Creacion de organizacion transaccional (accion de platform admin, hoy no atomica) | `[ ]` |
 | 1.3 | **Epic 23** — Verificacion de email | Estado `pending_verification`, token solo por email, ruta de verificacion | `[ ]` |
@@ -209,7 +209,13 @@ con IA/embeddings, app admin nativa. Estos esperan a tener datos y demanda real.
 
 ## 8. Proximo paso
 
-**Fase 1, Epic 27 (Entorno + Vitest).** Empieza por la red de tests:
-instalar Vitest + script `test` + primeros tests, y completar el schema de
-`src/lib/env.ts`. Es el prerequisito que habilita el resto de la Fase 1 con
-seguridad.
+**Fase 1, Epic 27 — cerrar lo que falta.** La red de tests (Vitest + primeros
+tests), el schema de `src/lib/env.ts` y la validacion de boot en produccion ya
+estan en la PR #13. Quedan estas tres tareas del Epic 27:
+
+1. Borrar la foto anterior del bucket al subir una nueva.
+2. Migrar las actions del admin de `throw` a estado de formulario inline.
+3. Reemplazar `findAuthUserByEmail` paginado por un lookup directo por email.
+
+Cerradas esas, sigue **Epic 24** (RLS alineada con roles) por tocar
+directamente las acciones destructivas del admin.
