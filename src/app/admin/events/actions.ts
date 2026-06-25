@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { removeStaleFiles } from "@/lib/storage";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -72,11 +73,9 @@ export async function uploadEventCover(formData: FormData) {
   }
 
   const adminClient = createSupabaseAdminClient();
-  const storagePath = [
-    "events",
-    eventId,
-    `${Date.now()}-${crypto.randomUUID()}.${extension}`,
-  ].join("/");
+  const folder = `events/${eventId}`;
+  const fileName = `${Date.now()}-${crypto.randomUUID()}.${extension}`;
+  const storagePath = `${folder}/${fileName}`;
 
   const { error: uploadError } = await adminClient.storage
     .from(EVENT_COVER_BUCKET)
@@ -98,6 +97,9 @@ export async function uploadEventCover(formData: FormData) {
   if (updateError) {
     redirect(`${redirectPath}?coverStatus=error`);
   }
+
+  // La portada nueva ya quedo persistida: borra las anteriores del bucket.
+  await removeStaleFiles(adminClient, EVENT_COVER_BUCKET, folder, fileName);
 
   revalidatePath(redirectPath);
   revalidatePath(`/e/${event.slug}`);

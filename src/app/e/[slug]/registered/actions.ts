@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { verifyRegistrationAccess } from "@/lib/registrations";
+import { removeStaleFiles } from "@/lib/storage";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const MAX_PROFILE_PHOTO_BYTES = 5 * 1024 * 1024;
@@ -42,11 +43,9 @@ export async function uploadProfilePhoto(formData: FormData) {
   }
 
   const adminClient = createSupabaseAdminClient();
-  const storagePath = [
-    "profiles",
-    registration.profile_id,
-    `${Date.now()}-${crypto.randomUUID()}.${extension}`,
-  ].join("/");
+  const folder = `profiles/${registration.profile_id}`;
+  const fileName = `${Date.now()}-${crypto.randomUUID()}.${extension}`;
+  const storagePath = `${folder}/${fileName}`;
 
   const { error: uploadError } = await adminClient.storage
     .from(PROFILE_PHOTO_BUCKET)
@@ -71,6 +70,9 @@ export async function uploadProfilePhoto(formData: FormData) {
   if (updateError) {
     redirect(`${redirectPath}&photoStatus=error`);
   }
+
+  // La foto nueva ya quedo persistida: borra las anteriores del bucket.
+  await removeStaleFiles(adminClient, PROFILE_PHOTO_BUCKET, folder, fileName);
 
   revalidatePath(`/e/${slug}/registered`);
   revalidatePath(`/e/${slug}/directory`);
