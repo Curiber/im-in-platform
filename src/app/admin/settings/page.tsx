@@ -1,13 +1,13 @@
-import { Building2, Mail, Save, Trash2, UserPlus } from "lucide-react";
+import { Building2, Mail, UserPlus } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { AdminShell } from "@/app/admin/_components/admin-shell";
+import { OrganizationSettingsForm } from "@/app/admin/settings/_components/organization-settings-form";
 import {
-  addOrganizationMember,
-  removeOrganizationMember,
-  updateOrganizationMemberRole,
-  updateOrganizationSettings,
-} from "@/app/admin/actions";
+  AddMemberForm,
+  RemoveMemberForm,
+  UpdateMemberRoleForm,
+} from "@/app/admin/settings/_components/member-forms";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -68,7 +68,10 @@ export default async function AdminSettingsPage() {
             {memberships.map((membership) =>
               membership.organizations ? (
                 <div className="space-y-4" key={membership.organizations.id}>
-                  <OrganizationSettingsForm membership={membership} />
+                  <OrganizationSettingsForm
+                    organization={membership.organizations}
+                    role={membership.role}
+                  />
                   <MembersPanel
                     organizationId={membership.organizations.id}
                     viewerRole={membership.role}
@@ -96,86 +99,6 @@ export default async function AdminSettingsPage() {
         ) : null}
       </section>
     </AdminShell>
-  );
-}
-
-function OrganizationSettingsForm({
-  membership,
-}: {
-  membership: OrganizationMembership;
-}) {
-  const organization = membership.organizations;
-  const canEdit = membership.role === "owner" || membership.role === "admin";
-
-  if (!organization) {
-    return null;
-  }
-
-  return (
-    <form
-      action={updateOrganizationSettings}
-      className="rounded-lg border border-brand-border bg-white p-5 shadow-sm"
-    >
-      <input name="organizationId" type="hidden" value={organization.id} />
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold text-brand-cyan-500">
-            {formatOrganizationType(organization.type)}
-          </p>
-          <h3 className="mt-1 text-xl font-semibold">{organization.name}</h3>
-          <p className="mt-1 text-sm text-brand-slate-600">
-            Rol: {formatRole(membership.role)}
-          </p>
-        </div>
-        {!canEdit ? (
-          <span className="inline-flex rounded-md bg-brand-surface-soft px-3 py-1 text-sm font-semibold text-brand-slate-600">
-            Solo lectura
-          </span>
-        ) : null}
-      </div>
-
-      <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        <label className="block">
-          <span className="text-sm font-medium text-brand-navy-950">Nombre</span>
-          <input
-            className="mt-2 h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500 disabled:bg-brand-surface-soft disabled:text-brand-slate-600"
-            defaultValue={organization.name}
-            disabled={!canEdit}
-            name="name"
-            required
-          />
-        </label>
-
-        <label className="block">
-          <span className="text-sm font-medium text-brand-navy-950">
-            Sitio web
-          </span>
-          <input
-            className="mt-2 h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500 disabled:bg-brand-surface-soft disabled:text-brand-slate-600"
-            defaultValue={organization.website_url ?? ""}
-            disabled={!canEdit}
-            name="websiteUrl"
-            placeholder="https://..."
-            type="url"
-          />
-        </label>
-      </div>
-
-      {canEdit ? (
-        <button
-          className="mt-5 inline-flex h-10 items-center gap-2 rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white hover:bg-brand-navy-900"
-          type="submit"
-        >
-          <Save className="size-4" aria-hidden="true" />
-          Guardar cambios
-        </button>
-      ) : (
-        <p className="mt-5 rounded-md bg-brand-surface-soft p-3 text-sm leading-6 text-brand-slate-600">
-          Solo owners y admins pueden editar los datos de la organizacion.
-        </p>
-      )}
-    </form>
   );
 }
 
@@ -238,37 +161,17 @@ async function MembersPanel({
                 Owner
               </span>
             ) : (
-              <div className="flex items-center gap-2">
-                <form action={updateOrganizationMemberRole}>
-                  <input name="organizationId" type="hidden" value={organizationId} />
-                  <input name="userId" type="hidden" value={member.user_id} />
-                  <select
-                    className="h-9 rounded-lg border border-brand-border bg-white px-2 text-sm outline-none focus:border-brand-cyan-500"
-                    defaultValue={member.role}
-                    name="role"
-                  >
-                    <option value="admin">Admin</option>
-                    <option value="event_admin">Admin de evento</option>
-                  </select>
-                  <button
-                    className="ml-2 inline-flex h-9 items-center rounded-lg border border-brand-border bg-white px-3 text-sm font-semibold text-brand-navy-950 transition hover:bg-white"
-                    type="submit"
-                  >
-                    Guardar
-                  </button>
-                </form>
+              <div className="flex items-start gap-2">
+                <UpdateMemberRoleForm
+                  defaultRole={member.role === "admin" ? "admin" : "event_admin"}
+                  organizationId={organizationId}
+                  userId={member.user_id}
+                />
                 {isOwner ? (
-                  <form action={removeOrganizationMember}>
-                    <input name="organizationId" type="hidden" value={organizationId} />
-                    <input name="userId" type="hidden" value={member.user_id} />
-                    <button
-                      aria-label="Quitar miembro"
-                      className="inline-flex size-9 items-center justify-center rounded-lg border border-brand-border bg-white text-red-700 transition hover:bg-brand-surface-soft"
-                      type="submit"
-                    >
-                      <Trash2 className="size-4" aria-hidden="true" />
-                    </button>
-                  </form>
+                  <RemoveMemberForm
+                    organizationId={organizationId}
+                    userId={member.user_id}
+                  />
                 ) : null}
               </div>
             )}
@@ -276,60 +179,7 @@ async function MembersPanel({
         ))}
       </div>
 
-      <form
-        action={addOrganizationMember}
-        className="mt-4 grid gap-3 rounded-xl border border-brand-border/60 bg-brand-surface-soft p-4 sm:grid-cols-[1fr_180px_auto]"
-      >
-        <input name="organizationId" type="hidden" value={organizationId} />
-        <input
-          className="h-10 rounded-lg border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
-          name="email"
-          placeholder="email@empresa.com"
-          required
-          type="email"
-        />
-        <select
-          className="h-10 rounded-lg border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
-          defaultValue="event_admin"
-          name="role"
-        >
-          <option value="admin">Admin</option>
-          <option value="event_admin">Admin de evento</option>
-        </select>
-        <button
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-brand-navy-950 px-4 text-sm font-semibold text-white transition hover:bg-brand-navy-900"
-          type="submit"
-        >
-          <UserPlus className="size-4" aria-hidden="true" />
-          Invitar
-        </button>
-      </form>
+      <AddMemberForm organizationId={organizationId} />
     </div>
   );
-}
-
-function formatRole(role: OrganizationMembership["role"]) {
-  const labels = {
-    owner: "Owner",
-    admin: "Admin",
-    event_admin: "Admin de evento",
-  };
-
-  return labels[role];
-}
-
-function formatOrganizationType(type: string) {
-  const labels: Record<string, string> = {
-    university: "Universidad",
-    company: "Empresa",
-    foundation: "Fundacion",
-    guild: "Gremio",
-    incubator: "Incubadora",
-    community: "Comunidad",
-    producer: "Productora",
-    public_institution: "Institucion publica",
-    other: "Organizacion",
-  };
-
-  return labels[type] ?? "Organizacion";
 }

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import type { FormState } from "@/app/admin/_components/form-state";
 import { getAppUrl } from "@/lib/env";
 import { isPlatformAdmin } from "@/lib/platform-admin";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -152,7 +153,10 @@ const organizationSettingsSchema = z.object({
     .pipe(z.string().url().nullable()),
 });
 
-export async function updateOrganizationSettings(formData: FormData) {
+export async function updateOrganizationSettings(
+  _prevState: FormState,
+  formData: FormData,
+): Promise<FormState> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -169,7 +173,7 @@ export async function updateOrganizationSettings(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
+    return { error: parsed.error.issues[0]?.message ?? "Datos invalidos." };
   }
 
   const { data: membership } = await supabase
@@ -180,7 +184,7 @@ export async function updateOrganizationSettings(formData: FormData) {
     .single<{ role: "owner" | "admin" | "event_admin" }>();
 
   if (!membership || !["owner", "admin"].includes(membership.role)) {
-    throw new Error("No tienes permisos para editar esta organizacion.");
+    return { error: "No tienes permisos para editar esta organizacion." };
   }
 
   const { error } = await supabase
@@ -192,7 +196,7 @@ export async function updateOrganizationSettings(formData: FormData) {
     .eq("id", parsed.data.organizationId);
 
   if (error) {
-    throw new Error("No se pudo actualizar la organizacion.");
+    return { error: "No se pudo actualizar la organizacion." };
   }
 
   revalidatePath("/admin");
@@ -201,7 +205,13 @@ export async function updateOrganizationSettings(formData: FormData) {
   redirect("/admin/settings");
 }
 
-async function requireOrgManager(organizationId: string) {
+type OrgManagerResult =
+  | { ok: true; role: "owner" | "admin" | "event_admin"; userId: string }
+  | { ok: false; error: string };
+
+async function requireOrgManager(
+  organizationId: string,
+): Promise<OrgManagerResult> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -219,10 +229,10 @@ async function requireOrgManager(organizationId: string) {
     .single<{ role: "owner" | "admin" | "event_admin" }>();
 
   if (!membership || !["owner", "admin"].includes(membership.role)) {
-    throw new Error("No tienes permisos para gestionar el equipo.");
+    return { ok: false, error: "No tienes permisos para gestionar el equipo." };
   }
 
-  return { role: membership.role, userId: user.id };
+  return { ok: true, role: membership.role, userId: user.id };
 }
 
 const addMemberSchema = z.object({
@@ -231,7 +241,10 @@ const addMemberSchema = z.object({
   role: z.enum(["admin", "event_admin"]),
 });
 
-export async function addOrganizationMember(formData: FormData) {
+export async function addOrganizationMember(
+  _prevState: FormState,
+  formData: FormData,
+): Promise<FormState> {
   const parsed = addMemberSchema.safeParse({
     organizationId: formData.get("organizationId"),
     email: formData.get("email"),
@@ -239,10 +252,14 @@ export async function addOrganizationMember(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
+    return { error: parsed.error.issues[0]?.message ?? "Datos invalidos." };
   }
 
-  await requireOrgManager(parsed.data.organizationId);
+  const auth = await requireOrgManager(parsed.data.organizationId);
+
+  if (!auth.ok) {
+    return { error: auth.error };
+  }
 
   const adminClient = createSupabaseAdminClient();
   const memberId = await findOrInviteOwnerUser({ email: parsed.data.email });
@@ -253,7 +270,7 @@ export async function addOrganizationMember(formData: FormData) {
   });
 
   if (error && error.code !== "23505") {
-    throw new Error("No se pudo agregar al miembro.");
+    return { error: "No se pudo agregar al miembro." };
   }
 
   revalidatePath("/admin/settings");
@@ -266,7 +283,10 @@ const updateMemberRoleSchema = z.object({
   role: z.enum(["admin", "event_admin"]),
 });
 
-export async function updateOrganizationMemberRole(formData: FormData) {
+export async function updateOrganizationMemberRole(
+  _prevState: FormState,
+  formData: FormData,
+): Promise<FormState> {
   const parsed = updateMemberRoleSchema.safeParse({
     organizationId: formData.get("organizationId"),
     userId: formData.get("userId"),
@@ -274,10 +294,14 @@ export async function updateOrganizationMemberRole(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
+    return { error: parsed.error.issues[0]?.message ?? "Datos invalidos." };
   }
 
-  await requireOrgManager(parsed.data.organizationId);
+  const auth = await requireOrgManager(parsed.data.organizationId);
+
+  if (!auth.ok) {
+    return { error: auth.error };
+  }
 
   const adminClient = createSupabaseAdminClient();
   const { error } = await adminClient
@@ -288,7 +312,7 @@ export async function updateOrganizationMemberRole(formData: FormData) {
     .neq("role", "owner");
 
   if (error) {
-    throw new Error("No se pudo actualizar el rol.");
+    return { error: "No se pudo actualizar el rol." };
   }
 
   revalidatePath("/admin/settings");
@@ -300,20 +324,27 @@ const removeMemberSchema = z.object({
   userId: z.string().uuid(),
 });
 
-export async function removeOrganizationMember(formData: FormData) {
+export async function removeOrganizationMember(
+  _prevState: FormState,
+  formData: FormData,
+): Promise<FormState> {
   const parsed = removeMemberSchema.safeParse({
     organizationId: formData.get("organizationId"),
     userId: formData.get("userId"),
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
+    return { error: parsed.error.issues[0]?.message ?? "Datos invalidos." };
   }
 
-  const { role } = await requireOrgManager(parsed.data.organizationId);
+  const auth = await requireOrgManager(parsed.data.organizationId);
 
-  if (role !== "owner") {
-    throw new Error("Solo el owner puede quitar miembros.");
+  if (!auth.ok) {
+    return { error: auth.error };
+  }
+
+  if (auth.role !== "owner") {
+    return { error: "Solo el owner puede quitar miembros." };
   }
 
   const adminClient = createSupabaseAdminClient();
@@ -325,7 +356,7 @@ export async function removeOrganizationMember(formData: FormData) {
     .neq("role", "owner");
 
   if (error) {
-    throw new Error("No se pudo quitar al miembro.");
+    return { error: "No se pudo quitar al miembro." };
   }
 
   revalidatePath("/admin/settings");
