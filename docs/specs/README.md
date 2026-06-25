@@ -21,6 +21,7 @@ Este directorio contiene la base de spec-driven development para el MVP.
 15. [14-attendee-event-experience-redesign.md](14-attendee-event-experience-redesign.md)
 16. [15-networking-surfaces-redesign.md](15-networking-surfaces-redesign.md)
 17. [16-admin-shell-and-team-management.md](16-admin-shell-and-team-management.md)
+18. [17-development-process-and-epic-prioritization.md](17-development-process-and-epic-prioritization.md)
 
 ## Criterio de spec-driven development
 
