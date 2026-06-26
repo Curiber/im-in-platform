@@ -60,7 +60,7 @@ export async function createOrganization(formData: FormData) {
 
   const adminClient = createSupabaseAdminClient();
   const ownerEmail = parsed.data.ownerEmail.toLowerCase();
-  const ownerUser = await findOrInviteOwnerUser({
+  const ownerUserId = await findOrInviteOwnerUser({
     email: ownerEmail,
     fullName: parsed.data.ownerName,
   });
@@ -83,7 +83,7 @@ export async function createOrganization(formData: FormData) {
     .from("organization_users")
     .insert({
       organization_id: organization.id,
-      user_id: ownerUser.id,
+      user_id: ownerUserId,
       role: "owner",
     });
 
@@ -102,12 +102,12 @@ async function findOrInviteOwnerUser({
 }: {
   email: string;
   fullName?: string | null;
-}) {
+}): Promise<string> {
   const adminClient = createSupabaseAdminClient();
-  const existingUser = await findAuthUserByEmail(email);
+  const existingUserId = await findAuthUserIdByEmail(email);
 
-  if (existingUser) {
-    return existingUser;
+  if (existingUserId) {
+    return existingUserId;
   }
 
   const redirectTo = `${getAppUrl()}/auth/callback?next=/admin`;
@@ -123,40 +123,22 @@ async function findOrInviteOwnerUser({
     throw new Error("No se pudo crear o invitar al owner.");
   }
 
-  return data.user;
+  return data.user.id;
 }
 
-async function findAuthUserByEmail(email: string) {
+// Lookup directo via RPC `find_user_id_by_email` (security definer, solo
+// service_role). Reemplaza el escaneo paginado de `listUsers`.
+async function findAuthUserIdByEmail(email: string): Promise<string | null> {
   const adminClient = createSupabaseAdminClient();
-  const normalizedEmail = email.toLowerCase();
-  let page = 1;
+  const { data, error } = await adminClient.rpc("find_user_id_by_email", {
+    target_email: email,
+  });
 
-  while (page <= 20) {
-    const { data, error } = await adminClient.auth.admin.listUsers({
-      page,
-      perPage: 1000,
-    });
-
-    if (error) {
-      throw new Error("No se pudieron revisar los usuarios existentes.");
-    }
-
-    const match = data.users.find(
-      (candidate) => candidate.email?.toLowerCase() === normalizedEmail,
-    );
-
-    if (match) {
-      return match;
-    }
-
-    if (!data.nextPage) {
-      return null;
-    }
-
-    page = data.nextPage;
+  if (error) {
+    throw new Error("No se pudieron revisar los usuarios existentes.");
   }
 
-  return null;
+  return data ?? null;
 }
 
 const organizationSettingsSchema = z.object({
@@ -263,11 +245,11 @@ export async function addOrganizationMember(formData: FormData) {
   await requireOrgManager(parsed.data.organizationId);
 
   const adminClient = createSupabaseAdminClient();
-  const member = await findOrInviteOwnerUser({ email: parsed.data.email });
+  const memberId = await findOrInviteOwnerUser({ email: parsed.data.email });
   const { error } = await adminClient.from("organization_users").insert({
     organization_id: parsed.data.organizationId,
     role: parsed.data.role,
-    user_id: member.id,
+    user_id: memberId,
   });
 
   if (error && error.code !== "23505") {
