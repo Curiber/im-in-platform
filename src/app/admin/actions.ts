@@ -61,10 +61,14 @@ export async function createOrganization(formData: FormData) {
 
   const adminClient = createSupabaseAdminClient();
   const ownerEmail = parsed.data.ownerEmail.toLowerCase();
-  const ownerUserId = await findOrInviteOwnerUser({
+  const owner = await findOrInviteOwnerUser({
     email: ownerEmail,
     fullName: parsed.data.ownerName,
   });
+
+  if (!owner.ok) {
+    throw new Error(owner.error);
+  }
 
   const { data: organization, error: organizationError } = await adminClient
     .from("organizations")
@@ -84,7 +88,7 @@ export async function createOrganization(formData: FormData) {
     .from("organization_users")
     .insert({
       organization_id: organization.id,
-      user_id: ownerUserId,
+      user_id: owner.userId,
       role: "owner",
     });
 
@@ -97,18 +101,34 @@ export async function createOrganization(formData: FormData) {
   redirect("/admin/organizations");
 }
 
+type OwnerLookup =
+  | { ok: true; userId: string }
+  | { ok: false; error: string };
+
+// Resuelve el id del usuario owner/miembro: lookup directo via RPC
+// `find_user_id_by_email` (security definer, solo service_role; reemplaza el
+// escaneo paginado de `listUsers`) y, si no existe, lo invita. Devuelve un
+// resultado en vez de lanzar, para que los llamadores con UI muestren el error
+// en el formulario.
 async function findOrInviteOwnerUser({
   email,
   fullName,
 }: {
   email: string;
   fullName?: string | null;
-}): Promise<string> {
+}): Promise<OwnerLookup> {
   const adminClient = createSupabaseAdminClient();
-  const existingUserId = await findAuthUserIdByEmail(email);
+  const { data: existingUserId, error: lookupError } = await adminClient.rpc(
+    "find_user_id_by_email",
+    { target_email: email },
+  );
+
+  if (lookupError) {
+    return { ok: false, error: "No se pudieron revisar los usuarios existentes." };
+  }
 
   if (existingUserId) {
-    return existingUserId;
+    return { ok: true, userId: existingUserId };
   }
 
   const redirectTo = `${getAppUrl()}/auth/callback?next=/admin`;
@@ -121,25 +141,10 @@ async function findOrInviteOwnerUser({
   );
 
   if (error || !data.user) {
-    throw new Error("No se pudo crear o invitar al owner.");
+    return { ok: false, error: "No se pudo crear o invitar al owner." };
   }
 
-  return data.user.id;
-}
-
-// Lookup directo via RPC `find_user_id_by_email` (security definer, solo
-// service_role). Reemplaza el escaneo paginado de `listUsers`.
-async function findAuthUserIdByEmail(email: string): Promise<string | null> {
-  const adminClient = createSupabaseAdminClient();
-  const { data, error } = await adminClient.rpc("find_user_id_by_email", {
-    target_email: email,
-  });
-
-  if (error) {
-    throw new Error("No se pudieron revisar los usuarios existentes.");
-  }
-
-  return data ?? null;
+  return { ok: true, userId: data.user.id };
 }
 
 const organizationSettingsSchema = z.object({
@@ -261,12 +266,17 @@ export async function addOrganizationMember(
     return { error: auth.error };
   }
 
+  const member = await findOrInviteOwnerUser({ email: parsed.data.email });
+
+  if (!member.ok) {
+    return { error: member.error };
+  }
+
   const adminClient = createSupabaseAdminClient();
-  const memberId = await findOrInviteOwnerUser({ email: parsed.data.email });
   const { error } = await adminClient.from("organization_users").insert({
     organization_id: parsed.data.organizationId,
     role: parsed.data.role,
-    user_id: memberId,
+    user_id: member.userId,
   });
 
   if (error && error.code !== "23505") {
