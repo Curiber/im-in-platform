@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import type { FormState } from "@/app/admin/_components/form-state";
 import { getAppUrl } from "@/lib/env";
 import { isPlatformAdmin } from "@/lib/platform-admin";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -60,10 +61,14 @@ export async function createOrganization(formData: FormData) {
 
   const adminClient = createSupabaseAdminClient();
   const ownerEmail = parsed.data.ownerEmail.toLowerCase();
-  const ownerUserId = await findOrInviteOwnerUser({
+  const owner = await findOrInviteOwnerUser({
     email: ownerEmail,
     fullName: parsed.data.ownerName,
   });
+
+  if (!owner.ok) {
+    throw new Error(owner.error);
+  }
 
   const { data: organization, error: organizationError } = await adminClient
     .from("organizations")
@@ -83,7 +88,7 @@ export async function createOrganization(formData: FormData) {
     .from("organization_users")
     .insert({
       organization_id: organization.id,
-      user_id: ownerUserId,
+      user_id: owner.userId,
       role: "owner",
     });
 
@@ -96,18 +101,34 @@ export async function createOrganization(formData: FormData) {
   redirect("/admin/organizations");
 }
 
+type OwnerLookup =
+  | { ok: true; userId: string }
+  | { ok: false; error: string };
+
+// Resuelve el id del usuario owner/miembro: lookup directo via RPC
+// `find_user_id_by_email` (security definer, solo service_role; reemplaza el
+// escaneo paginado de `listUsers`) y, si no existe, lo invita. Devuelve un
+// resultado en vez de lanzar, para que los llamadores con UI muestren el error
+// en el formulario.
 async function findOrInviteOwnerUser({
   email,
   fullName,
 }: {
   email: string;
   fullName?: string | null;
-}): Promise<string> {
+}): Promise<OwnerLookup> {
   const adminClient = createSupabaseAdminClient();
-  const existingUserId = await findAuthUserIdByEmail(email);
+  const { data: existingUserId, error: lookupError } = await adminClient.rpc(
+    "find_user_id_by_email",
+    { target_email: email },
+  );
+
+  if (lookupError) {
+    return { ok: false, error: "No se pudieron revisar los usuarios existentes." };
+  }
 
   if (existingUserId) {
-    return existingUserId;
+    return { ok: true, userId: existingUserId };
   }
 
   const redirectTo = `${getAppUrl()}/auth/callback?next=/admin`;
@@ -120,25 +141,10 @@ async function findOrInviteOwnerUser({
   );
 
   if (error || !data.user) {
-    throw new Error("No se pudo crear o invitar al owner.");
+    return { ok: false, error: "No se pudo crear o invitar al owner." };
   }
 
-  return data.user.id;
-}
-
-// Lookup directo via RPC `find_user_id_by_email` (security definer, solo
-// service_role). Reemplaza el escaneo paginado de `listUsers`.
-async function findAuthUserIdByEmail(email: string): Promise<string | null> {
-  const adminClient = createSupabaseAdminClient();
-  const { data, error } = await adminClient.rpc("find_user_id_by_email", {
-    target_email: email,
-  });
-
-  if (error) {
-    throw new Error("No se pudieron revisar los usuarios existentes.");
-  }
-
-  return data ?? null;
+  return { ok: true, userId: data.user.id };
 }
 
 const organizationSettingsSchema = z.object({
@@ -152,7 +158,10 @@ const organizationSettingsSchema = z.object({
     .pipe(z.string().url().nullable()),
 });
 
-export async function updateOrganizationSettings(formData: FormData) {
+export async function updateOrganizationSettings(
+  _prevState: FormState,
+  formData: FormData,
+): Promise<FormState> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -169,7 +178,7 @@ export async function updateOrganizationSettings(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
+    return { error: parsed.error.issues[0]?.message ?? "Datos invalidos." };
   }
 
   const { data: membership } = await supabase
@@ -180,7 +189,7 @@ export async function updateOrganizationSettings(formData: FormData) {
     .single<{ role: "owner" | "admin" | "event_admin" }>();
 
   if (!membership || !["owner", "admin"].includes(membership.role)) {
-    throw new Error("No tienes permisos para editar esta organizacion.");
+    return { error: "No tienes permisos para editar esta organizacion." };
   }
 
   const { error } = await supabase
@@ -192,7 +201,7 @@ export async function updateOrganizationSettings(formData: FormData) {
     .eq("id", parsed.data.organizationId);
 
   if (error) {
-    throw new Error("No se pudo actualizar la organizacion.");
+    return { error: "No se pudo actualizar la organizacion." };
   }
 
   revalidatePath("/admin");
@@ -201,7 +210,13 @@ export async function updateOrganizationSettings(formData: FormData) {
   redirect("/admin/settings");
 }
 
-async function requireOrgManager(organizationId: string) {
+type OrgManagerResult =
+  | { ok: true; role: "owner" | "admin" | "event_admin"; userId: string }
+  | { ok: false; error: string };
+
+async function requireOrgManager(
+  organizationId: string,
+): Promise<OrgManagerResult> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -219,10 +234,10 @@ async function requireOrgManager(organizationId: string) {
     .single<{ role: "owner" | "admin" | "event_admin" }>();
 
   if (!membership || !["owner", "admin"].includes(membership.role)) {
-    throw new Error("No tienes permisos para gestionar el equipo.");
+    return { ok: false, error: "No tienes permisos para gestionar el equipo." };
   }
 
-  return { role: membership.role, userId: user.id };
+  return { ok: true, role: membership.role, userId: user.id };
 }
 
 const addMemberSchema = z.object({
@@ -231,7 +246,10 @@ const addMemberSchema = z.object({
   role: z.enum(["admin", "event_admin"]),
 });
 
-export async function addOrganizationMember(formData: FormData) {
+export async function addOrganizationMember(
+  _prevState: FormState,
+  formData: FormData,
+): Promise<FormState> {
   const parsed = addMemberSchema.safeParse({
     organizationId: formData.get("organizationId"),
     email: formData.get("email"),
@@ -239,21 +257,30 @@ export async function addOrganizationMember(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
+    return { error: parsed.error.issues[0]?.message ?? "Datos invalidos." };
   }
 
-  await requireOrgManager(parsed.data.organizationId);
+  const auth = await requireOrgManager(parsed.data.organizationId);
+
+  if (!auth.ok) {
+    return { error: auth.error };
+  }
+
+  const member = await findOrInviteOwnerUser({ email: parsed.data.email });
+
+  if (!member.ok) {
+    return { error: member.error };
+  }
 
   const adminClient = createSupabaseAdminClient();
-  const memberId = await findOrInviteOwnerUser({ email: parsed.data.email });
   const { error } = await adminClient.from("organization_users").insert({
     organization_id: parsed.data.organizationId,
     role: parsed.data.role,
-    user_id: memberId,
+    user_id: member.userId,
   });
 
   if (error && error.code !== "23505") {
-    throw new Error("No se pudo agregar al miembro.");
+    return { error: "No se pudo agregar al miembro." };
   }
 
   revalidatePath("/admin/settings");
@@ -266,7 +293,10 @@ const updateMemberRoleSchema = z.object({
   role: z.enum(["admin", "event_admin"]),
 });
 
-export async function updateOrganizationMemberRole(formData: FormData) {
+export async function updateOrganizationMemberRole(
+  _prevState: FormState,
+  formData: FormData,
+): Promise<FormState> {
   const parsed = updateMemberRoleSchema.safeParse({
     organizationId: formData.get("organizationId"),
     userId: formData.get("userId"),
@@ -274,10 +304,14 @@ export async function updateOrganizationMemberRole(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
+    return { error: parsed.error.issues[0]?.message ?? "Datos invalidos." };
   }
 
-  await requireOrgManager(parsed.data.organizationId);
+  const auth = await requireOrgManager(parsed.data.organizationId);
+
+  if (!auth.ok) {
+    return { error: auth.error };
+  }
 
   const adminClient = createSupabaseAdminClient();
   const { error } = await adminClient
@@ -288,7 +322,7 @@ export async function updateOrganizationMemberRole(formData: FormData) {
     .neq("role", "owner");
 
   if (error) {
-    throw new Error("No se pudo actualizar el rol.");
+    return { error: "No se pudo actualizar el rol." };
   }
 
   revalidatePath("/admin/settings");
@@ -300,20 +334,27 @@ const removeMemberSchema = z.object({
   userId: z.string().uuid(),
 });
 
-export async function removeOrganizationMember(formData: FormData) {
+export async function removeOrganizationMember(
+  _prevState: FormState,
+  formData: FormData,
+): Promise<FormState> {
   const parsed = removeMemberSchema.safeParse({
     organizationId: formData.get("organizationId"),
     userId: formData.get("userId"),
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
+    return { error: parsed.error.issues[0]?.message ?? "Datos invalidos." };
   }
 
-  const { role } = await requireOrgManager(parsed.data.organizationId);
+  const auth = await requireOrgManager(parsed.data.organizationId);
 
-  if (role !== "owner") {
-    throw new Error("Solo el owner puede quitar miembros.");
+  if (!auth.ok) {
+    return { error: auth.error };
+  }
+
+  if (auth.role !== "owner") {
+    return { error: "Solo el owner puede quitar miembros." };
   }
 
   const adminClient = createSupabaseAdminClient();
@@ -325,7 +366,7 @@ export async function removeOrganizationMember(formData: FormData) {
     .neq("role", "owner");
 
   if (error) {
-    throw new Error("No se pudo quitar al miembro.");
+    return { error: "No se pudo quitar al miembro." };
   }
 
   revalidatePath("/admin/settings");
