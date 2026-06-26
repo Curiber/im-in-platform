@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { objectPathFromPublicUrl } from "@/lib/storage";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -78,6 +79,14 @@ export async function uploadEventCover(formData: FormData) {
     `${Date.now()}-${crypto.randomUUID()}.${extension}`,
   ].join("/");
 
+  // Captura la portada previa antes de sobrescribir, para borrar solo ese
+  // objeto (no listar la carpeta: evita carreras entre subidas concurrentes).
+  const { data: existingEvent } = await adminClient
+    .from("events")
+    .select("cover_image_url")
+    .eq("id", eventId)
+    .single<{ cover_image_url: string | null }>();
+
   const { error: uploadError } = await adminClient.storage
     .from(EVENT_COVER_BUCKET)
     .upload(storagePath, file, { contentType: file.type, upsert: false });
@@ -97,6 +106,16 @@ export async function uploadEventCover(formData: FormData) {
 
   if (updateError) {
     redirect(`${redirectPath}?coverStatus=error`);
+  }
+
+  // Borra solo la portada anterior (best-effort), una vez persistida la nueva.
+  const previousPath = objectPathFromPublicUrl(
+    existingEvent?.cover_image_url,
+    EVENT_COVER_BUCKET,
+  );
+
+  if (previousPath && previousPath !== storagePath) {
+    await adminClient.storage.from(EVENT_COVER_BUCKET).remove([previousPath]);
   }
 
   revalidatePath(redirectPath);
