@@ -320,44 +320,20 @@ export async function deleteEvent(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
   }
 
-  const { data: event } = await supabase
-    .from("events")
-    .select("id, organization_id")
-    .eq("id", parsed.data.eventId)
-    .is("deleted_at", null)
-    .single<{ id: string; organization_id: string }>();
-
-  if (!event) {
-    throw new Error("Evento invalido.");
-  }
-
-  const { data: membership } = await supabase
-    .from("organization_users")
-    .select("role")
-    .eq("organization_id", event.organization_id)
-    .eq("user_id", user.id)
-    .single<{ role: "owner" | "admin" | "event_admin" }>();
-
-  if (!membership || !["owner", "admin"].includes(membership.role)) {
-    throw new Error("No tienes permisos para eliminar este evento.");
-  }
-
-  const { error } = await supabase
-    .from("events")
-    .update({
-      delete_reason: parsed.data.reason,
-      deleted_at: new Date().toISOString(),
-      deleted_by: user.id,
-    })
-    .eq("id", event.id)
-    .is("deleted_at", null);
+  // El rol (owner/admin), la existencia del evento y el seteo de las columnas
+  // de auditoria se validan/aplican dentro de la RPC security definer; la
+  // policy de update ya no permite tocar esas columnas directo.
+  const { error } = await supabase.rpc("soft_delete_event", {
+    p_event_id: parsed.data.eventId,
+    p_reason: parsed.data.reason,
+  });
 
   if (error) {
     throw new Error("No se pudo eliminar el evento.");
   }
 
   revalidatePath("/admin/events");
-  revalidatePath(`/admin/events/${event.id}`);
+  revalidatePath(`/admin/events/${parsed.data.eventId}`);
   revalidatePath(`/e/${parsed.data.slug}`);
   redirect("/admin/events");
 }
@@ -379,49 +355,24 @@ export async function restoreEvent(formData: FormData) {
     throw new Error("Evento invalido.");
   }
 
-  const { data: event } = await supabase
-    .from("events")
-    .select("id, organization_id")
-    .eq("id", eventId)
-    .not("deleted_at", "is", null)
-    .single<{ id: string; organization_id: string }>();
-
-  if (!event) {
-    throw new Error("Evento invalido.");
-  }
-
-  const { data: membership } = await supabase
-    .from("organization_users")
-    .select("role")
-    .eq("organization_id", event.organization_id)
-    .eq("user_id", user.id)
-    .single<{ role: "owner" | "admin" | "event_admin" }>();
-
-  if (membership?.role !== "owner") {
-    throw new Error("Solo el owner puede restaurar eventos eliminados.");
-  }
-
-  const { error } = await supabase
-    .from("events")
-    .update({
-      delete_reason: null,
-      deleted_at: null,
-      deleted_by: null,
-    })
-    .eq("id", event.id);
+  // El rol (solo owner), la existencia del evento eliminado y el reseteo de las
+  // columnas de auditoria se validan/aplican dentro de la RPC security definer.
+  const { error } = await supabase.rpc("restore_event", {
+    p_event_id: eventId,
+  });
 
   if (error) {
     throw new Error("No se pudo restaurar el evento.");
   }
 
   revalidatePath("/admin/events");
-  revalidatePath(`/admin/events/${event.id}`);
+  revalidatePath(`/admin/events/${eventId}`);
 
   if (slug) {
     revalidatePath(`/e/${slug}`);
   }
 
-  redirect(`/admin/events/${event.id}`);
+  redirect(`/admin/events/${eventId}`);
 }
 
 async function updateEventStatus(
