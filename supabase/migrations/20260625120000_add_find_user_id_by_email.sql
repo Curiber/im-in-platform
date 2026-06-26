@@ -6,6 +6,12 @@
 -- se revoca su ejecucion a anon/authenticated y solo se concede al service_role
 -- (que usa el cliente admin del servidor). Asi no expone un oraculo de emails.
 
+-- Indice funcional sobre lower(email): el unico indice de `auth.users` es sobre
+-- `email` exacto (parcial), por lo que el predicado `lower(email) = ...` haria
+-- seq scan. Este indice lo vuelve un lookup indexado.
+create index if not exists users_lower_email_idx
+  on auth.users (lower(email));
+
 create or replace function public.find_user_id_by_email(target_email text)
 returns uuid
 language sql
