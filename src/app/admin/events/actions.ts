@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { removeStaleFiles } from "@/lib/storage";
+import { objectPathFromPublicUrl } from "@/lib/storage";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -73,9 +73,19 @@ export async function uploadEventCover(formData: FormData) {
   }
 
   const adminClient = createSupabaseAdminClient();
-  const folder = `events/${eventId}`;
-  const fileName = `${Date.now()}-${crypto.randomUUID()}.${extension}`;
-  const storagePath = `${folder}/${fileName}`;
+  const storagePath = [
+    "events",
+    eventId,
+    `${Date.now()}-${crypto.randomUUID()}.${extension}`,
+  ].join("/");
+
+  // Captura la portada previa antes de sobrescribir, para borrar solo ese
+  // objeto (no listar la carpeta: evita carreras entre subidas concurrentes).
+  const { data: existingEvent } = await adminClient
+    .from("events")
+    .select("cover_image_url")
+    .eq("id", eventId)
+    .single<{ cover_image_url: string | null }>();
 
   const { error: uploadError } = await adminClient.storage
     .from(EVENT_COVER_BUCKET)
@@ -98,8 +108,15 @@ export async function uploadEventCover(formData: FormData) {
     redirect(`${redirectPath}?coverStatus=error`);
   }
 
-  // La portada nueva ya quedo persistida: borra las anteriores del bucket.
-  await removeStaleFiles(adminClient, EVENT_COVER_BUCKET, folder, fileName);
+  // Borra solo la portada anterior (best-effort), una vez persistida la nueva.
+  const previousPath = objectPathFromPublicUrl(
+    existingEvent?.cover_image_url,
+    EVENT_COVER_BUCKET,
+  );
+
+  if (previousPath && previousPath !== storagePath) {
+    await adminClient.storage.from(EVENT_COVER_BUCKET).remove([previousPath]);
+  }
 
   revalidatePath(redirectPath);
   revalidatePath(`/e/${event.slug}`);

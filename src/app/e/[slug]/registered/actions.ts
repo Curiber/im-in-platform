@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { verifyRegistrationAccess } from "@/lib/registrations";
-import { removeStaleFiles } from "@/lib/storage";
+import { objectPathFromPublicUrl } from "@/lib/storage";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const MAX_PROFILE_PHOTO_BYTES = 5 * 1024 * 1024;
@@ -43,9 +43,19 @@ export async function uploadProfilePhoto(formData: FormData) {
   }
 
   const adminClient = createSupabaseAdminClient();
-  const folder = `profiles/${registration.profile_id}`;
-  const fileName = `${Date.now()}-${crypto.randomUUID()}.${extension}`;
-  const storagePath = `${folder}/${fileName}`;
+  const storagePath = [
+    "profiles",
+    registration.profile_id,
+    `${Date.now()}-${crypto.randomUUID()}.${extension}`,
+  ].join("/");
+
+  // Captura la foto previa antes de sobrescribir, para borrar solo ese objeto
+  // (no listar la carpeta: evita carreras entre subidas concurrentes).
+  const { data: existingProfile } = await adminClient
+    .from("attendee_profiles")
+    .select("avatar_url")
+    .eq("id", registration.profile_id)
+    .single<{ avatar_url: string | null }>();
 
   const { error: uploadError } = await adminClient.storage
     .from(PROFILE_PHOTO_BUCKET)
@@ -71,8 +81,15 @@ export async function uploadProfilePhoto(formData: FormData) {
     redirect(`${redirectPath}&photoStatus=error`);
   }
 
-  // La foto nueva ya quedo persistida: borra las anteriores del bucket.
-  await removeStaleFiles(adminClient, PROFILE_PHOTO_BUCKET, folder, fileName);
+  // Borra solo la foto anterior (best-effort), una vez persistida la nueva.
+  const previousPath = objectPathFromPublicUrl(
+    existingProfile?.avatar_url,
+    PROFILE_PHOTO_BUCKET,
+  );
+
+  if (previousPath && previousPath !== storagePath) {
+    await adminClient.storage.from(PROFILE_PHOTO_BUCKET).remove([previousPath]);
+  }
 
   revalidatePath(`/e/${slug}/registered`);
   revalidatePath(`/e/${slug}/directory`);

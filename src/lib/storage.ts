@@ -1,42 +1,29 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-
-// Dado el contenido de una carpeta, devuelve las rutas completas de los
-// archivos que deben borrarse (todos menos el que se quiere conservar).
-// Funcion pura para poder testear la regla de seleccion.
-export function selectStaleFilePaths(
-  folder: string,
-  fileNames: string[],
-  keepFileName: string,
-): string[] {
-  return fileNames
-    .filter((name) => name !== keepFileName)
-    .map((name) => `${folder}/${name}`);
-}
-
-// Borra del bucket los archivos previos de una carpeta, conservando el recien
-// subido. Best-effort: si listar o borrar falla, no lanza (la limpieza de
-// huerfanos no debe romper una subida exitosa).
-export async function removeStaleFiles(
-  client: SupabaseClient,
+// Dada la URL publica de un objeto de Storage, devuelve su ruta dentro del
+// bucket (lo que espera `storage.from(bucket).remove([...])`), o null si la URL
+// no corresponde a ese bucket. Funcion pura para poder testearla.
+//
+// Formato de URL publica de Supabase:
+//   {base}/storage/v1/object/public/{bucket}/{path}
+export function objectPathFromPublicUrl(
+  publicUrl: string | null | undefined,
   bucket: string,
-  folder: string,
-  keepFileName: string,
-): Promise<void> {
-  const { data, error } = await client.storage.from(bucket).list(folder);
-
-  if (error || !data) {
-    return;
+): string | null {
+  if (!publicUrl) {
+    return null;
   }
 
-  const stalePaths = selectStaleFilePaths(
-    folder,
-    data.map((item) => item.name),
-    keepFileName,
-  );
+  const marker = `/object/public/${bucket}/`;
+  const index = publicUrl.indexOf(marker);
 
-  if (stalePaths.length === 0) {
-    return;
+  if (index === -1) {
+    return null;
   }
 
-  await client.storage.from(bucket).remove(stalePaths);
+  const rawPath = publicUrl.slice(index + marker.length).split(/[?#]/)[0];
+
+  if (!rawPath) {
+    return null;
+  }
+
+  return decodeURIComponent(rawPath);
 }

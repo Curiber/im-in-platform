@@ -1,34 +1,55 @@
 import { describe, expect, it } from "vitest";
 
-import { selectStaleFilePaths } from "./storage";
+import { objectPathFromPublicUrl } from "./storage";
 
-describe("selectStaleFilePaths", () => {
-  it("devuelve las rutas completas de todos los archivos menos el conservado", () => {
-    const result = selectStaleFilePaths(
-      "profiles/abc",
-      ["1-old.jpg", "2-old.png", "3-new.webp"],
-      "3-new.webp",
-    );
+const BASE = "https://abc.supabase.co/storage/v1";
 
-    expect(result).toEqual([
-      "profiles/abc/1-old.jpg",
-      "profiles/abc/2-old.png",
-    ]);
-  });
-
-  it("devuelve vacio cuando solo esta el archivo conservado", () => {
+describe("objectPathFromPublicUrl", () => {
+  it("extrae la ruta dentro del bucket", () => {
     expect(
-      selectStaleFilePaths("events/e1", ["only-new.jpg"], "only-new.jpg"),
-    ).toEqual([]);
+      objectPathFromPublicUrl(
+        `${BASE}/object/public/profile-photos/profiles/abc/123-x.jpg`,
+        "profile-photos",
+      ),
+    ).toBe("profiles/abc/123-x.jpg");
   });
 
-  it("devuelve vacio cuando la carpeta esta vacia", () => {
-    expect(selectStaleFilePaths("events/e1", [], "new.jpg")).toEqual([]);
-  });
-
-  it("borra todo si el archivo a conservar no esta en la lista", () => {
+  it("ignora query string y fragmento", () => {
     expect(
-      selectStaleFilePaths("profiles/x", ["a.jpg", "b.jpg"], "c.jpg"),
-    ).toEqual(["profiles/x/a.jpg", "profiles/x/b.jpg"]);
+      objectPathFromPublicUrl(
+        `${BASE}/object/public/event-covers/events/e1/cover.png?token=zzz`,
+        "event-covers",
+      ),
+    ).toBe("events/e1/cover.png");
+  });
+
+  it("decodifica caracteres url-encoded", () => {
+    expect(
+      objectPathFromPublicUrl(
+        `${BASE}/object/public/profile-photos/profiles/a%20b/c.jpg`,
+        "profile-photos",
+      ),
+    ).toBe("profiles/a b/c.jpg");
+  });
+
+  it("devuelve null si la URL no corresponde al bucket", () => {
+    expect(
+      objectPathFromPublicUrl(
+        `${BASE}/object/public/profile-photos/x.jpg`,
+        "event-covers",
+      ),
+    ).toBeNull();
+  });
+
+  it("devuelve null para url vacia, null o sin ruta", () => {
+    expect(objectPathFromPublicUrl(null, "profile-photos")).toBeNull();
+    expect(objectPathFromPublicUrl(undefined, "profile-photos")).toBeNull();
+    expect(objectPathFromPublicUrl("", "profile-photos")).toBeNull();
+    expect(
+      objectPathFromPublicUrl(
+        `${BASE}/object/public/profile-photos/`,
+        "profile-photos",
+      ),
+    ).toBeNull();
   });
 });
