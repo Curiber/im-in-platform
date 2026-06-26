@@ -1,6 +1,7 @@
 import { Building2, ShieldCheck, UserPlus, Users } from "lucide-react";
 import { redirect } from "next/navigation";
 
+import { ActionForm } from "@/app/admin/_components/action-form";
 import { AdminShell } from "@/app/admin/_components/admin-shell";
 import { createOrganization } from "@/app/admin/actions";
 import { isPlatformAdmin } from "@/lib/platform-admin";
@@ -121,7 +122,7 @@ export default async function PlatformOrganizationsPage() {
 
 function CreateOrganizationForm() {
   return (
-    <form action={createOrganization} className="mt-5 space-y-4">
+    <ActionForm action={createOrganization} className="mt-5 space-y-4">
       <label className="block">
         <span className="text-sm font-medium text-brand-navy-950">
           Nombre organizacion
@@ -203,7 +204,7 @@ function CreateOrganizationForm() {
       >
         Crear y asignar owner
       </button>
-    </form>
+    </ActionForm>
   );
 }
 

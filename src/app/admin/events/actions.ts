@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import type { FormState } from "@/app/admin/_components/form-state";
 import { objectPathFromPublicUrl } from "@/lib/storage";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -161,7 +162,10 @@ const eventSchema = z.object({
   networkingEnabled: z.boolean(),
 });
 
-export async function createEvent(formData: FormData) {
+export async function createEvent(
+  _prevState: FormState,
+  formData: FormData,
+): Promise<FormState> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -186,7 +190,7 @@ export async function createEvent(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
+    return { error: parsed.error.issues[0]?.message ?? "Datos invalidos." };
   }
 
   const slug = `${slugify(parsed.data.name)}-${crypto.randomUUID().slice(0, 8)}`;
@@ -212,14 +216,17 @@ export async function createEvent(formData: FormData) {
     .single();
 
   if (error || !event) {
-    throw new Error("No se pudo crear el evento.");
+    return { error: "No se pudo crear el evento." };
   }
 
   revalidatePath("/admin/events");
   redirect(`/admin/events/${event.id}`);
 }
 
-export async function updateEvent(formData: FormData) {
+export async function updateEvent(
+  _prevState: FormState,
+  formData: FormData,
+): Promise<FormState> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -245,11 +252,11 @@ export async function updateEvent(formData: FormData) {
   });
 
   if (!eventId) {
-    throw new Error("Evento invalido.");
+    return { error: "Evento invalido." };
   }
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
+    return { error: parsed.error.issues[0]?.message ?? "Datos invalidos." };
   }
 
   const { error } = await supabase
@@ -271,7 +278,7 @@ export async function updateEvent(formData: FormData) {
     .is("deleted_at", null);
 
   if (error) {
-    throw new Error("No se pudo actualizar el evento.");
+    return { error: "No se pudo actualizar el evento." };
   }
 
   revalidatePath("/admin/events");

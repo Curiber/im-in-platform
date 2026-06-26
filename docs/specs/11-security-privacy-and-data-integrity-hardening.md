@@ -283,7 +283,8 @@ no hay compensacion ni registro del error.
 - [x] Instalar Vitest + script `test` + primeros tests unitarios (csv,
       visibilidad de tarjeta, token de registro, `getAppUrl`).
 - [ ] Borrar foto anterior del bucket al subir una nueva.
-- [ ] Migrar actions admin de `throw` a estado de formulario inline.
+- [x] Migrar actions admin de `throw` a estado de formulario inline
+      (organizacion/equipo + eventos + creacion de organizacion).
 - [ ] Reemplazar `findAuthUserByEmail` paginado por lookup directo (tabla
       espejo de perfiles de staff o query admin por email).
 

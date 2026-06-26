@@ -7,6 +7,7 @@ import {
   updateEvent,
   uploadEventCover,
 } from "@/app/admin/events/actions";
+import { ActionForm } from "@/app/admin/_components/action-form";
 import { AdminShell } from "@/app/admin/_components/admin-shell";
 import { DEFAULT_EVENT_COVER } from "@/lib/event-cover";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -143,7 +144,7 @@ export default async function EditEventPage({
           ) : null}
         </div>
 
-        <form
+        <ActionForm
           action={updateEvent}
           className="grid gap-6 rounded-2xl border border-brand-border bg-white p-6 shadow-sm"
         >
@@ -300,7 +301,7 @@ export default async function EditEventPage({
               Guardar cambios
             </button>
           </div>
-        </form>
+        </ActionForm>
       </section>
     </AdminShell>
   );
