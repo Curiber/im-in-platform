@@ -46,7 +46,9 @@ export function UpdateMemberRoleForm({
         </SubmitButton>
       </div>
       {state.error ? (
-        <p className="mt-1 text-xs text-red-700">{state.error}</p>
+        <p className="mt-1 text-xs text-red-700" role="alert">
+          {state.error}
+        </p>
       ) : null}
     </form>
   );
@@ -75,7 +77,9 @@ export function RemoveMemberForm({
         <Trash2 className="size-4" aria-hidden="true" />
       </SubmitButton>
       {state.error ? (
-        <p className="mt-1 text-xs text-red-700">{state.error}</p>
+        <p className="mt-1 text-xs text-red-700" role="alert">
+          {state.error}
+        </p>
       ) : null}
     </form>
   );
@@ -115,7 +119,9 @@ export function AddMemberForm({ organizationId }: { organizationId: string }) {
         </SubmitButton>
       </form>
       {state.error ? (
-        <p className="mt-2 text-sm text-red-700">{state.error}</p>
+        <p className="mt-2 text-sm text-red-700" role="alert">
+          {state.error}
+        </p>
       ) : null}
     </div>
   );

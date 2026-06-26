@@ -33,7 +33,10 @@ const organizationSchema = z.object({
     .pipe(z.string().url().nullable()),
 });
 
-export async function createOrganization(formData: FormData) {
+export async function createOrganization(
+  _prevState: FormState,
+  formData: FormData,
+): Promise<FormState> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -44,7 +47,7 @@ export async function createOrganization(formData: FormData) {
   }
 
   if (!isPlatformAdmin(user)) {
-    throw new Error("Solo platform admins pueden crear organizaciones.");
+    return { error: "Solo platform admins pueden crear organizaciones." };
   }
 
   const parsed = organizationSchema.safeParse({
@@ -56,7 +59,7 @@ export async function createOrganization(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
+    return { error: parsed.error.issues[0]?.message ?? "Datos invalidos." };
   }
 
   const adminClient = createSupabaseAdminClient();
@@ -67,7 +70,7 @@ export async function createOrganization(formData: FormData) {
   });
 
   if (!owner.ok) {
-    throw new Error(owner.error);
+    return { error: owner.error };
   }
 
   const { data: organization, error: organizationError } = await adminClient
@@ -81,7 +84,7 @@ export async function createOrganization(formData: FormData) {
     .single();
 
   if (organizationError || !organization) {
-    throw new Error("No se pudo crear la organizacion.");
+    return { error: "No se pudo crear la organizacion." };
   }
 
   const { error: membershipError } = await adminClient
@@ -93,7 +96,7 @@ export async function createOrganization(formData: FormData) {
     });
 
   if (membershipError) {
-    throw new Error("No se pudo asignar el owner de la organizacion.");
+    return { error: "No se pudo asignar el owner de la organizacion." };
   }
 
   revalidatePath("/admin");

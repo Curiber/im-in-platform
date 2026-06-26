@@ -86,7 +86,10 @@ export function OrganizationSettingsForm({
       </div>
 
       {state.error ? (
-        <p className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
+        <p
+          className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700"
+          role="alert"
+        >
           {state.error}
         </p>
       ) : null}
