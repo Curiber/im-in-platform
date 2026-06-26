@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { ActionForm } from "@/app/admin/_components/action-form";
 import { AdminShell } from "@/app/admin/_components/admin-shell";
+import { SubmitButton } from "@/app/admin/_components/submit-button";
 import { createOrganization } from "@/app/admin/actions";
 import { isPlatformAdmin } from "@/lib/platform-admin";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -198,12 +199,9 @@ function CreateOrganizationForm() {
         </label>
       </div>
 
-      <button
-        className="h-11 w-full rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white hover:bg-brand-navy-900"
-        type="submit"
-      >
+      <SubmitButton className="h-11 w-full rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white hover:bg-brand-navy-900 disabled:opacity-60">
         Crear y asignar owner
-      </button>
+      </SubmitButton>
     </ActionForm>
   );
 }

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { ActionForm } from "@/app/admin/_components/action-form";
 import { AdminShell } from "@/app/admin/_components/admin-shell";
+import { SubmitButton } from "@/app/admin/_components/submit-button";
 import { createEvent } from "@/app/admin/events/actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -207,12 +208,9 @@ export default async function NewEventPage() {
             >
               Cancelar
             </Link>
-            <button
-              className="h-11 rounded-md bg-brand-navy-950 px-5 text-sm font-semibold text-white hover:bg-brand-navy-900"
-              type="submit"
-            >
+            <SubmitButton className="h-11 rounded-md bg-brand-navy-950 px-5 text-sm font-semibold text-white hover:bg-brand-navy-900 disabled:opacity-60">
               Crear borrador
-            </button>
+            </SubmitButton>
           </div>
         </ActionForm>
       </section>

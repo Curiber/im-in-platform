@@ -26,7 +26,10 @@ export function ActionForm({
     <form action={formAction} className={className}>
       {children}
       {state.error ? (
-        <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+        <p
+          className="rounded-md bg-red-50 p-3 text-sm text-red-700"
+          role="alert"
+        >
           {state.error}
         </p>
       ) : null}
