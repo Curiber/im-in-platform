@@ -298,11 +298,20 @@ permite esa transicion porque el usuario ya no existe).
 
 ### Epic 26: Endurecimiento de salida y token (P5, P6)
 
-- [ ] Escape anti formula injection en export CSV + test.
-- [ ] `Referrer-Policy` global en `next.config.ts`.
-- [ ] Evaluar mover `registrationId+token` a cookie de sesion de asistente
-      (decision documentada; si se pospone, registrar riesgo aceptado).
-- [ ] Comparacion de hashes con `timingSafeEqual`.
+- [x] Escape anti formula injection en export CSV + test (Epic 27,
+      `src/lib/csv.ts` + `csv.test.ts`).
+- [x] `Referrer-Policy` global en `next.config.ts`
+      (`strict-origin-when-cross-origin`) + override `no-referrer` en `/e/:path*`
+      (rutas con token).
+- [x] Evaluar mover `registrationId+token` a cookie de sesion de asistente.
+      Decision: se pospone a la sesion de asistente (Etapa 2 / Fase 5 del spec
+      17). El `strict-origin-when-cross-origin` global + `no-referrer` en las
+      rutas con token ya evitan la fuga del token por `Referer`; migrar a cookie
+      pertenece al rediseno de identidad del asistente. Riesgo aceptado para
+      esta fase: el token sigue en la URL (historial/logs), mitigado pero no
+      eliminado.
+- [x] Comparacion de hashes con `timingSafeEqual`
+      (`src/lib/registration-token.ts`, ya presente).
 
 ### Epic 27: Entorno, observabilidad y base de tests (P7, P8, P10)
 
