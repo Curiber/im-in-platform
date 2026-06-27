@@ -80,39 +80,59 @@ export async function createOrganization(
   // ambiguo (la RPC pudo seguir en vuelo y commitear despues).
   const requestId = crypto.randomUUID();
   const MAX_ATTEMPTS = 3;
-  let serverError: { message: string } | null = null;
-  let gotResponse = false;
+  // "definitive-error" = el servidor respondio 4xx: la RPC ejecuto y rollback,
+  // no commiteo -> seguro compensar. "ambiguous" = sin respuesta real
+  // (status 0, supabase-js no lanza) o 5xx: la RPC pudo commitear -> no
+  // compensar. La RPC es idempotente por request_id, asi que reintentar es
+  // seguro.
+  let outcome: "success" | "definitive-error" | "ambiguous" = "ambiguous";
 
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS && !gotResponse; attempt += 1) {
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    let response;
+
     try {
-      const { error } = await adminClient.rpc("create_organization_with_owner", {
+      response = await adminClient.rpc("create_organization_with_owner", {
         p_name: parsed.data.name,
         p_type: parsed.data.type,
         p_website_url: parsed.data.websiteUrl,
         p_owner_user_id: owner.userId,
         p_request_id: requestId,
       });
-      serverError = error;
-      gotResponse = true;
     } catch (transportError) {
       if (attempt === MAX_ATTEMPTS) {
         console.error("Error de transporte al crear organizacion", transportError);
       }
+      continue; // ambiguo: reintentar
     }
+
+    if (!response.error) {
+      outcome = "success";
+      break;
+    }
+
+    if (response.status === 0 || response.status >= 500) {
+      if (attempt === MAX_ATTEMPTS) {
+        console.error(
+          "Respuesta ambigua al crear organizacion",
+          response.status,
+          response.error,
+        );
+      }
+      continue; // ambiguo: reintentar
+    }
+
+    outcome = "definitive-error";
+    break;
   }
 
-  // Nunca hubo respuesta del servidor: ambiguo. No se compensa (la RPC pudo
-  // commitear); el platform admin verifica en el listado.
-  if (!gotResponse) {
-    return {
-      error:
-        "No se pudo confirmar la creacion. Revisa el listado antes de reintentar.",
-    };
+  if (outcome === "success") {
+    revalidatePath("/admin");
+    revalidatePath("/admin/organizations");
+    redirect("/admin/organizations");
   }
 
-  if (serverError) {
-    // El servidor respondio con error: la RPC no commiteo (cuerpo atomico), asi
-    // que es seguro compensar el usuario recien invitado.
+  if (outcome === "definitive-error") {
+    // La RPC no commiteo: seguro compensar el usuario recien invitado.
     if (owner.invited) {
       const { error: cleanupError } = await adminClient.auth.admin.deleteUser(
         owner.userId,
@@ -129,9 +149,11 @@ export async function createOrganization(
     return { error: "No se pudo crear la organizacion." };
   }
 
-  revalidatePath("/admin");
-  revalidatePath("/admin/organizations");
-  redirect("/admin/organizations");
+  // Ambiguo en todos los intentos: no se compensa (la RPC pudo commitear).
+  return {
+    error:
+      "No se pudo confirmar la creacion. Revisa el listado antes de reintentar.",
+  };
 }
 
 type OwnerLookup =

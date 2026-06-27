@@ -20,9 +20,12 @@
 alter table public.organizations
   add column if not exists creation_request_id uuid;
 
+-- Indice unico NO parcial: Postgres trata los NULL como distintos, asi que las
+-- filas existentes (creation_request_id NULL) conviven sin conflicto. Debe ser
+-- no parcial para que `on conflict (creation_request_id)` lo infiera (un indice
+-- parcial requiere repetir el predicado en el ON CONFLICT y si no falla 42P10).
 create unique index if not exists organizations_creation_request_id_key
-  on public.organizations (creation_request_id)
-  where creation_request_id is not null;
+  on public.organizations (creation_request_id);
 
 -- Reemplaza una version previa de 4 argumentos si llego a aplicarse.
 drop function if exists public.create_organization_with_owner(
