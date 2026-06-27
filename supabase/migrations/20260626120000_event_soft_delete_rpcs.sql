@@ -38,6 +38,22 @@ begin
     return new;
   end if;
 
+  -- Caso legitimo del FK `deleted_by ... on delete set null`: al borrar el
+  -- usuario referenciado, Postgres pone deleted_by = NULL via cascade. Se
+  -- permite solo esa transicion exacta (deleted_by no-nulo -> nulo, sin tocar
+  -- deleted_at/delete_reason) y solo si el usuario ya no existe; de lo contrario
+  -- el cascade abortaria el borrado del usuario.
+  if old.deleted_by is not null
+    and new.deleted_by is null
+    and new.deleted_at is not distinct from old.deleted_at
+    and new.delete_reason is not distinct from old.delete_reason
+    and not exists (
+      select 1 from auth.users u where u.id = old.deleted_by
+    )
+  then
+    return new;
+  end if;
+
   -- En UPDATE, las columnas de auditoria solo cambian via las RPCs, que
   -- habilitan el flag transaccional.
   if (

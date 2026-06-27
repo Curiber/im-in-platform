@@ -280,6 +280,10 @@ directo:
 Con `owner`/`admin`: `rpc/soft_delete_event` con motivo valido (>= 5 chars)
 elimina; `rpc/restore_event` solo funciona como `owner`.
 
+Caso FK: borrar de Auth a un usuario que figura en `events.deleted_by` debe
+funcionar (el cascade `on delete set null` pone `deleted_by = NULL` y el trigger
+permite esa transicion porque el usuario ya no existe).
+
 ### Epic 25: Integridad de inscripcion y check-in (P4)
 
 - [ ] RPC transaccional de inscripcion con control de capacidad.
