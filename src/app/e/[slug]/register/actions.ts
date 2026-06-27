@@ -65,7 +65,7 @@ export async function registerForEvent(
   const adminClient = createSupabaseAdminClient();
   const { data: event } = await adminClient
     .from("events")
-    .select("id, capacity, status, slug, name, starts_at")
+    .select("id, capacity, status, slug, name, starts_at, ends_at")
     .eq("id", parsed.data.eventId)
     .eq("slug", parsed.data.slug)
     .is("deleted_at", null)
@@ -76,6 +76,7 @@ export async function registerForEvent(
       slug: string;
       name: string;
       starts_at: string;
+      ends_at: string | null;
     }>();
 
   if (!event || event.status !== "published") {
@@ -83,6 +84,14 @@ export async function registerForEvent(
       status: "error",
       message: "Este evento no esta disponible para inscripcion.",
     };
+  }
+
+  // Validaciones baratas ANTES de tocar el perfil, para no persistir datos
+  // personales si la inscripcion sera rechazada. La RPC vuelve a validarlas
+  // bajo lock (autoritativo); esto solo evita el caso comun. La deferral total
+  // del perfil hasta verificar el email es del Epic 23.
+  if (event.ends_at && new Date(event.ends_at).getTime() < Date.now()) {
+    return { status: "error", message: "Este evento ya termino." };
   }
 
   const { count } = await adminClient
@@ -108,86 +117,86 @@ export async function registerForEvent(
     interests: parsed.data.interests,
   });
 
+  // Token y request_id se generan UNA vez: si la RPC commitea pero la respuesta
+  // se pierde, el reintento con el mismo request_id recupera la inscripcion y
+  // entrega el MISMO token (su hash ya quedo almacenado).
   const token = createRegistrationToken();
   const tokenHash = hashRegistrationToken(token);
+  const requestId = crypto.randomUUID();
 
-  const { data: registration, error } = await adminClient
-    .from("event_registrations")
-    .insert({
-      event_id: parsed.data.eventId,
-      profile_id: profileId,
-      email: parsed.data.email,
-      full_name_snapshot: parsed.data.fullName,
-      phone_snapshot: parsed.data.phone || null,
-      role_snapshot: parsed.data.role,
-      company_snapshot: parsed.data.company,
-      industry_snapshot: parsed.data.industry,
-      interests: parsed.data.interests,
-      networking_opt_in: parsed.data.networkingOptIn,
-      public_profile_enabled: parsed.data.publicProfileEnabled,
-      qr_token_hash: tokenHash,
-    })
-    .select("id")
-    .single<{ id: string }>();
+  const rpcArgs = {
+    p_event_id: parsed.data.eventId,
+    p_profile_id: profileId,
+    p_email: parsed.data.email,
+    p_full_name: parsed.data.fullName,
+    p_phone: parsed.data.phone || null,
+    p_role: parsed.data.role,
+    p_company: parsed.data.company,
+    p_industry: parsed.data.industry,
+    p_interests: parsed.data.interests,
+    p_networking_opt_in: parsed.data.networkingOptIn,
+    p_public_profile_enabled: parsed.data.publicProfileEnabled,
+    p_qr_token_hash: tokenHash,
+    p_request_id: requestId,
+  };
 
-  if (error?.code === "23505") {
-    return {
-      status: "error",
-      message: "Ya existe una inscripcion para este email en el evento.",
-    };
+  const MAX_ATTEMPTS = 3;
+  let outcome: { result_status?: string; registration_id?: string } | undefined;
+  let definitiveError = false;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS && !outcome; attempt += 1) {
+    let response;
+
+    try {
+      response = await adminClient.rpc("register_attendee", rpcArgs);
+    } catch (transportError) {
+      if (attempt === MAX_ATTEMPTS) {
+        console.error("Error de transporte al inscribir", transportError);
+      }
+      continue; // ambiguo: reintentar con el mismo request_id (idempotente)
+    }
+
+    if (!response.error) {
+      outcome = response.data?.[0] ?? {};
+      break;
+    }
+
+    // status 0 (sin respuesta real, supabase-js no lanza) o 5xx = ambiguo.
+    if (response.status === 0 || response.status >= 500) {
+      if (attempt === MAX_ATTEMPTS) {
+        console.error("Respuesta ambigua al inscribir", response.status, response.error);
+      }
+      continue;
+    }
+
+    definitiveError = true;
+    break;
   }
 
-  if (error || !registration) {
+  if (definitiveError || !outcome) {
     return {
       status: "error",
       message: "No pudimos completar la inscripcion. Intentalo nuevamente.",
     };
   }
 
-  await adminClient.from("consents").insert([
-    {
-      event_id: parsed.data.eventId,
-      registration_id: registration.id,
-      email: parsed.data.email,
-      consent_type: "event_registration",
-      version: "2026-06-03",
-      accepted: true,
-    },
-    {
-      event_id: parsed.data.eventId,
-      registration_id: registration.id,
-      email: parsed.data.email,
-      consent_type: "organizer_data_processing",
-      version: "2026-06-03",
-      accepted: true,
-    },
-    {
-      event_id: parsed.data.eventId,
-      registration_id: registration.id,
-      email: parsed.data.email,
-      consent_type: "public_directory",
-      version: "2026-06-03",
-      accepted: parsed.data.publicProfileEnabled,
-    },
-    {
-      event_id: parsed.data.eventId,
-      registration_id: registration.id,
-      email: parsed.data.email,
-      consent_type: "connection_requests",
-      version: "2026-06-03",
-      accepted: parsed.data.networkingOptIn,
-    },
-    {
-      event_id: parsed.data.eventId,
-      registration_id: registration.id,
-      email: parsed.data.email,
-      consent_type: "share_contact_on_acceptance",
-      version: "2026-06-03",
-      accepted: parsed.data.networkingOptIn,
-    },
-  ]);
+  const messagesByStatus: Record<string, string> = {
+    unavailable: "Este evento no esta disponible para inscripcion.",
+    ended: "Este evento ya termino.",
+    capacity_full: "Este evento ya completo sus cupos.",
+    duplicate: "Ya existe una inscripcion para este email en el evento.",
+  };
 
-  const confirmationPath = `/e/${parsed.data.slug}/registered?registrationId=${registration.id}&token=${token}`;
+  if (outcome.result_status !== "ok" || !outcome.registration_id) {
+    return {
+      status: "error",
+      message:
+        messagesByStatus[outcome.result_status ?? ""] ??
+        "No pudimos completar la inscripcion. Intentalo nuevamente.",
+    };
+  }
+
+  const confirmationPath = `/e/${parsed.data.slug}/registered?registrationId=${outcome.registration_id}&token=${token}`;
   const appUrl = getAppUrl();
 
   try {
