@@ -49,12 +49,13 @@ set search_path = ''
 as $$
 declare
   v_event public.events%rowtype;
+  v_event_found boolean;
   v_count integer;
   v_registration_id uuid;
   v_existing_id uuid;
 begin
-  -- Idempotencia: un reintento con el mismo request_id (tras respuesta perdida)
-  -- devuelve la inscripcion ya creada, sin duplicar ni rotar el token.
+  -- Idempotencia (fast path, sin lock): si un intento previo ya commiteo y es
+  -- visible, devolver su inscripcion sin tomar el lock.
   select id
   into v_existing_id
   from public.event_registrations
@@ -65,14 +66,32 @@ begin
     return;
   end if;
 
-  -- Lock de la fila del evento: serializa las inscripciones concurrentes.
+  -- Lock de la fila del evento: serializa las inscripciones concurrentes. Si un
+  -- intento concurrente con el mismo request_id esta en vuelo, aqui se espera a
+  -- que commitee y libere el lock.
   select *
   into v_event
   from public.events
   where id = p_event_id and deleted_at is null
   for update;
 
-  if not found or v_event.status <> 'published' then
+  v_event_found := found;
+
+  -- Re-chequeo de idempotencia YA con el lock tomado: si el intento concurrente
+  -- commiteo mientras esperabamos, devolver su inscripcion (recupera el token).
+  -- Va antes de las validaciones de estado/capacidad: una inscripcion previa
+  -- exitosa debe devolverse aunque el evento ya este lleno o cerrado.
+  select id
+  into v_existing_id
+  from public.event_registrations
+  where creation_request_id = p_request_id;
+
+  if v_existing_id is not null then
+    return query select 'ok'::text, v_existing_id;
+    return;
+  end if;
+
+  if not v_event_found or v_event.status <> 'published' then
     return query select 'unavailable'::text, null::uuid;
     return;
   end if;
