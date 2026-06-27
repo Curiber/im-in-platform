@@ -309,16 +309,18 @@ permite esa transicion porque el usuario ya no existe).
 - [x] Migrar actions admin de `throw` a estado de formulario inline
       (organizacion/equipo + eventos + creacion de organizacion).
 - [x] Reemplazar `findAuthUserByEmail` paginado por lookup directo (RPC
-      `find_user_id_by_email` security definer + indice funcional `lower(email)`).
+      `find_user_id_by_email` security definer; compara `email` exacto para usar
+      el indice nativo de `auth.users`, sin alterar la tabla gestionada).
 
 ### Epic 28: Creacion atomica de organizaciones (P9)
 
-- [ ] RPC `security definer` que inserta organizacion + membership owner en
-      una transaccion; `createOrganization` la invoca tras resolver el user.
-- [ ] Compensacion si la invitacion de Auth queda huerfana (documentar o
-      limpiar el usuario invitado cuando la RPC falla).
-- [ ] Listado de organizaciones sin owner visible para platform admin como
-      red de seguridad.
+- [x] RPC `security definer` que inserta organizacion + membership owner en
+      una transaccion (`create_organization_with_owner`); `createOrganization`
+      la invoca tras resolver el user.
+- [x] Compensacion si la invitacion de Auth queda huerfana (se borra el usuario
+      recien invitado cuando la RPC falla).
+- [x] Listado de organizaciones sin owner visible para platform admin como
+      red de seguridad (fila marca "Sin owner -- revisar" en rojo).
 - [ ] Inserts de `consents` dentro de la misma RPC de inscripcion del Epic 25
       o, al menos, log del error en vez de descartar el resultado.
 

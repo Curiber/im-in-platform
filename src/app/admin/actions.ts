@@ -73,39 +73,91 @@ export async function createOrganization(
     return { error: owner.error };
   }
 
-  const { data: organization, error: organizationError } = await adminClient
-    .from("organizations")
-    .insert({
-      name: parsed.data.name,
-      type: parsed.data.type,
-      website_url: parsed.data.websiteUrl,
-    })
-    .select("id")
-    .single();
+  // Inserta organizacion + membership owner en una sola transaccion (RPC),
+  // idempotente por request_id. Se reintenta con el MISMO request_id ante
+  // errores de transporte: si el intento previo commiteo, el reintento ve la
+  // fila y devuelve exito; si no, la crea. Asi nunca se compensa por un error
+  // ambiguo (la RPC pudo seguir en vuelo y commitear despues).
+  const requestId = crypto.randomUUID();
+  const MAX_ATTEMPTS = 3;
+  // "definitive-error" = el servidor respondio 4xx: la RPC ejecuto y rollback,
+  // no commiteo -> seguro compensar. "ambiguous" = sin respuesta real
+  // (status 0, supabase-js no lanza) o 5xx: la RPC pudo commitear -> no
+  // compensar. La RPC es idempotente por request_id, asi que reintentar es
+  // seguro.
+  let outcome: "success" | "definitive-error" | "ambiguous" = "ambiguous";
 
-  if (organizationError || !organization) {
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    let response;
+
+    try {
+      response = await adminClient.rpc("create_organization_with_owner", {
+        p_name: parsed.data.name,
+        p_type: parsed.data.type,
+        p_website_url: parsed.data.websiteUrl,
+        p_owner_user_id: owner.userId,
+        p_request_id: requestId,
+      });
+    } catch (transportError) {
+      if (attempt === MAX_ATTEMPTS) {
+        console.error("Error de transporte al crear organizacion", transportError);
+      }
+      continue; // ambiguo: reintentar
+    }
+
+    if (!response.error) {
+      outcome = "success";
+      break;
+    }
+
+    if (response.status === 0 || response.status >= 500) {
+      if (attempt === MAX_ATTEMPTS) {
+        console.error(
+          "Respuesta ambigua al crear organizacion",
+          response.status,
+          response.error,
+        );
+      }
+      continue; // ambiguo: reintentar
+    }
+
+    outcome = "definitive-error";
+    break;
+  }
+
+  if (outcome === "success") {
+    revalidatePath("/admin");
+    revalidatePath("/admin/organizations");
+    redirect("/admin/organizations");
+  }
+
+  if (outcome === "definitive-error") {
+    // La RPC no commiteo: seguro compensar el usuario recien invitado.
+    if (owner.invited) {
+      const { error: cleanupError } = await adminClient.auth.admin.deleteUser(
+        owner.userId,
+      );
+
+      if (cleanupError) {
+        console.error(
+          "No se pudo limpiar el usuario invitado huerfano",
+          cleanupError,
+        );
+      }
+    }
+
     return { error: "No se pudo crear la organizacion." };
   }
 
-  const { error: membershipError } = await adminClient
-    .from("organization_users")
-    .insert({
-      organization_id: organization.id,
-      user_id: owner.userId,
-      role: "owner",
-    });
-
-  if (membershipError) {
-    return { error: "No se pudo asignar el owner de la organizacion." };
-  }
-
-  revalidatePath("/admin");
-  revalidatePath("/admin/organizations");
-  redirect("/admin/organizations");
+  // Ambiguo en todos los intentos: no se compensa (la RPC pudo commitear).
+  return {
+    error:
+      "No se pudo confirmar la creacion. Revisa el listado antes de reintentar.",
+  };
 }
 
 type OwnerLookup =
-  | { ok: true; userId: string }
+  | { ok: true; userId: string; invited: boolean }
   | { ok: false; error: string };
 
 // Resuelve el id del usuario owner/miembro: lookup directo via RPC
@@ -131,7 +183,7 @@ async function findOrInviteOwnerUser({
   }
 
   if (existingUserId) {
-    return { ok: true, userId: existingUserId };
+    return { ok: true, userId: existingUserId, invited: false };
   }
 
   const redirectTo = `${getAppUrl()}/auth/callback?next=/admin`;
@@ -147,7 +199,7 @@ async function findOrInviteOwnerUser({
     return { ok: false, error: "No se pudo crear o invitar al owner." };
   }
 
-  return { ok: true, userId: data.user.id };
+  return { ok: true, userId: data.user.id, invited: true };
 }
 
 const organizationSettingsSchema = z.object({
