@@ -73,30 +73,24 @@ export async function createOrganization(
     return { error: owner.error };
   }
 
-  const { data: organization, error: organizationError } = await adminClient
-    .from("organizations")
-    .insert({
-      name: parsed.data.name,
-      type: parsed.data.type,
-      website_url: parsed.data.websiteUrl,
-    })
-    .select("id")
-    .single();
+  // Inserta organizacion + membership owner en una sola transaccion (RPC).
+  const { error: createError } = await adminClient.rpc(
+    "create_organization_with_owner",
+    {
+      p_name: parsed.data.name,
+      p_type: parsed.data.type,
+      p_website_url: parsed.data.websiteUrl,
+      p_owner_user_id: owner.userId,
+    },
+  );
 
-  if (organizationError || !organization) {
+  if (createError) {
+    // Compensacion: si recien invitamos al owner, no dejarlo huerfano en Auth.
+    if (owner.invited) {
+      await adminClient.auth.admin.deleteUser(owner.userId);
+    }
+
     return { error: "No se pudo crear la organizacion." };
-  }
-
-  const { error: membershipError } = await adminClient
-    .from("organization_users")
-    .insert({
-      organization_id: organization.id,
-      user_id: owner.userId,
-      role: "owner",
-    });
-
-  if (membershipError) {
-    return { error: "No se pudo asignar el owner de la organizacion." };
   }
 
   revalidatePath("/admin");
@@ -105,7 +99,7 @@ export async function createOrganization(
 }
 
 type OwnerLookup =
-  | { ok: true; userId: string }
+  | { ok: true; userId: string; invited: boolean }
   | { ok: false; error: string };
 
 // Resuelve el id del usuario owner/miembro: lookup directo via RPC
@@ -131,7 +125,7 @@ async function findOrInviteOwnerUser({
   }
 
   if (existingUserId) {
-    return { ok: true, userId: existingUserId };
+    return { ok: true, userId: existingUserId, invited: false };
   }
 
   const redirectTo = `${getAppUrl()}/auth/callback?next=/admin`;
@@ -147,7 +141,7 @@ async function findOrInviteOwnerUser({
     return { ok: false, error: "No se pudo crear o invitar al owner." };
   }
 
-  return { ok: true, userId: data.user.id };
+  return { ok: true, userId: data.user.id, invited: true };
 }
 
 const organizationSettingsSchema = z.object({

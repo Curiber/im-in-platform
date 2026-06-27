@@ -236,9 +236,18 @@ function OrganizationRow({
           <Users className="size-4 text-brand-cyan-500" aria-hidden="true" />
           Owners
         </p>
-        <p className="mt-1 text-sm text-brand-slate-600">
-          {ownerEmails.length ? ownerEmails.join(", ") : "Sin owner"}
-        </p>
+        {ownerEmails.length ? (
+          <p className="mt-1 text-sm text-brand-slate-600">
+            {ownerEmails.join(", ")}
+          </p>
+        ) : (
+          <p
+            className="mt-1 text-sm font-semibold text-red-700"
+            role="alert"
+          >
+            Sin owner -- revisar
+          </p>
+        )}
       </div>
       <p className="text-sm text-brand-slate-600">
         {new Intl.DateTimeFormat("es-CL", {
