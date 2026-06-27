@@ -85,19 +85,6 @@ export async function registerForEvent(
     };
   }
 
-  const { count } = await adminClient
-    .from("event_registrations")
-    .select("id", { count: "exact", head: true })
-    .eq("event_id", event.id)
-    .neq("status", "cancelled");
-
-  if ((count ?? 0) >= event.capacity) {
-    return {
-      status: "error",
-      message: "Este evento ya completo sus cupos.",
-    };
-  }
-
   const profileId = await upsertAttendeeProfileFromRegistration({
     email: parsed.data.email,
     fullName: parsed.data.fullName,
@@ -111,83 +98,50 @@ export async function registerForEvent(
   const token = createRegistrationToken();
   const tokenHash = hashRegistrationToken(token);
 
-  const { data: registration, error } = await adminClient
-    .from("event_registrations")
-    .insert({
-      event_id: parsed.data.eventId,
-      profile_id: profileId,
-      email: parsed.data.email,
-      full_name_snapshot: parsed.data.fullName,
-      phone_snapshot: parsed.data.phone || null,
-      role_snapshot: parsed.data.role,
-      company_snapshot: parsed.data.company,
-      industry_snapshot: parsed.data.industry,
-      interests: parsed.data.interests,
-      networking_opt_in: parsed.data.networkingOptIn,
-      public_profile_enabled: parsed.data.publicProfileEnabled,
-      qr_token_hash: tokenHash,
-    })
-    .select("id")
-    .single<{ id: string }>();
+  // Inscripcion atomica: la RPC toma un lock sobre el evento y verifica
+  // capacidad/estado/fin de evento antes de insertar la inscripcion y sus
+  // consentimientos en una sola transaccion (sin race de sobreventa).
+  const { data: result, error } = await adminClient.rpc("register_attendee", {
+    p_event_id: parsed.data.eventId,
+    p_profile_id: profileId,
+    p_email: parsed.data.email,
+    p_full_name: parsed.data.fullName,
+    p_phone: parsed.data.phone || null,
+    p_role: parsed.data.role,
+    p_company: parsed.data.company,
+    p_industry: parsed.data.industry,
+    p_interests: parsed.data.interests,
+    p_networking_opt_in: parsed.data.networkingOptIn,
+    p_public_profile_enabled: parsed.data.publicProfileEnabled,
+    p_qr_token_hash: tokenHash,
+  });
 
-  if (error?.code === "23505") {
-    return {
-      status: "error",
-      message: "Ya existe una inscripcion para este email en el evento.",
-    };
-  }
-
-  if (error || !registration) {
+  if (error) {
     return {
       status: "error",
       message: "No pudimos completar la inscripcion. Intentalo nuevamente.",
     };
   }
 
-  await adminClient.from("consents").insert([
-    {
-      event_id: parsed.data.eventId,
-      registration_id: registration.id,
-      email: parsed.data.email,
-      consent_type: "event_registration",
-      version: "2026-06-03",
-      accepted: true,
-    },
-    {
-      event_id: parsed.data.eventId,
-      registration_id: registration.id,
-      email: parsed.data.email,
-      consent_type: "organizer_data_processing",
-      version: "2026-06-03",
-      accepted: true,
-    },
-    {
-      event_id: parsed.data.eventId,
-      registration_id: registration.id,
-      email: parsed.data.email,
-      consent_type: "public_directory",
-      version: "2026-06-03",
-      accepted: parsed.data.publicProfileEnabled,
-    },
-    {
-      event_id: parsed.data.eventId,
-      registration_id: registration.id,
-      email: parsed.data.email,
-      consent_type: "connection_requests",
-      version: "2026-06-03",
-      accepted: parsed.data.networkingOptIn,
-    },
-    {
-      event_id: parsed.data.eventId,
-      registration_id: registration.id,
-      email: parsed.data.email,
-      consent_type: "share_contact_on_acceptance",
-      version: "2026-06-03",
-      accepted: parsed.data.networkingOptIn,
-    },
-  ]);
+  const outcome = result?.[0];
 
-  const confirmationPath = `/e/${parsed.data.slug}/registered?registrationId=${registration.id}&token=${token}`;
+  const messagesByStatus: Record<string, string> = {
+    unavailable: "Este evento no esta disponible para inscripcion.",
+    ended: "Este evento ya termino.",
+    capacity_full: "Este evento ya completo sus cupos.",
+    duplicate: "Ya existe una inscripcion para este email en el evento.",
+  };
+
+  if (!outcome || outcome.status !== "ok" || !outcome.registration_id) {
+    return {
+      status: "error",
+      message:
+        messagesByStatus[outcome?.status ?? ""] ??
+        "No pudimos completar la inscripcion. Intentalo nuevamente.",
+    };
+  }
+
+  const confirmationPath = `/e/${parsed.data.slug}/registered?registrationId=${outcome.registration_id}&token=${token}`;
   const appUrl = getAppUrl();
 
   try {

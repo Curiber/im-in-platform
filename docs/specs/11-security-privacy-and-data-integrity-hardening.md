@@ -264,10 +264,15 @@ no hay compensacion ni registro del error.
 
 ### Epic 25: Integridad de inscripcion y check-in (P4)
 
-- [ ] RPC transaccional de inscripcion con control de capacidad.
-- [ ] Guard de estado en update de check-in.
-- [ ] Reemplazar header `origin` por `APP_URL` en emails.
-- [ ] Rechazar inscripcion si el evento ya termino.
+- [x] RPC transaccional de inscripcion con control de capacidad
+      (`register_attendee`, lock `for update` sobre el evento + insert de
+      inscripcion y consentimientos en una transaccion).
+- [x] Guard de estado en update de check-in (ya presente: el update condiciona
+      `status = 'registered'` y 0 filas se trata como "ya acreditado").
+- [x] Reemplazar header `origin` por `APP_URL` en emails (ya presente:
+      `registerForEvent` usa `getAppUrl()`).
+- [x] Rechazar inscripcion si el evento ya termino (la RPC rechaza con `ended`
+      cuando `ends_at < now()`).
 
 ### Epic 26: Endurecimiento de salida y token (P5, P6)
 
