@@ -74,6 +74,9 @@ export async function createOrganization(
   }
 
   // Inserta organizacion + membership owner en una sola transaccion (RPC).
+  // El request_id es una clave de idempotencia: si la RPC commitea pero la
+  // respuesta falla (red), permite saber si hubo commit antes de compensar.
+  const requestId = crypto.randomUUID();
   const { error: createError } = await adminClient.rpc(
     "create_organization_with_owner",
     {
@@ -81,13 +84,51 @@ export async function createOrganization(
       p_type: parsed.data.type,
       p_website_url: parsed.data.websiteUrl,
       p_owner_user_id: owner.userId,
+      p_request_id: requestId,
     },
   );
 
   if (createError) {
-    // Compensacion: si recien invitamos al owner, no dejarlo huerfano en Auth.
+    // La RPC pudo haber commiteado pese al error. Consultar por el request_id
+    // para no compensar erroneamente (borrar al owner borraria su membership
+    // por ON DELETE CASCADE y dejaria la org sin owner).
+    const { data: created, error: lookupError } = await adminClient
+      .from("organizations")
+      .select("id")
+      .eq("creation_request_id", requestId)
+      .maybeSingle();
+
+    if (created) {
+      // El commit ocurrio: organizacion y owner existen. Es un exito.
+      revalidatePath("/admin");
+      revalidatePath("/admin/organizations");
+      redirect("/admin/organizations");
+    }
+
+    if (lookupError) {
+      // Resultado ambiguo: no se borra el usuario (podria ser un owner valido).
+      console.error(
+        "No se pudo confirmar la creacion de la organizacion",
+        lookupError,
+      );
+      return {
+        error:
+          "No se pudo confirmar la creacion. Revisa el listado antes de reintentar.",
+      };
+    }
+
+    // No hubo commit: es seguro compensar el usuario recien invitado.
     if (owner.invited) {
-      await adminClient.auth.admin.deleteUser(owner.userId);
+      const { error: cleanupError } = await adminClient.auth.admin.deleteUser(
+        owner.userId,
+      );
+
+      if (cleanupError) {
+        console.error(
+          "No se pudo limpiar el usuario invitado huerfano",
+          cleanupError,
+        );
+      }
     }
 
     return { error: "No se pudo crear la organizacion." };
