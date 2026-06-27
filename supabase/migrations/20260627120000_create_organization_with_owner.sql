@@ -44,9 +44,25 @@ as $$
 declare
   v_organization_id uuid;
 begin
+  -- Idempotente por creation_request_id: un reintento con el mismo request_id
+  -- (p.ej. tras un error de transporte) no crea duplicados ni un segundo
+  -- membership. `on conflict` serializa contra inserts concurrentes del mismo
+  -- request_id (espera al commit del primero y luego no hace nada).
   insert into public.organizations (name, type, website_url, creation_request_id)
   values (p_name, p_type, p_website_url, p_request_id)
+  on conflict (creation_request_id) do nothing
   returning id into v_organization_id;
+
+  if v_organization_id is null then
+    -- Ya existia (reintento): el membership owner tambien se inserto en el
+    -- intento que gano. Devolver el id existente sin reinsertar.
+    select id
+    into v_organization_id
+    from public.organizations
+    where creation_request_id = p_request_id;
+
+    return v_organization_id;
+  end if;
 
   insert into public.organization_users (organization_id, user_id, role)
   values (v_organization_id, p_owner_user_id, 'owner');
