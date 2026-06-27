@@ -7,11 +7,25 @@
 -- Esta RPC toma un lock sobre la fila del evento (`for update`), de modo que las
 -- inscripciones concurrentes al mismo evento se serializan: el conteo de cupos
 -- se hace bajo el lock y no puede sobrevenderse. Inserta la inscripcion y sus
--- consentimientos en la misma transaccion (atomico). Devuelve un status para
--- que la action muestre el mensaje adecuado.
+-- consentimientos en la misma transaccion (atomico).
+--
+-- `creation_request_id` da idempotencia: si la RPC commitea pero la respuesta
+-- se pierde, la action reintenta con el MISMO request_id (y el MISMO token) y
+-- recupera la inscripcion ya creada en vez de chocar con 'duplicate'.
 --
 -- Solo el service_role la ejecuta (la server action publica usa el cliente
 -- admin del servidor).
+
+alter table public.event_registrations
+  add column if not exists creation_request_id uuid;
+
+create unique index if not exists event_registrations_creation_request_id_key
+  on public.event_registrations (creation_request_id);
+
+-- Reemplaza la version previa de 12 argumentos si llego a aplicarse.
+drop function if exists public.register_attendee(
+  uuid, uuid, text, text, text, text, text, text, text[], boolean, boolean, text
+);
 
 create or replace function public.register_attendee(
   p_event_id uuid,
@@ -25,9 +39,10 @@ create or replace function public.register_attendee(
   p_interests text[],
   p_networking_opt_in boolean,
   p_public_profile_enabled boolean,
-  p_qr_token_hash text
+  p_qr_token_hash text,
+  p_request_id uuid
 )
-returns table (status text, registration_id uuid)
+returns table (result_status text, registration_id uuid)
 language plpgsql
 security definer
 set search_path = ''
@@ -36,7 +51,20 @@ declare
   v_event public.events%rowtype;
   v_count integer;
   v_registration_id uuid;
+  v_existing_id uuid;
 begin
+  -- Idempotencia: un reintento con el mismo request_id (tras respuesta perdida)
+  -- devuelve la inscripcion ya creada, sin duplicar ni rotar el token.
+  select id
+  into v_existing_id
+  from public.event_registrations
+  where creation_request_id = p_request_id;
+
+  if v_existing_id is not null then
+    return query select 'ok'::text, v_existing_id;
+    return;
+  end if;
+
   -- Lock de la fila del evento: serializa las inscripciones concurrentes.
   select *
   into v_event
@@ -57,7 +85,8 @@ begin
   select count(*)
   into v_count
   from public.event_registrations
-  where event_id = p_event_id and status <> 'cancelled';
+  where event_registrations.event_id = p_event_id
+    and event_registrations.status <> 'cancelled';
 
   if v_count >= v_event.capacity then
     return query select 'capacity_full'::text, null::uuid;
@@ -68,15 +97,18 @@ begin
     insert into public.event_registrations (
       event_id, profile_id, email, full_name_snapshot, phone_snapshot,
       role_snapshot, company_snapshot, industry_snapshot, interests,
-      networking_opt_in, public_profile_enabled, qr_token_hash
+      networking_opt_in, public_profile_enabled, qr_token_hash,
+      creation_request_id
     )
     values (
       p_event_id, p_profile_id, p_email, p_full_name, p_phone,
       p_role, p_company, p_industry, p_interests,
-      p_networking_opt_in, p_public_profile_enabled, p_qr_token_hash
+      p_networking_opt_in, p_public_profile_enabled, p_qr_token_hash,
+      p_request_id
     )
     returning id into v_registration_id;
   exception when unique_violation then
+    -- Choque por (event_id, email): ya hay una inscripcion de otro request.
     return query select 'duplicate'::text, null::uuid;
     return;
   end;
@@ -96,9 +128,9 @@ end;
 $$;
 
 revoke execute on function public.register_attendee(
-  uuid, uuid, text, text, text, text, text, text, text[], boolean, boolean, text
+  uuid, uuid, text, text, text, text, text, text, text[], boolean, boolean, text, uuid
 ) from public, anon, authenticated;
 
 grant execute on function public.register_attendee(
-  uuid, uuid, text, text, text, text, text, text, text[], boolean, boolean, text
+  uuid, uuid, text, text, text, text, text, text, text[], boolean, boolean, text, uuid
 ) to service_role;
