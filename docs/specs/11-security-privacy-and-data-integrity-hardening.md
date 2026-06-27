@@ -271,6 +271,8 @@ directo:
 
 1. `update events set deleted_at = now() where id = '<evento>'` -> debe fallar
    con el error del trigger de guardia.
+1b. `insert into events (..., deleted_at) values (..., now())` -> debe fallar:
+   un evento no puede nacer con columnas de auditoria de borrado.
 2. `rpc/soft_delete_event` con ese evento -> debe fallar con "No tienes
    permisos para eliminar este evento." (rol insuficiente).
 3. `rpc/restore_event` sobre un evento eliminado -> debe fallar (solo owner).

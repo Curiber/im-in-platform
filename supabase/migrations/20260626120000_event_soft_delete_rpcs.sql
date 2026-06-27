@@ -23,6 +23,23 @@ security definer
 set search_path = ''
 as $$
 begin
+  -- En INSERT, un evento nunca nace con auditoria de borrado: la policy de
+  -- insert solo valida rol, asi que sin esto un event_admin podria crear via
+  -- PostgREST un evento con deleted_at/deleted_by/delete_reason falsificados.
+  if tg_op = 'INSERT' then
+    if new.deleted_at is not null
+      or new.deleted_by is not null
+      or new.delete_reason is not null
+    then
+      raise exception
+        'Un evento no puede crearse con columnas de auditoria de borrado.';
+    end if;
+
+    return new;
+  end if;
+
+  -- En UPDATE, las columnas de auditoria solo cambian via las RPCs, que
+  -- habilitan el flag transaccional.
   if (
     new.deleted_at is distinct from old.deleted_at
     or new.deleted_by is distinct from old.deleted_by
@@ -42,7 +59,7 @@ end;
 $$;
 
 create trigger events_guard_audit_columns
-before update on public.events
+before insert or update on public.events
 for each row
 execute function app_private.guard_event_audit_columns();
 
