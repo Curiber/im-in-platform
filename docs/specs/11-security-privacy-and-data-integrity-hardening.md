@@ -257,10 +257,32 @@ no hay compensacion ni registro del error.
 
 ### Epic 24: RLS alineada con roles (P3)
 
-- [ ] Migracion: RPCs `security definer` para soft delete y restore.
-- [ ] Migracion: trigger de guardia sobre columnas de auditoria de `events`.
-- [ ] Ajustar `deleteEvent`/`restoreEvent` para usar las RPCs.
-- [ ] Prueba manual documentada: `event_admin` via PostgREST no puede borrar.
+- [x] Migracion: RPCs `security definer` para soft delete y restore
+      (`public.soft_delete_event`, `public.restore_event`).
+- [x] Migracion: trigger de guardia sobre columnas de auditoria de `events`
+      (`app_private.guard_event_audit_columns` + flag transaccional).
+- [x] Ajustar `deleteEvent`/`restoreEvent` para usar las RPCs.
+- [x] Prueba manual documentada (ejecutar tras aplicar la migracion): ver abajo.
+
+#### Prueba manual (event_admin via PostgREST)
+
+Con un usuario `event_admin` autenticado (su JWT/anon key), contra PostgREST
+directo:
+
+1. `update events set deleted_at = now() where id = '<evento>'` -> debe fallar
+   con el error del trigger de guardia.
+1b. `insert into events (..., deleted_at) values (..., now())` -> debe fallar:
+   un evento no puede nacer con columnas de auditoria de borrado.
+2. `rpc/soft_delete_event` con ese evento -> debe fallar con "No tienes
+   permisos para eliminar este evento." (rol insuficiente).
+3. `rpc/restore_event` sobre un evento eliminado -> debe fallar (solo owner).
+
+Con `owner`/`admin`: `rpc/soft_delete_event` con motivo valido (>= 5 chars)
+elimina; `rpc/restore_event` solo funciona como `owner`.
+
+Caso FK: borrar de Auth a un usuario que figura en `events.deleted_by` debe
+funcionar (el cascade `on delete set null` pone `deleted_by = NULL` y el trigger
+permite esa transicion porque el usuario ya no existe).
 
 ### Epic 25: Integridad de inscripcion y check-in (P4)
 
