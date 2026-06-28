@@ -16,8 +16,11 @@ type VerifyRegistration = {
   interests: string[];
   status: string;
   qr_token_hash: string;
+  registered_at: string;
   events: { slug: string } | null;
 };
+
+const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
 
 export async function GET(
   request: NextRequest,
@@ -40,7 +43,7 @@ export async function GET(
   const { data: registration } = await adminClient
     .from("event_registrations")
     .select(
-      "id, email, full_name_snapshot, phone_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, status, qr_token_hash, events(slug)",
+      "id, email, full_name_snapshot, phone_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, status, qr_token_hash, registered_at, events(slug)",
     )
     .eq("id", registrationId)
     .single<VerifyRegistration>();
@@ -60,6 +63,12 @@ export async function GET(
     return NextResponse.redirect(credentialUrl);
   }
 
+  // Expiracion del link (24h): se aplica aqui, no depende del cron de limpieza.
+  const ageMs = Date.now() - new Date(registration.registered_at).getTime();
+  if (ageMs > VERIFICATION_TTL_MS) {
+    return invalid;
+  }
+
   // Verificacion confirmada: recien aqui se crea/actualiza el perfil global y se
   // activa la inscripcion (el perfil estuvo diferido hasta probar el email).
   const profileId = await upsertAttendeeProfileFromRegistration({
@@ -71,6 +80,17 @@ export async function GET(
     industry: registration.industry_snapshot ?? "",
     interests: registration.interests ?? [],
   });
+
+  // No marcar `registered` sin perfil: dejaria la inscripcion sin poder editar
+  // perfil ni sincronizar. Si el upsert fallo, se trata como reintentnable (la
+  // inscripcion sigue pendiente; reabrir el link reintenta).
+  if (!profileId) {
+    console.error(
+      "No se pudo crear/enlazar el perfil al verificar la inscripcion",
+      registrationId,
+    );
+    return invalid;
+  }
 
   const { error } = await adminClient
     .from("event_registrations")

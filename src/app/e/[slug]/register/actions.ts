@@ -173,10 +173,61 @@ export async function registerForEvent(
     };
   }
 
-  // Duplicado: mensaje neutro (misma pantalla que el exito) para no permitir
-  // enumerar que emails ya estan inscritos. No reenviamos el token original
-  // (no es recuperable); el usuario legitimo ya recibio su email.
+  const appUrl = getAppUrl();
+
+  // El token viaja SOLO por email, en el link de verificacion. Loguea si el
+  // envio no ocurre para no perder el fallo en silencio.
+  const sendVerification = async (
+    targetRegistrationId: string,
+    verifyToken: string,
+  ) => {
+    const verificationPath = `/e/${parsed.data.slug}/verify?registrationId=${targetRegistrationId}&token=${verifyToken}`;
+
+    try {
+      const result = await sendRegistrationVerificationEmail({
+        attendeeName: parsed.data.fullName,
+        verificationUrl: `${appUrl}${verificationPath}`,
+        eventDate: formatDate(event.starts_at),
+        eventName: event.name,
+        to: parsed.data.email,
+      });
+
+      if (!result.sent) {
+        console.error(
+          "Email de verificacion no enviado (proveedor sin configurar)",
+          targetRegistrationId,
+        );
+      }
+    } catch (emailError) {
+      console.error("Fallo al enviar el email de verificacion", emailError);
+    }
+  };
+
+  // Duplicado: mensaje neutro (misma pantalla que el exito) para no enumerar
+  // emails. Si la inscripcion existente sigue pendiente, se rota el token y se
+  // reenvia el link (recupera a quien no recibio el primer correo o cuyo envio
+  // fallo). Una inscripcion ya verificada no se toca.
   if (outcome.result_status === "duplicate") {
+    const { data: existing } = await adminClient
+      .from("event_registrations")
+      .select("id, status")
+      .eq("event_id", parsed.data.eventId)
+      .eq("email", parsed.data.email)
+      .maybeSingle<{ id: string; status: string }>();
+
+    if (existing?.status === "pending_verification") {
+      const resendToken = createRegistrationToken();
+      const { error: rotateError } = await adminClient
+        .from("event_registrations")
+        .update({ qr_token_hash: hashRegistrationToken(resendToken) })
+        .eq("id", existing.id)
+        .eq("status", "pending_verification");
+
+      if (!rotateError) {
+        await sendVerification(existing.id, resendToken);
+      }
+    }
+
     redirect(`/e/${parsed.data.slug}/check-email`);
   }
 
@@ -195,22 +246,7 @@ export async function registerForEvent(
     };
   }
 
-  // El token viaja SOLO por email, en el link de verificacion. La pantalla de
-  // exito no muestra QR ni token.
-  const verificationPath = `/e/${parsed.data.slug}/verify?registrationId=${outcome.registration_id}&token=${token}`;
-  const appUrl = getAppUrl();
-
-  try {
-    await sendRegistrationVerificationEmail({
-      attendeeName: parsed.data.fullName,
-      verificationUrl: `${appUrl}${verificationPath}`,
-      eventDate: formatDate(event.starts_at),
-      eventName: event.name,
-      to: parsed.data.email,
-    });
-  } catch {
-    // El fallo de envio no invalida la inscripcion creada.
-  }
+  await sendVerification(outcome.registration_id, token);
 
   redirect(`/e/${parsed.data.slug}/check-email`);
 }
