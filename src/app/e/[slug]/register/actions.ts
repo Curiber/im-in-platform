@@ -65,20 +65,15 @@ export async function registerForEvent(
   const adminClient = createSupabaseAdminClient();
   const { data: event } = await adminClient
     .from("events")
-    .select("id, capacity, status, slug, name, starts_at, ends_at")
+    .select("id, status, name, starts_at")
     .eq("id", parsed.data.eventId)
     .eq("slug", parsed.data.slug)
     .is("deleted_at", null)
-    .single<{
-      id: string;
-      capacity: number;
-      status: string;
-      slug: string;
-      name: string;
-      starts_at: string;
-      ends_at: string | null;
-    }>();
+    .single<{ id: string; status: string; name: string; starts_at: string }>();
 
+  // Fast-fail uniforme. La RPC `register_attendee` es la validacion autoritativa
+  // bajo lock (estado, fin del evento, capacidad, duplicado), asi que aqui no se
+  // mira el email del que se inscribe (sin enumeracion) ni se valida capacidad.
   if (!event || event.status !== "published") {
     return {
       status: "error",
@@ -86,84 +81,10 @@ export async function registerForEvent(
     };
   }
 
-  // Evento terminado: rechazo UNIFORME para todos (nuevos y existentes), antes
-  // de mirar el email. No se inscribe, no se reenvia y no se verifica despues
-  // del termino; y la respuesta no depende de si el email existe.
-  if (event.ends_at && new Date(event.ends_at).getTime() < Date.now()) {
-    return { status: "error", message: "Este evento ya termino." };
-  }
-
-  const appUrl = getAppUrl();
-
-  // Envia el link de verificacion (solo por email). Devuelve si se envio.
-  const sendVerification = async (
-    targetRegistrationId: string,
-    verifyToken: string,
-  ): Promise<boolean> => {
-    const verificationPath = `/e/${parsed.data.slug}/verify?registrationId=${targetRegistrationId}&token=${verifyToken}`;
-
-    try {
-      const result = await sendRegistrationVerificationEmail({
-        attendeeName: parsed.data.fullName,
-        verificationUrl: `${appUrl}${verificationPath}`,
-        eventDate: formatDate(event.starts_at),
-        eventName: event.name,
-        to: parsed.data.email,
-      });
-
-      if (!result.sent) {
-        console.error(
-          "Email de verificacion no enviado",
-          targetRegistrationId,
-          "error" in result ? result.error : undefined,
-        );
-      }
-
-      return result.sent;
-    } catch (emailError) {
-      console.error("Fallo al enviar el email de verificacion", emailError);
-      return false;
-    }
-  };
-
-  // Inscripcion existente para este email: respuesta neutra, sin reenvio. El
-  // reenvio seguro requiere separar el token de verificacion del de la
-  // credencial (no se puede rotar sin invalidar el link anterior ante un fallo);
-  // queda como follow-up con su propio spec. Mientras, la recuperacion es via
-  // expiracion (24h) y reinscripcion. La RESPUESTA depende solo del estado del
-  // evento (publicado/lleno/terminado), nunca de si el email existe.
-  const { data: existingRegistration } = await adminClient
-    .from("event_registrations")
-    .select("id")
-    .eq("event_id", event.id)
-    .eq("email", parsed.data.email)
-    .maybeSingle<{ id: string }>();
-
-  // Capacidad: chequeo UNIFORME (misma respuesta para nuevos y existentes),
-  // antes de ramificar por existencia del email.
-  const { count } = await adminClient
-    .from("event_registrations")
-    .select("id", { count: "exact", head: true })
-    .eq("event_id", event.id)
-    .neq("status", "cancelled");
-
-  if ((count ?? 0) >= event.capacity) {
-    return {
-      status: "error",
-      message: "Este evento ya completo sus cupos.",
-    };
-  }
-
-  // Email ya inscrito (evento no lleno): respuesta neutra, igual que un alta
-  // nueva, para no revelar que el email existe.
-  if (existingRegistration) {
-    redirect(`/e/${parsed.data.slug}/check-email`);
-  }
-
-  // No se toca el perfil persistente aqui: la inscripcion nace en
-  // `pending_verification` y el perfil global se crea/actualiza solo al
-  // verificar el email (ver /verify). Asi una inscripcion con un email ajeno no
-  // crea ni corrompe el perfil de otra persona.
+  // El perfil persistente NO se toca aqui: la inscripcion nace en
+  // `pending_verification` y el perfil se crea/enlaza solo al verificar el email
+  // (ver /verify). Asi una inscripcion con un email ajeno no crea ni corrompe el
+  // perfil de otra persona.
 
   // Token y request_id se generan UNA vez: si la RPC commitea pero la respuesta
   // se pierde, el reintento con el mismo request_id recupera la inscripcion y
@@ -248,10 +169,31 @@ export async function registerForEvent(
     };
   }
 
-  // El email se envia DESPUES de la respuesta (after): no bloquea ni introduce
-  // un canal lateral por tiempo entre email nuevo (envia) y existente (no envia).
+  // El email se envia DESPUES de la respuesta (after): no bloquea la respuesta
+  // ni introduce un canal lateral por tiempo. after() no es una cola durable ni
+  // reintenta, por eso se loguea cualquier fallo de envio.
   const registrationId = outcome.registration_id;
-  after(() => sendVerification(registrationId, token));
+  after(async () => {
+    try {
+      const result = await sendRegistrationVerificationEmail({
+        attendeeName: parsed.data.fullName,
+        verificationUrl: `${getAppUrl()}/e/${parsed.data.slug}/verify?registrationId=${registrationId}&token=${token}`,
+        eventDate: formatDate(event.starts_at),
+        eventName: event.name,
+        to: parsed.data.email,
+      });
+
+      if (!result.sent) {
+        console.error(
+          "Email de verificacion no enviado",
+          registrationId,
+          "error" in result ? result.error : undefined,
+        );
+      }
+    } catch (emailError) {
+      console.error("Fallo al enviar el email de verificacion", emailError);
+    }
+  });
 
   redirect(`/e/${parsed.data.slug}/check-email`);
 }
