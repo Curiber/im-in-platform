@@ -42,7 +42,9 @@ export async function sendRegistrationVerificationEmail({
 
   const resend = new Resend(apiKey);
 
-  await resend.emails.send({
+  // Resend no lanza ante un error de API: devuelve { error }. Hay que mirarlo,
+  // de lo contrario un envio fallido se reportaria como exitoso.
+  const { error } = await resend.emails.send({
     from,
     to,
     subject: `Confirma tu inscripcion: ${eventName}`,
@@ -62,7 +64,11 @@ export async function sendRegistrationVerificationEmail({
     ].join("\n"),
   });
 
-  return { sent: true };
+  if (error) {
+    return { sent: false as const, error };
+  }
+
+  return { sent: true as const };
 }
 
 export async function sendConnectionAcceptedEmail({

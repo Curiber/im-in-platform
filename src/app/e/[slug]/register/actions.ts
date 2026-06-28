@@ -85,10 +85,80 @@ export async function registerForEvent(
     };
   }
 
-  // Validaciones baratas ANTES de tocar el perfil, para no persistir datos
-  // personales si la inscripcion sera rechazada. La RPC vuelve a validarlas
-  // bajo lock (autoritativo); esto solo evita el caso comun. La deferral total
-  // del perfil hasta verificar el email es del Epic 23.
+  const appUrl = getAppUrl();
+
+  // Envia el link de verificacion (solo por email). Devuelve si se envio.
+  const sendVerification = async (
+    targetRegistrationId: string,
+    verifyToken: string,
+  ): Promise<boolean> => {
+    const verificationPath = `/e/${parsed.data.slug}/verify?registrationId=${targetRegistrationId}&token=${verifyToken}`;
+
+    try {
+      const result = await sendRegistrationVerificationEmail({
+        attendeeName: parsed.data.fullName,
+        verificationUrl: `${appUrl}${verificationPath}`,
+        eventDate: formatDate(event.starts_at),
+        eventName: event.name,
+        to: parsed.data.email,
+      });
+
+      if (!result.sent) {
+        console.error(
+          "Email de verificacion no enviado",
+          targetRegistrationId,
+          "error" in result ? result.error : undefined,
+        );
+      }
+
+      return result.sent;
+    } catch (emailError) {
+      console.error("Fallo al enviar el email de verificacion", emailError);
+      return false;
+    }
+  };
+
+  // Reenvio para una inscripcion pendiente: genera token, ENVIA primero y solo
+  // si el envio fue exitoso rota el hash y reinicia el TTL (registered_at). Asi
+  // un envio fallido no invalida el link anterior, y el reenviado dura 24h.
+  const resendPendingVerification = async (existingId: string) => {
+    const resendToken = createRegistrationToken();
+    const sent = await sendVerification(existingId, resendToken);
+
+    if (!sent) {
+      return;
+    }
+
+    await adminClient
+      .from("event_registrations")
+      .update({
+        qr_token_hash: hashRegistrationToken(resendToken),
+        registered_at: new Date().toISOString(),
+      })
+      .eq("id", existingId)
+      .eq("status", "pending_verification");
+  };
+
+  // Si el email ya tiene inscripcion en este evento, manejarla ANTES de validar
+  // capacidad/fin: un evento lleno no debe bloquear el reenvio del link a una
+  // inscripcion pendiente. Respuesta neutra en ambos casos (anti-enumeracion).
+  const { data: existingRegistration } = await adminClient
+    .from("event_registrations")
+    .select("id, status")
+    .eq("event_id", event.id)
+    .eq("email", parsed.data.email)
+    .maybeSingle<{ id: string; status: string }>();
+
+  if (existingRegistration) {
+    if (existingRegistration.status === "pending_verification") {
+      await resendPendingVerification(existingRegistration.id);
+    }
+
+    redirect(`/e/${parsed.data.slug}/check-email`);
+  }
+
+  // Validaciones baratas para inscripciones NUEVAS, antes de tocar el perfil.
+  // La RPC vuelve a validarlas bajo lock (autoritativo).
   if (event.ends_at && new Date(event.ends_at).getTime() < Date.now()) {
     return { status: "error", message: "Este evento ya termino." };
   }
@@ -173,40 +243,8 @@ export async function registerForEvent(
     };
   }
 
-  const appUrl = getAppUrl();
-
-  // El token viaja SOLO por email, en el link de verificacion. Loguea si el
-  // envio no ocurre para no perder el fallo en silencio.
-  const sendVerification = async (
-    targetRegistrationId: string,
-    verifyToken: string,
-  ) => {
-    const verificationPath = `/e/${parsed.data.slug}/verify?registrationId=${targetRegistrationId}&token=${verifyToken}`;
-
-    try {
-      const result = await sendRegistrationVerificationEmail({
-        attendeeName: parsed.data.fullName,
-        verificationUrl: `${appUrl}${verificationPath}`,
-        eventDate: formatDate(event.starts_at),
-        eventName: event.name,
-        to: parsed.data.email,
-      });
-
-      if (!result.sent) {
-        console.error(
-          "Email de verificacion no enviado (proveedor sin configurar)",
-          targetRegistrationId,
-        );
-      }
-    } catch (emailError) {
-      console.error("Fallo al enviar el email de verificacion", emailError);
-    }
-  };
-
-  // Duplicado: mensaje neutro (misma pantalla que el exito) para no enumerar
-  // emails. Si la inscripcion existente sigue pendiente, se rota el token y se
-  // reenvia el link (recupera a quien no recibio el primer correo o cuyo envio
-  // fallo). Una inscripcion ya verificada no se toca.
+  // Duplicado por carrera concurrente (otra inscripcion del mismo email se creo
+  // entre el pre-chequeo y la RPC): mismo manejo neutro + reenvio si pendiente.
   if (outcome.result_status === "duplicate") {
     const { data: existing } = await adminClient
       .from("event_registrations")
@@ -216,16 +254,7 @@ export async function registerForEvent(
       .maybeSingle<{ id: string; status: string }>();
 
     if (existing?.status === "pending_verification") {
-      const resendToken = createRegistrationToken();
-      const { error: rotateError } = await adminClient
-        .from("event_registrations")
-        .update({ qr_token_hash: hashRegistrationToken(resendToken) })
-        .eq("id", existing.id)
-        .eq("status", "pending_verification");
-
-      if (!rotateError) {
-        await sendVerification(existing.id, resendToken);
-      }
+      await resendPendingVerification(existing.id);
     }
 
     redirect(`/e/${parsed.data.slug}/check-email`);
