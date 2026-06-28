@@ -1,7 +1,7 @@
 import { Camera, CheckCircle2, Mail, QrCode, UserRound } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import QRCode from "qrcode";
 
 import { uploadProfilePhoto } from "@/app/e/[slug]/registered/actions";
@@ -26,6 +26,7 @@ type Registration = {
   full_name_snapshot: string;
   profile_id: string | null;
   qr_token_hash: string;
+  status: string;
   attendee_profiles: {
     avatar_url: string | null;
     card_visibility: ProfileCardVisibility;
@@ -56,7 +57,7 @@ export default async function RegisteredPage({
   const { data: registration } = await adminClient
     .from("event_registrations")
     .select(
-      "id, email, full_name_snapshot, profile_id, qr_token_hash, attendee_profiles(avatar_url, card_visibility, profile_slug), events(name, starts_at, location)",
+      "id, email, full_name_snapshot, profile_id, qr_token_hash, status, attendee_profiles(avatar_url, card_visibility, profile_slug), events(name, starts_at, location)",
     )
     .eq("id", registrationId)
     .single()
@@ -67,6 +68,14 @@ export default async function RegisteredPage({
     !isRegistrationTokenValid(token, registration.qr_token_hash)
   ) {
     notFound();
+  }
+
+  // La credencial solo se muestra tras verificar el email. Si sigue pendiente,
+  // se envia al flujo de verificacion (que la activa y vuelve aqui).
+  if (registration.status === "pending_verification") {
+    redirect(
+      `/e/${slug}/verify?registrationId=${registration.id}&token=${token}`,
+    );
   }
 
   const qrPayload = createCheckInPayload({

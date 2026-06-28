@@ -3,8 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { upsertAttendeeProfileFromRegistration } from "@/lib/attendee-profiles";
-import { sendRegistrationConfirmationEmail } from "@/lib/email";
+import { sendRegistrationVerificationEmail } from "@/lib/email";
 import { getAppUrl } from "@/lib/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
@@ -107,15 +106,10 @@ export async function registerForEvent(
     };
   }
 
-  const profileId = await upsertAttendeeProfileFromRegistration({
-    email: parsed.data.email,
-    fullName: parsed.data.fullName,
-    phone: parsed.data.phone || null,
-    role: parsed.data.role,
-    company: parsed.data.company,
-    industry: parsed.data.industry,
-    interests: parsed.data.interests,
-  });
+  // No se toca el perfil persistente aqui: la inscripcion nace en
+  // `pending_verification` y el perfil global se crea/actualiza solo al
+  // verificar el email (ver /verify). Asi una inscripcion con un email ajeno no
+  // crea ni corrompe el perfil de otra persona.
 
   // Token y request_id se generan UNA vez: si la RPC commitea pero la respuesta
   // se pierde, el reintento con el mismo request_id recupera la inscripcion y
@@ -126,7 +120,6 @@ export async function registerForEvent(
 
   const rpcArgs = {
     p_event_id: parsed.data.eventId,
-    p_profile_id: profileId,
     p_email: parsed.data.email,
     p_full_name: parsed.data.fullName,
     p_phone: parsed.data.phone || null,
@@ -180,11 +173,17 @@ export async function registerForEvent(
     };
   }
 
+  // Duplicado: mensaje neutro (misma pantalla que el exito) para no permitir
+  // enumerar que emails ya estan inscritos. No reenviamos el token original
+  // (no es recuperable); el usuario legitimo ya recibio su email.
+  if (outcome.result_status === "duplicate") {
+    redirect(`/e/${parsed.data.slug}/check-email`);
+  }
+
   const messagesByStatus: Record<string, string> = {
     unavailable: "Este evento no esta disponible para inscripcion.",
     ended: "Este evento ya termino.",
     capacity_full: "Este evento ya completo sus cupos.",
-    duplicate: "Ya existe una inscripcion para este email en el evento.",
   };
 
   if (outcome.result_status !== "ok" || !outcome.registration_id) {
@@ -196,22 +195,24 @@ export async function registerForEvent(
     };
   }
 
-  const confirmationPath = `/e/${parsed.data.slug}/registered?registrationId=${outcome.registration_id}&token=${token}`;
+  // El token viaja SOLO por email, en el link de verificacion. La pantalla de
+  // exito no muestra QR ni token.
+  const verificationPath = `/e/${parsed.data.slug}/verify?registrationId=${outcome.registration_id}&token=${token}`;
   const appUrl = getAppUrl();
 
   try {
-    await sendRegistrationConfirmationEmail({
+    await sendRegistrationVerificationEmail({
       attendeeName: parsed.data.fullName,
-      confirmationUrl: `${appUrl}${confirmationPath}`,
+      verificationUrl: `${appUrl}${verificationPath}`,
       eventDate: formatDate(event.starts_at),
       eventName: event.name,
       to: parsed.data.email,
     });
   } catch {
-    // Email delivery should not invalidate a completed registration.
+    // El fallo de envio no invalida la inscripcion creada.
   }
 
-  redirect(confirmationPath);
+  redirect(`/e/${parsed.data.slug}/check-email`);
 }
 
 function formatDate(value: string) {
