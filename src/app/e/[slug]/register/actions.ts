@@ -85,6 +85,13 @@ export async function registerForEvent(
     };
   }
 
+  // Evento terminado: rechazo UNIFORME para todos (nuevos y existentes), antes
+  // de mirar el email. No se inscribe, no se reenvia y no se verifica despues
+  // del termino; y la respuesta no depende de si el email existe.
+  if (event.ends_at && new Date(event.ends_at).getTime() < Date.now()) {
+    return { status: "error", message: "Este evento ya termino." };
+  }
+
   const appUrl = getAppUrl();
 
   // Envia el link de verificacion (solo por email). Devuelve si se envio.
@@ -118,30 +125,41 @@ export async function registerForEvent(
     }
   };
 
-  // Reenvio para una inscripcion pendiente: genera token, ENVIA primero y solo
-  // si el envio fue exitoso rota el hash y reinicia el TTL (registered_at). Asi
-  // un envio fallido no invalida el link anterior, y el reenviado dura 24h.
+  // Reenvio para una inscripcion pendiente. CLAIM atomico primero: rota el hash
+  // y reinicia verification_sent_at solo si no hubo un reenvio en los ultimos
+  // segundos. Esto (a) persiste el token ANTES de enviar (el link siempre
+  // coincide con el hash) y (b) dedupe reenvios concurrentes: solo uno reclama
+  // y envia, evitando multiples links. No toca registered_at.
   const resendPendingVerification = async (existingId: string) => {
     const resendToken = createRegistrationToken();
-    const sent = await sendVerification(existingId, resendToken);
+    const recentCutoff = new Date(Date.now() - 30_000).toISOString();
 
-    if (!sent) {
-      return;
-    }
-
-    await adminClient
+    const { data: claimed } = await adminClient
       .from("event_registrations")
       .update({
         qr_token_hash: hashRegistrationToken(resendToken),
-        registered_at: new Date().toISOString(),
+        verification_sent_at: new Date().toISOString(),
       })
       .eq("id", existingId)
-      .eq("status", "pending_verification");
+      .eq("status", "pending_verification")
+      .or(`verification_sent_at.is.null,verification_sent_at.lt.${recentCutoff}`)
+      .select("id")
+      .maybeSingle<{ id: string }>();
+
+    if (!claimed) {
+      return; // reenvio reciente / ya no pendiente: no se envia
+    }
+
+    const sent = await sendVerification(existingId, resendToken);
+    if (!sent) {
+      console.error("Reenvio: token rotado pero email no enviado", existingId);
+    }
   };
 
-  // Si el email ya tiene inscripcion en este evento, manejarla ANTES de validar
-  // capacidad/fin: un evento lleno no debe bloquear el reenvio del link a una
-  // inscripcion pendiente. Respuesta neutra en ambos casos (anti-enumeracion).
+  // Inscripcion existente para este email: si sigue pendiente, se reenvia el
+  // link como SIDE EFFECT (solo visible en el inbox del dueno). La RESPUESTA
+  // depende solo del estado del evento (publicado/lleno/terminado), nunca de si
+  // el email existe -> sin enumeracion.
   const { data: existingRegistration } = await adminClient
     .from("event_registrations")
     .select("id, status")
@@ -149,20 +167,11 @@ export async function registerForEvent(
     .eq("email", parsed.data.email)
     .maybeSingle<{ id: string; status: string }>();
 
-  if (existingRegistration) {
-    if (existingRegistration.status === "pending_verification") {
-      await resendPendingVerification(existingRegistration.id);
-    }
-
-    redirect(`/e/${parsed.data.slug}/check-email`);
+  if (existingRegistration?.status === "pending_verification") {
+    await resendPendingVerification(existingRegistration.id);
   }
 
-  // Validaciones baratas para inscripciones NUEVAS, antes de tocar el perfil.
-  // La RPC vuelve a validarlas bajo lock (autoritativo).
-  if (event.ends_at && new Date(event.ends_at).getTime() < Date.now()) {
-    return { status: "error", message: "Este evento ya termino." };
-  }
-
+  // Capacidad: chequeo UNIFORME (misma respuesta para nuevos y existentes).
   const { count } = await adminClient
     .from("event_registrations")
     .select("id", { count: "exact", head: true })
@@ -174,6 +183,12 @@ export async function registerForEvent(
       status: "error",
       message: "Este evento ya completo sus cupos.",
     };
+  }
+
+  // Email ya inscrito (evento no lleno): respuesta neutra, igual que un alta
+  // nueva (el reenvio, si correspondia, ya ocurrio arriba).
+  if (existingRegistration) {
+    redirect(`/e/${parsed.data.slug}/check-email`);
   }
 
   // No se toca el perfil persistente aqui: la inscripcion nace en

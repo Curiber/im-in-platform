@@ -17,7 +17,8 @@ type VerifyRegistration = {
   status: string;
   qr_token_hash: string;
   registered_at: string;
-  events: { slug: string } | null;
+  verification_sent_at: string | null;
+  events: { slug: string; ends_at: string | null } | null;
 };
 
 const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -43,7 +44,7 @@ export async function GET(
   const { data: registration } = await adminClient
     .from("event_registrations")
     .select(
-      "id, email, full_name_snapshot, phone_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, status, qr_token_hash, registered_at, events(slug)",
+      "id, email, full_name_snapshot, phone_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, status, qr_token_hash, registered_at, verification_sent_at, events(slug, ends_at)",
     )
     .eq("id", registrationId)
     .single<VerifyRegistration>();
@@ -63,9 +64,19 @@ export async function GET(
     return NextResponse.redirect(credentialUrl);
   }
 
-  // Expiracion del link (24h): se aplica aqui, no depende del cron de limpieza.
-  const ageMs = Date.now() - new Date(registration.registered_at).getTime();
-  if (ageMs > VERIFICATION_TTL_MS) {
+  // Evento terminado: no se verifica despues del termino (igual que no se
+  // permite inscribirse).
+  if (
+    registration.events?.ends_at &&
+    new Date(registration.events.ends_at).getTime() < Date.now()
+  ) {
+    return invalid;
+  }
+
+  // Expiracion del link (24h desde el ultimo envio): se aplica aqui, no depende
+  // del cron de limpieza. Ancla en verification_sent_at (no en registered_at).
+  const sentAt = registration.verification_sent_at ?? registration.registered_at;
+  if (Date.now() - new Date(sentAt).getTime() > VERIFICATION_TTL_MS) {
     return invalid;
   }
 
