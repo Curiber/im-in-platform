@@ -78,6 +78,15 @@ export default async function RegisteredPage({
     );
   }
 
+  // Solo las inscripciones activas muestran credencial. Cancelada / no_show no
+  // deben mostrar QR (el check-in las rechazaria de todos modos).
+  if (
+    registration.status !== "registered" &&
+    registration.status !== "checked_in"
+  ) {
+    notFound();
+  }
+
   const qrPayload = createCheckInPayload({
     registrationId: registration.id,
     token,

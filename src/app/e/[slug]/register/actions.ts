@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { sendRegistrationVerificationEmail } from "@/lib/email";
@@ -125,53 +126,21 @@ export async function registerForEvent(
     }
   };
 
-  // Reenvio para una inscripcion pendiente. CLAIM atomico primero: rota el hash
-  // y reinicia verification_sent_at solo si no hubo un reenvio en los ultimos
-  // segundos. Esto (a) persiste el token ANTES de enviar (el link siempre
-  // coincide con el hash) y (b) dedupe reenvios concurrentes: solo uno reclama
-  // y envia, evitando multiples links. No toca registered_at.
-  const resendPendingVerification = async (existingId: string) => {
-    const resendToken = createRegistrationToken();
-    const recentCutoff = new Date(Date.now() - 30_000).toISOString();
-
-    const { data: claimed } = await adminClient
-      .from("event_registrations")
-      .update({
-        qr_token_hash: hashRegistrationToken(resendToken),
-        verification_sent_at: new Date().toISOString(),
-      })
-      .eq("id", existingId)
-      .eq("status", "pending_verification")
-      .or(`verification_sent_at.is.null,verification_sent_at.lt.${recentCutoff}`)
-      .select("id")
-      .maybeSingle<{ id: string }>();
-
-    if (!claimed) {
-      return; // reenvio reciente / ya no pendiente: no se envia
-    }
-
-    const sent = await sendVerification(existingId, resendToken);
-    if (!sent) {
-      console.error("Reenvio: token rotado pero email no enviado", existingId);
-    }
-  };
-
-  // Inscripcion existente para este email: si sigue pendiente, se reenvia el
-  // link como SIDE EFFECT (solo visible en el inbox del dueno). La RESPUESTA
-  // depende solo del estado del evento (publicado/lleno/terminado), nunca de si
-  // el email existe -> sin enumeracion.
+  // Inscripcion existente para este email: respuesta neutra, sin reenvio. El
+  // reenvio seguro requiere separar el token de verificacion del de la
+  // credencial (no se puede rotar sin invalidar el link anterior ante un fallo);
+  // queda como follow-up con su propio spec. Mientras, la recuperacion es via
+  // expiracion (24h) y reinscripcion. La RESPUESTA depende solo del estado del
+  // evento (publicado/lleno/terminado), nunca de si el email existe.
   const { data: existingRegistration } = await adminClient
     .from("event_registrations")
-    .select("id, status")
+    .select("id")
     .eq("event_id", event.id)
     .eq("email", parsed.data.email)
-    .maybeSingle<{ id: string; status: string }>();
+    .maybeSingle<{ id: string }>();
 
-  if (existingRegistration?.status === "pending_verification") {
-    await resendPendingVerification(existingRegistration.id);
-  }
-
-  // Capacidad: chequeo UNIFORME (misma respuesta para nuevos y existentes).
+  // Capacidad: chequeo UNIFORME (misma respuesta para nuevos y existentes),
+  // antes de ramificar por existencia del email.
   const { count } = await adminClient
     .from("event_registrations")
     .select("id", { count: "exact", head: true })
@@ -186,7 +155,7 @@ export async function registerForEvent(
   }
 
   // Email ya inscrito (evento no lleno): respuesta neutra, igual que un alta
-  // nueva (el reenvio, si correspondia, ya ocurrio arriba).
+  // nueva, para no revelar que el email existe.
   if (existingRegistration) {
     redirect(`/e/${parsed.data.slug}/check-email`);
   }
@@ -259,19 +228,8 @@ export async function registerForEvent(
   }
 
   // Duplicado por carrera concurrente (otra inscripcion del mismo email se creo
-  // entre el pre-chequeo y la RPC): mismo manejo neutro + reenvio si pendiente.
+  // entre el pre-chequeo y la RPC): respuesta neutra, igual que el exito.
   if (outcome.result_status === "duplicate") {
-    const { data: existing } = await adminClient
-      .from("event_registrations")
-      .select("id, status")
-      .eq("event_id", parsed.data.eventId)
-      .eq("email", parsed.data.email)
-      .maybeSingle<{ id: string; status: string }>();
-
-    if (existing?.status === "pending_verification") {
-      await resendPendingVerification(existing.id);
-    }
-
     redirect(`/e/${parsed.data.slug}/check-email`);
   }
 
@@ -290,7 +248,10 @@ export async function registerForEvent(
     };
   }
 
-  await sendVerification(outcome.registration_id, token);
+  // El email se envia DESPUES de la respuesta (after): no bloquea ni introduce
+  // un canal lateral por tiempo entre email nuevo (envia) y existente (no envia).
+  const registrationId = outcome.registration_id;
+  after(() => sendVerification(registrationId, token));
 
   redirect(`/e/${parsed.data.slug}/check-email`);
 }

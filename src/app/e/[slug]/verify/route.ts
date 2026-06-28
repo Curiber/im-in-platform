@@ -59,9 +59,17 @@ export async function GET(
 
   const credentialUrl = `${appUrl}/e/${slug}/registered?registrationId=${registrationId}&token=${token}`;
 
-  // Ya verificada: idempotente, llevar directo a la credencial.
-  if (registration.status !== "pending_verification") {
+  // Ya verificada y activa: idempotente, llevar directo a la credencial.
+  if (
+    registration.status === "registered" ||
+    registration.status === "checked_in"
+  ) {
     return NextResponse.redirect(credentialUrl);
+  }
+
+  // Cancelada / no_show: no es verificable y no debe mostrar credencial.
+  if (registration.status !== "pending_verification") {
+    return invalid;
   }
 
   // Evento terminado: no se verifica despues del termino (igual que no se
