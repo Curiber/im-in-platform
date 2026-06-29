@@ -248,12 +248,16 @@ no hay compensacion ni registro del error.
 
 ### Epic 23: Verificacion de email en registro (P2)
 
-- [ ] Migracion: estado `pending_verification` en `registration_status`.
-- [ ] Action de registro: no exponer token en pantalla; enviar solo por email.
-- [ ] Ruta de verificacion que activa el registro y sincroniza el perfil.
-- [ ] Diferir update del perfil persistente hasta verificacion.
-- [ ] Mensaje neutro para emails duplicados.
-- [ ] Definir expiracion/limpieza de registros nunca verificados.
+- [x] Migracion: estado `pending_verification` en `registration_status`.
+- [x] Action de registro: no exponer token en pantalla; enviar solo por email
+      (redirige a `/e/[slug]/check-email`, sin token ni QR).
+- [x] Ruta de verificacion que activa el registro y sincroniza el perfil
+      (`/e/[slug]/verify`: valida token, pasa a `registered`, enlaza perfil).
+- [x] Diferir update del perfil persistente hasta verificacion (la inscripcion
+      nace sin `profile_id`; el upsert global ocurre al verificar).
+- [x] Mensaje neutro para emails duplicados (mismo `check-email` que el exito).
+- [x] Definir expiracion/limpieza de registros nunca verificados
+      (`delete_expired_pending_registrations`, default 24h; correr por cron).
 
 ### Epic 24: RLS alineada con roles (P3)
 

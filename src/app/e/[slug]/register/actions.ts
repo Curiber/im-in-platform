@@ -1,10 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 
-import { upsertAttendeeProfileFromRegistration } from "@/lib/attendee-profiles";
-import { sendRegistrationConfirmationEmail } from "@/lib/email";
+import { sendRegistrationVerificationEmail } from "@/lib/email";
 import { getAppUrl } from "@/lib/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
@@ -65,20 +65,15 @@ export async function registerForEvent(
   const adminClient = createSupabaseAdminClient();
   const { data: event } = await adminClient
     .from("events")
-    .select("id, capacity, status, slug, name, starts_at, ends_at")
+    .select("id, status, name, starts_at")
     .eq("id", parsed.data.eventId)
     .eq("slug", parsed.data.slug)
     .is("deleted_at", null)
-    .single<{
-      id: string;
-      capacity: number;
-      status: string;
-      slug: string;
-      name: string;
-      starts_at: string;
-      ends_at: string | null;
-    }>();
+    .single<{ id: string; status: string; name: string; starts_at: string }>();
 
+  // Fast-fail uniforme. La RPC `register_attendee` es la validacion autoritativa
+  // bajo lock (estado, fin del evento, capacidad, duplicado), asi que aqui no se
+  // mira el email del que se inscribe (sin enumeracion) ni se valida capacidad.
   if (!event || event.status !== "published") {
     return {
       status: "error",
@@ -86,36 +81,10 @@ export async function registerForEvent(
     };
   }
 
-  // Validaciones baratas ANTES de tocar el perfil, para no persistir datos
-  // personales si la inscripcion sera rechazada. La RPC vuelve a validarlas
-  // bajo lock (autoritativo); esto solo evita el caso comun. La deferral total
-  // del perfil hasta verificar el email es del Epic 23.
-  if (event.ends_at && new Date(event.ends_at).getTime() < Date.now()) {
-    return { status: "error", message: "Este evento ya termino." };
-  }
-
-  const { count } = await adminClient
-    .from("event_registrations")
-    .select("id", { count: "exact", head: true })
-    .eq("event_id", event.id)
-    .neq("status", "cancelled");
-
-  if ((count ?? 0) >= event.capacity) {
-    return {
-      status: "error",
-      message: "Este evento ya completo sus cupos.",
-    };
-  }
-
-  const profileId = await upsertAttendeeProfileFromRegistration({
-    email: parsed.data.email,
-    fullName: parsed.data.fullName,
-    phone: parsed.data.phone || null,
-    role: parsed.data.role,
-    company: parsed.data.company,
-    industry: parsed.data.industry,
-    interests: parsed.data.interests,
-  });
+  // El perfil persistente NO se toca aqui: la inscripcion nace en
+  // `pending_verification` y el perfil se crea/enlaza solo al verificar el email
+  // (ver /verify). Asi una inscripcion con un email ajeno no crea ni corrompe el
+  // perfil de otra persona.
 
   // Token y request_id se generan UNA vez: si la RPC commitea pero la respuesta
   // se pierde, el reintento con el mismo request_id recupera la inscripcion y
@@ -126,7 +95,6 @@ export async function registerForEvent(
 
   const rpcArgs = {
     p_event_id: parsed.data.eventId,
-    p_profile_id: profileId,
     p_email: parsed.data.email,
     p_full_name: parsed.data.fullName,
     p_phone: parsed.data.phone || null,
@@ -180,11 +148,16 @@ export async function registerForEvent(
     };
   }
 
+  // Duplicado por carrera concurrente (otra inscripcion del mismo email se creo
+  // entre el pre-chequeo y la RPC): respuesta neutra, igual que el exito.
+  if (outcome.result_status === "duplicate") {
+    redirect(`/e/${parsed.data.slug}/check-email`);
+  }
+
   const messagesByStatus: Record<string, string> = {
     unavailable: "Este evento no esta disponible para inscripcion.",
     ended: "Este evento ya termino.",
     capacity_full: "Este evento ya completo sus cupos.",
-    duplicate: "Ya existe una inscripcion para este email en el evento.",
   };
 
   if (outcome.result_status !== "ok" || !outcome.registration_id) {
@@ -196,22 +169,33 @@ export async function registerForEvent(
     };
   }
 
-  const confirmationPath = `/e/${parsed.data.slug}/registered?registrationId=${outcome.registration_id}&token=${token}`;
-  const appUrl = getAppUrl();
+  // El email se envia DESPUES de la respuesta (after): no bloquea la respuesta
+  // ni introduce un canal lateral por tiempo. after() no es una cola durable ni
+  // reintenta, por eso se loguea cualquier fallo de envio.
+  const registrationId = outcome.registration_id;
+  after(async () => {
+    try {
+      const result = await sendRegistrationVerificationEmail({
+        attendeeName: parsed.data.fullName,
+        verificationUrl: `${getAppUrl()}/e/${parsed.data.slug}/verify?registrationId=${registrationId}&token=${token}`,
+        eventDate: formatDate(event.starts_at),
+        eventName: event.name,
+        to: parsed.data.email,
+      });
 
-  try {
-    await sendRegistrationConfirmationEmail({
-      attendeeName: parsed.data.fullName,
-      confirmationUrl: `${appUrl}${confirmationPath}`,
-      eventDate: formatDate(event.starts_at),
-      eventName: event.name,
-      to: parsed.data.email,
-    });
-  } catch {
-    // Email delivery should not invalidate a completed registration.
-  }
+      if (!result.sent) {
+        console.error(
+          "Email de verificacion no enviado",
+          registrationId,
+          "error" in result ? result.error : undefined,
+        );
+      }
+    } catch (emailError) {
+      console.error("Fallo al enviar el email de verificacion", emailError);
+    }
+  });
 
-  redirect(confirmationPath);
+  redirect(`/e/${parsed.data.slug}/check-email`);
 }
 
 function formatDate(value: string) {

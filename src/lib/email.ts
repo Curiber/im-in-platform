@@ -1,11 +1,11 @@
 import { Resend } from "resend";
 
-type RegistrationConfirmationInput = {
+type RegistrationVerificationInput = {
   to: string;
   attendeeName: string;
   eventName: string;
   eventDate: string;
-  confirmationUrl: string;
+  verificationUrl: string;
 };
 
 type ConnectionAcceptedInput = {
@@ -26,13 +26,13 @@ type DemoRequestNotificationInput = {
   message?: string;
 };
 
-export async function sendRegistrationConfirmationEmail({
+export async function sendRegistrationVerificationEmail({
   attendeeName,
-  confirmationUrl,
+  verificationUrl,
   eventDate,
   eventName,
   to,
-}: RegistrationConfirmationInput) {
+}: RegistrationVerificationInput) {
   const apiKey = process.env.EMAIL_PROVIDER_API_KEY;
   const from = process.env.EMAIL_FROM;
 
@@ -42,24 +42,33 @@ export async function sendRegistrationConfirmationEmail({
 
   const resend = new Resend(apiKey);
 
-  await resend.emails.send({
+  // Resend no lanza ante un error de API: devuelve { error }. Hay que mirarlo,
+  // de lo contrario un envio fallido se reportaria como exitoso.
+  const { error } = await resend.emails.send({
     from,
     to,
-    subject: `Confirmacion de inscripcion: ${eventName}`,
+    subject: `Confirma tu inscripcion: ${eventName}`,
     text: [
       `Hola ${attendeeName},`,
       "",
-      `Tu inscripcion a ${eventName} esta confirmada.`,
+      `Recibimos tu inscripcion a ${eventName}.`,
       `Fecha: ${eventDate}`,
       "",
-      "Puedes ver tu credencial QR aqui:",
-      confirmationUrl,
+      "Confirma tu email con este link para activar tu inscripcion y ver tu",
+      "credencial QR:",
+      verificationUrl,
+      "",
+      "Si no te inscribiste, ignora este correo.",
       "",
       "Equipo I'm IN",
     ].join("\n"),
   });
 
-  return { sent: true };
+  if (error) {
+    return { sent: false as const, error };
+  }
+
+  return { sent: true as const };
 }
 
 export async function sendConnectionAcceptedEmail({
