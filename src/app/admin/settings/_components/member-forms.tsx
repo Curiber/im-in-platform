@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2, UserPlus } from "lucide-react";
+import { Crown, Trash2, UserPlus } from "lucide-react";
 import { useActionState } from "react";
 
 import {
@@ -11,6 +11,7 @@ import { SubmitButton } from "@/app/admin/_components/submit-button";
 import {
   addOrganizationMember,
   removeOrganizationMember,
+  transferOrganizationOwnership,
   updateOrganizationMemberRole,
 } from "@/app/admin/actions";
 
@@ -82,6 +83,75 @@ export function RemoveMemberForm({
         </p>
       ) : null}
     </form>
+  );
+}
+
+export function TransferOwnershipForm({
+  organizationId,
+  members,
+}: {
+  organizationId: string;
+  members: { userId: string; label: string }[];
+}) {
+  const [state, formAction] = useActionState<FormState, FormData>(
+    transferOrganizationOwnership,
+    initialFormState,
+  );
+
+  if (members.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-6 rounded-xl border border-amber-300/70 bg-amber-50/60 p-4">
+      <h4 className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+        <Crown className="size-4" aria-hidden="true" />
+        Transferir propiedad
+      </h4>
+      <p className="mt-1 text-sm text-amber-900/80">
+        El nuevo owner toma el control total de la organizacion y tu pasas a ser
+        admin. Esta accion no se puede deshacer desde aqui.
+      </p>
+      <form
+        action={formAction}
+        className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto]"
+        onSubmit={(event) => {
+          if (
+            !window.confirm(
+              "Vas a transferir la propiedad de la organizacion. Perderas el rol de owner. ¿Continuar?",
+            )
+          ) {
+            event.preventDefault();
+          }
+        }}
+      >
+        <input name="organizationId" type="hidden" value={organizationId} />
+        <select
+          className="h-10 rounded-lg border border-amber-300 bg-white px-3 text-sm outline-none focus:border-amber-500"
+          defaultValue=""
+          name="newOwnerUserId"
+          required
+        >
+          <option disabled value="">
+            Elige al nuevo owner
+          </option>
+          {members.map((member) => (
+            <option key={member.userId} value={member.userId}>
+              {member.label}
+            </option>
+          ))}
+        </select>
+        <SubmitButton className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:opacity-60">
+          <Crown className="size-4" aria-hidden="true" />
+          Transferir
+        </SubmitButton>
+      </form>
+      {state.error ? (
+        <p className="mt-2 text-sm text-red-700" role="alert">
+          {state.error}
+        </p>
+      ) : null}
+    </div>
   );
 }
 

@@ -30,9 +30,11 @@ y extiende el sistema visual (specs 08, 13, 14, 15) al admin.
 
 ## No objetivos
 
-- No implementar transferencia de ownership (queda como mejora futura; los
-  owners se gestionan aparte).
 - No rediseñar la tarjeta PNG descargable (`/p/[slug]/card`).
+
+> Nota (Fase 2.0): la transferencia de ownership, marcada aqui como mejora
+> futura, se promovio a primer item de la Fase 2 en el spec 17 y se implemento
+> como Epic 29. Ver "Transferencia de ownership" mas abajo.
 
 ## Decisiones
 
@@ -53,6 +55,21 @@ y extiende el sistema visual (specs 08, 13, 14, 15) al admin.
 - Los owners no se editan ni quitan desde este panel (`neq('role','owner')`).
 - UI en Configuracion: lista de miembros con email y rol, selector de rol,
   quitar (solo owner) e invitar por email.
+
+### Transferencia de ownership (Epic 29, Fase 2.0)
+
+- RPC `transfer_organization_ownership(p_organization_id, p_new_owner_user_id)`
+  (`security definer`): degrada al owner actual a `admin` y promueve al miembro
+  elegido a `owner` en una sola transaccion (atomica). Valida `auth.uid()`
+  contra el owner actual, que el destino sea miembro existente y distinto. Se
+  concede solo a `authenticated`; la action la invoca con la sesion del owner.
+- Invariante reforzada en datos: indice unico parcial
+  `organization_users_one_owner_per_org` (una sola fila `owner` por
+  organizacion). La RPC degrada antes de promover para nunca tener dos owners
+  simultaneos.
+- Action `transferOrganizationOwnership` (revalida que el llamador sea owner).
+- UI: bloque "Transferir propiedad" visible solo al owner en el panel de
+  Equipo, con selector de miembro y confirmacion explicita.
 
 ## Criterios de aceptacion
 
@@ -75,7 +92,8 @@ y extiende el sistema visual (specs 08, 13, 14, 15) al admin.
 
 - [x] Acciones add/update-role/remove con control de permisos.
 - [x] Panel de equipo en Configuracion.
-- [ ] Transferencia de ownership (futuro).
+- [x] Transferencia de ownership (Epic 29, Fase 2.0): RPC atomica + indice de un
+      solo owner + UI con confirmacion.
 
 ### Epic 42: Verificacion
 
