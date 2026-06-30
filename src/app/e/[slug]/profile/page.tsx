@@ -7,7 +7,7 @@ import { NetworkingNav } from "@/app/e/[slug]/_components/networking-nav";
 import { updateAttendeeProfile } from "@/app/e/[slug]/profile/actions";
 import { LinkedInUrlField } from "@/app/e/[slug]/profile/linkedin-url-field";
 import { resolveEventCover } from "@/lib/event-cover";
-import { industries, interests } from "@/lib/profile-options";
+import { getEventProfileOptions } from "@/lib/event-profile-options";
 import type { ProfileCardVisibility } from "@/lib/profile-card-visibility";
 import { verifyRegistrationAccess } from "@/lib/registrations";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -66,6 +66,11 @@ export default async function EventProfilePage({
   if (!profile) {
     notFound();
   }
+
+  const { industries, interests } = await getEventProfileOptions(
+    adminClient,
+    registration.event_id,
+  );
 
   const accessQuery = `registrationId=${registration.id}&token=${token}`;
   const coverUrl = resolveEventCover(registration.events?.cover_image_url);

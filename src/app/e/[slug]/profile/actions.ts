@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { interests as validInterests } from "@/lib/profile-options";
+import { getEventProfileOptions } from "@/lib/event-profile-options";
 import { profileCardVisibilityValues } from "@/lib/profile-card-visibility";
 import { verifyRegistrationAccess } from "@/lib/registrations";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -16,14 +16,9 @@ const profileSchema = z.object({
   fullName: z.string().trim().min(2, "Ingresa tu nombre."),
   headline: z.string().trim().max(120).optional(),
   industry: z.string().trim().min(2, "Selecciona tu area o industria."),
-  interests: z
-    .array(z.string())
-    .min(1)
-    .max(5)
-    .refine(
-      (items) => items.every((item) => validInterests.includes(item)),
-      "Intereses invalidos.",
-    ),
+  // La validacion contra el catalogo se hace despues, contra las opciones
+  // efectivas del evento (configurables por evento), no contra una lista fija.
+  interests: z.array(z.string().trim()).min(1).max(5),
   linkedinUrl: z
     .string()
     .url()
@@ -79,6 +74,20 @@ export async function updateAttendeeProfile(formData: FormData) {
   }
 
   const adminClient = createSupabaseAdminClient();
+
+  // Los intereses enviados deben pertenecer al catalogo efectivo del evento
+  // (opciones propias o defaults de plataforma). Evita inyectar etiquetas fuera
+  // del vocabulario configurado por el organizador.
+  const eventOptions = await getEventProfileOptions(
+    adminClient,
+    registration.event_id,
+  );
+  const allowedInterests = new Set(eventOptions.interests);
+
+  if (!parsed.data.interests.every((item) => allowedInterests.has(item))) {
+    redirect(`${fallbackPath}&profileStatus=invalid`);
+  }
+
   const { error: profileError } = await adminClient
     .from("attendee_profiles")
     .update({

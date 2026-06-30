@@ -8,7 +8,6 @@ import {
   type RegistrationActionState,
   registerForEvent,
 } from "@/app/e/[slug]/register/actions";
-import { industries, interests } from "@/lib/profile-options";
 
 const initialState: RegistrationActionState = {
   status: "idle",
@@ -18,9 +17,13 @@ const initialState: RegistrationActionState = {
 export function RegistrationForm({
   eventId,
   slug,
+  industries,
+  interests,
 }: {
   eventId: string;
   slug: string;
+  industries: string[];
+  interests: string[];
 }) {
   const [state, formAction, isPending] = useActionState(
     registerForEvent,
