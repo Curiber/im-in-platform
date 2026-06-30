@@ -14,7 +14,13 @@ type EventSummary = {
 };
 
 type RegistrationMetric = {
-  status: "registered" | "checked_in" | "cancelled" | "no_show";
+  status:
+    | "pending_verification"
+    | "pending_approval"
+    | "registered"
+    | "checked_in"
+    | "cancelled"
+    | "no_show";
   public_profile_enabled: boolean;
   networking_opt_in: boolean;
   industry_snapshot: string | null;
@@ -81,8 +87,13 @@ export default async function EventDashboardPage({
         .returns<ProfileViewMetric[]>(),
     ]);
 
+  // "Activas" = ya confirmadas (verificadas y, si el evento lo exige, aprobadas).
+  // Excluye pending_verification / pending_approval / cancelled / no_show para
+  // que las metricas no se inflen con inscripciones no confirmadas.
   const activeRegistrations = (registrations ?? []).filter(
-    (registration) => registration.status !== "cancelled",
+    (registration) =>
+      registration.status === "registered" ||
+      registration.status === "checked_in",
   );
   const checkedIn = activeRegistrations.filter(
     (registration) => registration.status === "checked_in",

@@ -17,7 +17,11 @@ type VerifyRegistration = {
   status: string;
   qr_token_hash: string;
   registered_at: string;
-  events: { slug: string; ends_at: string | null } | null;
+  events: {
+    slug: string;
+    ends_at: string | null;
+    registration_mode: "open" | "approval";
+  } | null;
 };
 
 const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -43,7 +47,7 @@ export async function GET(
   const { data: registration } = await adminClient
     .from("event_registrations")
     .select(
-      "id, email, full_name_snapshot, phone_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, status, qr_token_hash, registered_at, events(slug, ends_at)",
+      "id, email, full_name_snapshot, phone_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, status, qr_token_hash, registered_at, events(slug, ends_at, registration_mode)",
     )
     .eq("id", registrationId)
     .single<VerifyRegistration>();
@@ -58,10 +62,13 @@ export async function GET(
 
   const credentialUrl = `${appUrl}/e/${slug}/registered?registrationId=${registrationId}&token=${token}`;
 
-  // Ya verificada y activa: idempotente, llevar directo a la credencial.
+  // Ya verificada: idempotente, llevar directo a la credencial. `pending_approval`
+  // tambien (la pagina /registered muestra el estado "en revision"); reabrir el
+  // link no debe reintentar la verificacion.
   if (
     registration.status === "registered" ||
-    registration.status === "checked_in"
+    registration.status === "checked_in" ||
+    registration.status === "pending_approval"
   ) {
     return NextResponse.redirect(credentialUrl);
   }
@@ -110,9 +117,16 @@ export async function GET(
     return invalid;
   }
 
+  // En eventos con aprobacion, la inscripcion verificada queda en
+  // `pending_approval` hasta que el organizador decida; en el resto se activa.
+  const targetStatus =
+    registration.events?.registration_mode === "approval"
+      ? "pending_approval"
+      : "registered";
+
   const { error } = await adminClient
     .from("event_registrations")
-    .update({ status: "registered", profile_id: profileId })
+    .update({ status: targetStatus, profile_id: profileId })
     .eq("id", registrationId)
     .eq("status", "pending_verification");
 

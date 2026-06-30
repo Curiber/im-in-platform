@@ -79,7 +79,13 @@ export async function checkInAttendee(
       event_id: string;
       full_name_snapshot: string;
       qr_token_hash: string;
-      status: "registered" | "checked_in" | "cancelled" | "no_show";
+      status:
+        | "pending_verification"
+        | "pending_approval"
+        | "registered"
+        | "checked_in"
+        | "cancelled"
+        | "no_show";
       checked_in_at: string | null;
     }>();
 
@@ -102,6 +108,20 @@ export async function checkInAttendee(
       attendeeName: registration.full_name_snapshot,
       status: "error",
       message: "La inscripcion esta cancelada.",
+    };
+  }
+
+  if (
+    registration.status === "pending_verification" ||
+    registration.status === "pending_approval"
+  ) {
+    return {
+      attendeeName: registration.full_name_snapshot,
+      status: "error",
+      message:
+        registration.status === "pending_approval"
+          ? "Inscripcion pendiente de aprobacion del organizador."
+          : "Inscripcion sin verificar el email.",
     };
   }
 

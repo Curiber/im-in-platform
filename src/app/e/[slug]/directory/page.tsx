@@ -57,7 +57,7 @@ export default async function EventDirectoryPage({
         )
         .eq("event_id", viewer.event_id)
         .eq("public_profile_enabled", true)
-        .neq("status", "cancelled")
+        .in("status", ["registered", "checked_in"])
         .order("full_name_snapshot", { ascending: true })
         .returns<DirectoryProfile[]>(),
       adminClient

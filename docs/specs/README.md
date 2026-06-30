@@ -23,6 +23,7 @@ Este directorio contiene la base de spec-driven development para el MVP.
 17. [16-admin-shell-and-team-management.md](16-admin-shell-and-team-management.md)
 18. [17-development-process-and-epic-prioritization.md](17-development-process-and-epic-prioritization.md)
 19. [18-configurable-event-profile-options.md](18-configurable-event-profile-options.md)
+20. [19-event-approval-registration-mode.md](19-event-approval-registration-mode.md)
 
 ## Criterio de spec-driven development
 
