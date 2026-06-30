@@ -55,7 +55,13 @@ register -> pending_verification --(verifica email)-->
                                                -> cancelled  (rechaza, libera cupo)
 ```
 
-- La transicion la decide la ruta `/verify` segun `registration_mode`.
+- La transicion de verificacion la hace la RPC `activate_verified_registration`
+  (la ruta `/verify` valida el token y crea el perfil, luego la invoca): bloquea
+  el evento `for update`, lee `registration_mode` y fija el estado destino bajo
+  ese lock, en una transaccion. Sin esto, leer el modo sin lock se intercalaba
+  con el cambio de modo y dejaba un `pending_approval` huerfano (evento `open`
+  con una solicitud bloqueada y oculta). Mismo orden de lock (event-first) que
+  `register_attendee` y `set_event_registration_mode`: sin deadlocks.
 - Aprobar/rechazar son server actions (`approveRegistration`/`rejectRegistration`)
   con guard `eq('status','pending_approval')` para no pisar decisiones
   concurrentes ni reactivar inscripciones ya resueltas.

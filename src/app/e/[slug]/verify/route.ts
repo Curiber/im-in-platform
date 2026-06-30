@@ -17,11 +17,7 @@ type VerifyRegistration = {
   status: string;
   qr_token_hash: string;
   registered_at: string;
-  events: {
-    slug: string;
-    ends_at: string | null;
-    registration_mode: "open" | "approval";
-  } | null;
+  events: { slug: string; ends_at: string | null } | null;
 };
 
 const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -47,7 +43,7 @@ export async function GET(
   const { data: registration } = await adminClient
     .from("event_registrations")
     .select(
-      "id, email, full_name_snapshot, phone_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, status, qr_token_hash, registered_at, events(slug, ends_at, registration_mode)",
+      "id, email, full_name_snapshot, phone_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, status, qr_token_hash, registered_at, events(slug, ends_at)",
     )
     .eq("id", registrationId)
     .single<VerifyRegistration>();
@@ -117,18 +113,14 @@ export async function GET(
     return invalid;
   }
 
-  // En eventos con aprobacion, la inscripcion verificada queda en
-  // `pending_approval` hasta que el organizador decida; en el resto se activa.
-  const targetStatus =
-    registration.events?.registration_mode === "approval"
-      ? "pending_approval"
-      : "registered";
-
-  const { error } = await adminClient
-    .from("event_registrations")
-    .update({ status: targetStatus, profile_id: profileId })
-    .eq("id", registrationId)
-    .eq("status", "pending_verification");
+  // La transicion lee el modo del evento y fija el estado destino
+  // (`registered` u `pending_approval`) bajo el lock del evento, en una sola
+  // transaccion, para serializar con el cambio de modo (ver RPC). Resolver el
+  // modo aqui (sin lock) abriria una carrera que dejaria solicitudes huerfanas.
+  const { error } = await adminClient.rpc("activate_verified_registration", {
+    p_registration_id: registrationId,
+    p_profile_id: profileId,
+  });
 
   if (error) {
     return invalid;
