@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 
 import { RegistrationForm } from "@/app/e/[slug]/register/registration-form";
 import { resolveEventCover } from "@/lib/event-cover";
+import { getEventProfileOptions } from "@/lib/event-profile-options";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +49,7 @@ export default async function RegisterPage({
   }
 
   const coverUrl = resolveEventCover(event.cover_image_url);
+  const profileOptions = await getEventProfileOptions(supabase, event.id);
 
   return (
     <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
@@ -89,7 +91,12 @@ export default async function RegisterPage({
             cuando aceptas una conexion.
           </p>
           <div className="mt-7">
-            <RegistrationForm eventId={event.id} slug={slug} />
+            <RegistrationForm
+              eventId={event.id}
+              industries={profileOptions.industries}
+              interests={profileOptions.interests}
+              slug={slug}
+            />
           </div>
         </div>
 

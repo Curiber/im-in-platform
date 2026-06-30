@@ -9,6 +9,10 @@ import {
 } from "@/app/admin/events/actions";
 import { ActionForm } from "@/app/admin/_components/action-form";
 import { AdminShell } from "@/app/admin/_components/admin-shell";
+import {
+  EventProfileOptionsManager,
+  type ProfileOptionRow,
+} from "@/app/admin/events/[eventId]/edit/_components/profile-options-manager";
 import { SubmitButton } from "@/app/admin/_components/submit-button";
 import { DEFAULT_EVENT_COVER } from "@/lib/event-cover";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -64,6 +68,21 @@ export default async function EditEventPage({
   if (!event) {
     notFound();
   }
+
+  const { data: optionRows } = await supabase
+    .from("event_profile_options")
+    .select("id, kind, label")
+    .eq("event_id", event.id)
+    .order("position", { ascending: true })
+    .order("label", { ascending: true })
+    .returns<{ id: string; kind: "industry" | "interest"; label: string }[]>();
+
+  const industryOptions: ProfileOptionRow[] = (optionRows ?? [])
+    .filter((row) => row.kind === "industry")
+    .map((row) => ({ id: row.id, label: row.label }));
+  const interestOptions: ProfileOptionRow[] = (optionRows ?? [])
+    .filter((row) => row.kind === "interest")
+    .map((row) => ({ id: row.id, label: row.label }));
 
   return (
     <AdminShell>
@@ -300,6 +319,12 @@ export default async function EditEventPage({
             </SubmitButton>
           </div>
         </ActionForm>
+
+        <EventProfileOptionsManager
+          eventId={event.id}
+          industries={industryOptions}
+          interests={interestOptions}
+        />
       </section>
     </AdminShell>
   );

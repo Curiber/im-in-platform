@@ -141,7 +141,7 @@ para eventos reales.
 | Orden | Trabajo | Fuente | Estado |
 | --- | --- | --- | --- |
 | 2.0 | Transferencia de ownership | spec 16 (unico pendiente) / spec 10 Epic 29 | `[x]` (Epic 29: RPC atomica + indice de un solo owner + UI) |
-| 2.1 | Config de networking por evento (categorias de intereses/objetivos configurables, modo aprobacion para eventos cerrados) | spec 12 §F.3 | `[ ]` |
+| 2.1 | Config de networking por evento (categorias de intereses/objetivos configurables, modo aprobacion para eventos cerrados) | spec 12 §F.3 / spec 18 | `[~]` (Epic 31: categorias de areas/intereses configurables por evento, spec 18. Falta modo aprobacion) |
 | 2.2 | Comunicaciones: email a inscritos (confirmados/acreditados) + recordatorio pre-evento | spec 12 §F.5 | `[ ]` |
 | 2.3 | Dashboard de networking (conexiones, perfiles vistos, opt-in) + tiempo real/polling | spec 12 §F.6 | `[ ]` |
 | 2.4 | Gestion de reuniones (puntos de encuentro + vista de reuniones del evento) | spec 12 §F.4 | `[ ]` (depende del dominio de reuniones) |

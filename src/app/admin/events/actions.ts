@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import type { FormState } from "@/app/admin/_components/form-state";
+import { DEFAULT_INDUSTRIES, DEFAULT_INTERESTS } from "@/lib/profile-options";
 import { objectPathFromPublicUrl } from "@/lib/storage";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -521,6 +522,183 @@ export async function deleteAgendaItem(formData: FormData) {
   if (slug) {
     revalidatePath(`/e/${slug}`);
   }
+}
+
+// --- Opciones de perfil configurables por evento (Epic 31) ---
+//
+// Las escrituras pasan por el cliente admin (service_role) tras validar que el
+// usuario gestiona el evento (`authorizeEventManager`), igual que el resto de
+// las acciones de evento. Todas redirigen de vuelta a la pagina de edicion.
+
+const optionKindSchema = z.enum(["industry", "interest"]);
+
+function defaultOptionsFor(kind: "industry" | "interest") {
+  return kind === "industry" ? DEFAULT_INDUSTRIES : DEFAULT_INTERESTS;
+}
+
+// "Personalizar": siembra los defaults de plataforma como filas editables del
+// evento, para que el organizador parta desde la lista actual en vez de una
+// vacia. Solo siembra si el evento aun no tiene opciones propias para ese kind
+// (idempotente ante doble click).
+export async function customizeEventProfileOptions(formData: FormData) {
+  const eventId = String(formData.get("eventId") ?? "");
+  const parsedKind = optionKindSchema.safeParse(formData.get("kind"));
+
+  if (!eventId || !parsedKind.success) {
+    throw new Error("Datos invalidos.");
+  }
+
+  const kind = parsedKind.data;
+  await authorizeEventManager(eventId);
+
+  const adminClient = createSupabaseAdminClient();
+  const { count } = await adminClient
+    .from("event_profile_options")
+    .select("id", { count: "exact", head: true })
+    .eq("event_id", eventId)
+    .eq("kind", kind);
+
+  if (!count) {
+    const rows = defaultOptionsFor(kind).map((label, index) => ({
+      event_id: eventId,
+      kind,
+      label,
+      position: index,
+    }));
+
+    // upsert con ignoreDuplicates: dos "Personalizar" simultaneos pueden ver
+    // ambos count=0 y sembrar a la vez; el on-conflict (event_id, kind, label)
+    // hace que el segundo no falle con 23505 en vez de abortar la accion.
+    const { error } = await adminClient
+      .from("event_profile_options")
+      .upsert(rows, {
+        onConflict: "event_id,kind,label",
+        ignoreDuplicates: true,
+      });
+
+    if (error) {
+      throw new Error("No se pudieron personalizar las opciones.");
+    }
+  }
+
+  revalidatePath(`/admin/events/${eventId}/edit`);
+  redirect(`/admin/events/${eventId}/edit`);
+}
+
+const addOptionSchema = z.object({
+  eventId: z.string().uuid(),
+  kind: optionKindSchema,
+  label: z
+    .string()
+    .trim()
+    .min(1, "Ingresa una opcion.")
+    .max(60, "Maximo 60 caracteres."),
+});
+
+export async function addEventProfileOption(formData: FormData) {
+  const parsed = addOptionSchema.safeParse({
+    eventId: formData.get("eventId"),
+    kind: formData.get("kind"),
+    label: formData.get("label"),
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
+  }
+
+  await authorizeEventManager(parsed.data.eventId);
+
+  const adminClient = createSupabaseAdminClient();
+  // position = (max actual) + 1, para conservar el orden de insercion.
+  const { data: last } = await adminClient
+    .from("event_profile_options")
+    .select("position")
+    .eq("event_id", parsed.data.eventId)
+    .eq("kind", parsed.data.kind)
+    .order("position", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ position: number }>();
+
+  const { error } = await adminClient.from("event_profile_options").insert({
+    event_id: parsed.data.eventId,
+    kind: parsed.data.kind,
+    label: parsed.data.label,
+    position: (last?.position ?? -1) + 1,
+  });
+
+  // 23505 = etiqueta duplicada (unique event/kind/label): se ignora.
+  if (error && error.code !== "23505") {
+    throw new Error("No se pudo agregar la opcion.");
+  }
+
+  revalidatePath(`/admin/events/${parsed.data.eventId}/edit`);
+  redirect(`/admin/events/${parsed.data.eventId}/edit`);
+}
+
+const removeOptionSchema = z.object({
+  eventId: z.string().uuid(),
+  optionId: z.string().uuid(),
+});
+
+export async function removeEventProfileOption(formData: FormData) {
+  const parsed = removeOptionSchema.safeParse({
+    eventId: formData.get("eventId"),
+    optionId: formData.get("optionId"),
+  });
+
+  if (!parsed.success) {
+    throw new Error("Datos invalidos.");
+  }
+
+  await authorizeEventManager(parsed.data.eventId);
+
+  const adminClient = createSupabaseAdminClient();
+  const { error } = await adminClient
+    .from("event_profile_options")
+    .delete()
+    .eq("id", parsed.data.optionId)
+    .eq("event_id", parsed.data.eventId);
+
+  if (error) {
+    throw new Error("No se pudo quitar la opcion.");
+  }
+
+  revalidatePath(`/admin/events/${parsed.data.eventId}/edit`);
+  redirect(`/admin/events/${parsed.data.eventId}/edit`);
+}
+
+const resetOptionsSchema = z.object({
+  eventId: z.string().uuid(),
+  kind: optionKindSchema,
+});
+
+// "Restaurar por defecto": borra las filas propias del evento para ese kind, con
+// lo que la resolucion vuelve a caer a los defaults de plataforma.
+export async function resetEventProfileOptions(formData: FormData) {
+  const parsed = resetOptionsSchema.safeParse({
+    eventId: formData.get("eventId"),
+    kind: formData.get("kind"),
+  });
+
+  if (!parsed.success) {
+    throw new Error("Datos invalidos.");
+  }
+
+  await authorizeEventManager(parsed.data.eventId);
+
+  const adminClient = createSupabaseAdminClient();
+  const { error } = await adminClient
+    .from("event_profile_options")
+    .delete()
+    .eq("event_id", parsed.data.eventId)
+    .eq("kind", parsed.data.kind);
+
+  if (error) {
+    throw new Error("No se pudieron restaurar las opciones.");
+  }
+
+  revalidatePath(`/admin/events/${parsed.data.eventId}/edit`);
+  redirect(`/admin/events/${parsed.data.eventId}/edit`);
 }
 
 function emptyToNull(value: FormDataEntryValue | null) {
