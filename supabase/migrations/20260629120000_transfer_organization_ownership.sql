@@ -34,6 +34,7 @@ set search_path = ''
 as $$
 declare
   v_caller uuid := auth.uid();
+  v_promoted integer;
 begin
   if v_caller is null then
     raise exception 'No autenticado' using errcode = '28000';
@@ -56,17 +57,6 @@ begin
       using errcode = '22023';
   end if;
 
-  -- El nuevo owner debe ser un miembro existente de la organizacion.
-  if not exists (
-    select 1
-    from public.organization_users
-    where organization_id = p_organization_id
-      and user_id = p_new_owner_user_id
-  ) then
-    raise exception 'El nuevo owner debe ser un miembro de la organizacion'
-      using errcode = '22023';
-  end if;
-
   -- Degradar-luego-promover: respeta el indice unico parcial de un solo owner
   -- (entre ambos updates hay cero owners, nunca dos).
   update public.organization_users
@@ -78,6 +68,19 @@ begin
     set role = 'owner'
     where organization_id = p_organization_id
       and user_id = p_new_owner_user_id;
+
+  -- El ROW_COUNT del promote es el guard autoritativo, no un exists previo: si
+  -- el candidato fue eliminado (p.ej. removeOrganizationMember concurrente)
+  -- entre la validacion y este UPDATE, afectaria cero filas sin error y la
+  -- organizacion quedaria sin owner (el degrade de arriba ya ejecuto). Exigir
+  -- exactamente una fila y lanzar excepcion revierte toda la transaccion,
+  -- incluido el degrade, dejando al owner original intacto.
+  get diagnostics v_promoted = row_count;
+
+  if v_promoted <> 1 then
+    raise exception 'El nuevo owner debe ser un miembro de la organizacion'
+      using errcode = '22023';
+  end if;
 end;
 $$;
 
