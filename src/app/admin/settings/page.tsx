@@ -6,6 +6,7 @@ import { OrganizationSettingsForm } from "@/app/admin/settings/_components/organ
 import {
   AddMemberForm,
   RemoveMemberForm,
+  TransferOwnershipForm,
   UpdateMemberRoleForm,
 } from "@/app/admin/settings/_components/member-forms";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -180,6 +181,18 @@ async function MembersPanel({
       </div>
 
       <AddMemberForm organizationId={organizationId} />
+
+      {isOwner ? (
+        <TransferOwnershipForm
+          members={(members ?? [])
+            .filter((member) => member.role !== "owner")
+            .map((member) => ({
+              userId: member.user_id,
+              label: emails.get(member.user_id) ?? member.user_id,
+            }))}
+          organizationId={organizationId}
+        />
+      ) : null}
     </div>
   );
 }
