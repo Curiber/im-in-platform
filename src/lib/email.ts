@@ -16,6 +16,18 @@ type ConnectionAcceptedInput = {
   eventName: string;
 };
 
+type BroadcastRecipient = {
+  email: string;
+  name: string;
+};
+
+type EventBroadcastInput = {
+  recipients: BroadcastRecipient[];
+  subject: string;
+  body: string;
+  eventName: string;
+};
+
 type DemoRequestNotificationInput = {
   email: string;
   fullName: string;
@@ -159,4 +171,51 @@ export async function sendDemoRequestNotification({
   });
 
   return { sent: true };
+}
+
+// Envia el mismo asunto/cuerpo (redactado por el organizador) a cada
+// destinatario de forma INDIVIDUAL: cada inscrito recibe su propio correo y no
+// ve los emails de los demas. Se envia en lotes para no abrir cientos de
+// conexiones a la vez. Devuelve cuantos se enviaron sin error (best-effort: un
+// fallo individual no aborta el resto).
+export async function sendEventBroadcastEmails({
+  recipients,
+  subject,
+  body,
+  eventName,
+}: EventBroadcastInput) {
+  const apiKey = process.env.EMAIL_PROVIDER_API_KEY;
+  const from = process.env.EMAIL_FROM;
+
+  if (!apiKey || !from) {
+    return { sent: false as const, delivered: 0 };
+  }
+
+  const resend = new Resend(apiKey);
+  const text = [body.trim(), "", "—", `${eventName} · via I'm IN`].join("\n");
+
+  const BATCH_SIZE = 20;
+  let delivered = 0;
+
+  for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+    const batch = recipients.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map((recipient) =>
+        resend.emails.send({
+          from,
+          to: recipient.email,
+          subject,
+          text,
+        }),
+      ),
+    );
+
+    for (const result of results) {
+      if (result.status === "fulfilled" && !result.value.error) {
+        delivered += 1;
+      }
+    }
+  }
+
+  return { sent: true as const, delivered };
 }
