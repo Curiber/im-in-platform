@@ -384,6 +384,55 @@ export async function updateOrganizationMemberRole(
   redirect("/admin/settings");
 }
 
+const transferOwnershipSchema = z.object({
+  organizationId: z.string().uuid(),
+  newOwnerUserId: z.string().uuid(),
+});
+
+export async function transferOrganizationOwnership(
+  _prevState: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const parsed = transferOwnershipSchema.safeParse({
+    organizationId: formData.get("organizationId"),
+    newOwnerUserId: formData.get("newOwnerUserId"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos invalidos." };
+  }
+
+  const auth = await requireOrgManager(parsed.data.organizationId);
+
+  if (!auth.ok) {
+    return { error: auth.error };
+  }
+
+  if (auth.role !== "owner") {
+    return { error: "Solo el owner puede transferir la propiedad." };
+  }
+
+  if (parsed.data.newOwnerUserId === auth.userId) {
+    return { error: "Elige a un miembro distinto para transferir la propiedad." };
+  }
+
+  // Swap atomico (owner -> admin, miembro -> owner) en una sola transaccion via
+  // RPC. Se invoca con el cliente de servidor (sesion del owner) para que la RPC
+  // valide `auth.uid()` contra el owner actual.
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("transfer_organization_ownership", {
+    p_organization_id: parsed.data.organizationId,
+    p_new_owner_user_id: parsed.data.newOwnerUserId,
+  });
+
+  if (error) {
+    return { error: "No se pudo transferir la propiedad." };
+  }
+
+  revalidatePath("/admin/settings");
+  redirect("/admin/settings");
+}
+
 const removeMemberSchema = z.object({
   organizationId: z.string().uuid(),
   userId: z.string().uuid(),
