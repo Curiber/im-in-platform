@@ -19,6 +19,10 @@ import {
   publishEvent,
   restoreEvent,
 } from "@/app/admin/events/actions";
+import {
+  ApprovalQueue,
+  type PendingRegistration,
+} from "@/app/admin/events/[eventId]/_components/approval-queue";
 import { AdminShell } from "@/app/admin/_components/admin-shell";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -38,6 +42,7 @@ type EventDetail = {
   capacity: number;
   status: "draft" | "published" | "closed";
   event_type: "open" | "closed";
+  registration_mode: "open" | "approval";
   modality: "in_person" | "online" | "hybrid";
   networking_enabled: boolean;
   deleted_at: string | null;
@@ -75,7 +80,7 @@ export default async function AdminEventDetailPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, organization_id, name, slug, description, starts_at, arrival_starts_at, ends_at, location, capacity, status, event_type, modality, networking_enabled, deleted_at, deleted_by, delete_reason, organizations(name)",
+      "id, organization_id, name, slug, description, starts_at, arrival_starts_at, ends_at, location, capacity, status, event_type, registration_mode, modality, networking_enabled, deleted_at, deleted_by, delete_reason, organizations(name)",
     )
     .eq("id", eventId)
     .single()
@@ -100,6 +105,20 @@ export default async function AdminEventDetailPage({
 
   const publicPath = `/e/${event.slug}`;
   const canDelete = membership?.role === "owner" || membership?.role === "admin";
+
+  let pendingApprovals: PendingRegistration[] = [];
+
+  if (event.registration_mode === "approval" && !event.deleted_at) {
+    const adminClient = createSupabaseAdminClient();
+    const { data } = await adminClient
+      .from("event_registrations")
+      .select("id, full_name_snapshot, email, role_snapshot, company_snapshot")
+      .eq("event_id", event.id)
+      .eq("status", "pending_approval")
+      .order("registered_at", { ascending: true })
+      .returns<PendingRegistration[]>();
+    pendingApprovals = data ?? [];
+  }
 
   if (event.deleted_at) {
     let deletedByEmail: string | null = null;
@@ -396,6 +415,13 @@ export default async function AdminEventDetailPage({
               </button>
             </form>
           </div>
+
+          {event.registration_mode === "approval" ? (
+            <ApprovalQueue
+              eventId={event.id}
+              registrations={pendingApprovals}
+            />
+          ) : null}
         </article>
 
         <aside className="space-y-4">
@@ -423,6 +449,14 @@ export default async function AdminEventDetailPage({
             <h2 className="text-lg font-semibold">Configuracion</h2>
             <dl className="mt-4 space-y-3 text-sm">
               <Row label="Tipo" value={event.event_type} />
+              <Row
+                label="Inscripcion"
+                value={
+                  event.registration_mode === "approval"
+                    ? "Con aprobacion"
+                    : "Abierta"
+                }
+              />
               <Row label="Modalidad" value={event.modality} />
               <Row
                 label="Networking"

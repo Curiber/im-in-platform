@@ -32,6 +32,7 @@ type EditableEvent = {
   location: string | null;
   capacity: number;
   event_type: "open" | "closed";
+  registration_mode: "open" | "approval";
   modality: "in_person" | "online" | "hybrid";
   networking_enabled: boolean;
   cover_image_url: string | null;
@@ -58,7 +59,7 @@ export default async function EditEventPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, organization_id, name, description, starts_at, arrival_starts_at, ends_at, location, capacity, event_type, modality, networking_enabled, cover_image_url",
+      "id, organization_id, name, description, starts_at, arrival_starts_at, ends_at, location, capacity, event_type, registration_mode, modality, networking_enabled, cover_image_url",
     )
     .eq("id", eventId)
     .is("deleted_at", null)
@@ -286,6 +287,21 @@ export default async function EditEventPage({
               >
                 <option value="open">Abierto</option>
                 <option value="closed">Cerrado</option>
+              </select>
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-brand-navy-950">
+                Modo de inscripcion
+              </span>
+              <select
+                className="mt-2 h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
+                defaultValue={event.registration_mode}
+                name="registrationMode"
+                required
+              >
+                <option value="open">Abierta (acceso inmediato)</option>
+                <option value="approval">Con aprobacion del organizador</option>
               </select>
             </label>
           </div>

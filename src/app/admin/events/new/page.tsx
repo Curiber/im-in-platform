@@ -181,6 +181,21 @@ export default async function NewEventPage() {
                 <option value="closed">Cerrado</option>
               </select>
             </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-brand-navy-950">
+                Modo de inscripcion
+              </span>
+              <select
+                className="mt-2 h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
+                name="registrationMode"
+                defaultValue="open"
+                required
+              >
+                <option value="open">Abierta (acceso inmediato)</option>
+                <option value="approval">Con aprobacion del organizador</option>
+              </select>
+            </label>
           </div>
 
           <label className="flex items-start gap-3 rounded-md border border-brand-border/60 bg-brand-surface-soft p-4">

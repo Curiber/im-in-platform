@@ -60,7 +60,7 @@ export default async function EventDirectoryProfilePage({
     .eq("id", profileId)
     .eq("event_id", viewer.event_id)
     .eq("public_profile_enabled", true)
-    .neq("status", "cancelled")
+    .in("status", ["registered", "checked_in"])
     .single()
     .returns<DirectoryProfileDetail>();
 

@@ -160,6 +160,7 @@ const eventSchema = z.object({
   modality: z.enum(["in_person", "online", "hybrid"]),
   capacity: z.coerce.number().int().positive(),
   eventType: z.enum(["open", "closed"]),
+  registrationMode: z.enum(["open", "approval"]).default("open"),
   networkingEnabled: z.boolean(),
 });
 
@@ -187,6 +188,7 @@ export async function createEvent(
     modality: formData.get("modality"),
     capacity: formData.get("capacity"),
     eventType: formData.get("eventType"),
+    registrationMode: formData.get("registrationMode") ?? undefined,
     networkingEnabled: formData.get("networkingEnabled") === "on",
   });
 
@@ -210,6 +212,7 @@ export async function createEvent(
       modality: parsed.data.modality,
       capacity: parsed.data.capacity,
       event_type: parsed.data.eventType,
+      registration_mode: parsed.data.registrationMode,
       networking_enabled: parsed.data.networkingEnabled,
       created_by: user.id,
     })
@@ -249,6 +252,7 @@ export async function updateEvent(
     modality: formData.get("modality"),
     capacity: formData.get("capacity"),
     eventType: formData.get("eventType"),
+    registrationMode: formData.get("registrationMode") ?? undefined,
     networkingEnabled: formData.get("networkingEnabled") === "on",
   });
 
@@ -260,6 +264,9 @@ export async function updateEvent(
     return { error: parsed.error.issues[0]?.message ?? "Datos invalidos." };
   }
 
+  // El modo de inscripcion NO se toca aqui: cambiarlo (y promover las solicitudes
+  // pendientes al pasar a `open`) debe ser atomico, asi que lo hace la RPC
+  // `set_event_registration_mode` mas abajo, dentro de una transaccion.
   const { error } = await supabase
     .from("events")
     .update({
@@ -280,6 +287,21 @@ export async function updateEvent(
 
   if (error) {
     return { error: "No se pudo actualizar el evento." };
+  }
+
+  // Cambio de modo + promocion de pendientes en una sola transaccion (RPC
+  // security definer que valida el rol con la sesion del usuario, sin
+  // service_role). Idempotente: fijar el mismo modo no tiene efecto adverso.
+  const { error: modeError } = await supabase.rpc(
+    "set_event_registration_mode",
+    {
+      p_event_id: eventId,
+      p_mode: parsed.data.registrationMode,
+    },
+  );
+
+  if (modeError) {
+    return { error: "No se pudo actualizar el modo de inscripcion." };
   }
 
   revalidatePath("/admin/events");
@@ -522,6 +544,58 @@ export async function deleteAgendaItem(formData: FormData) {
   if (slug) {
     revalidatePath(`/e/${slug}`);
   }
+}
+
+// --- Aprobacion de inscripciones (Epic 32) ---
+//
+// Eventos con registration_mode='approval': las inscripciones verificadas quedan
+// en `pending_approval`. El organizador las aprueba (-> registered) o rechaza
+// (-> cancelled, libera cupo). Ambas escriben con guard `eq('status',
+// 'pending_approval')` para no pisar una decision concurrente ni reactivar una
+// inscripcion ya resuelta.
+
+const approvalSchema = z.object({
+  eventId: z.string().uuid(),
+  registrationId: z.string().uuid(),
+});
+
+async function decideRegistration(
+  formData: FormData,
+  decision: "registered" | "cancelled",
+) {
+  const parsed = approvalSchema.safeParse({
+    eventId: formData.get("eventId"),
+    registrationId: formData.get("registrationId"),
+  });
+
+  if (!parsed.success) {
+    throw new Error("Datos invalidos.");
+  }
+
+  await authorizeEventManager(parsed.data.eventId);
+
+  const adminClient = createSupabaseAdminClient();
+  const { error } = await adminClient
+    .from("event_registrations")
+    .update({ status: decision })
+    .eq("id", parsed.data.registrationId)
+    .eq("event_id", parsed.data.eventId)
+    .eq("status", "pending_approval");
+
+  if (error) {
+    throw new Error("No se pudo actualizar la inscripcion.");
+  }
+
+  revalidatePath(`/admin/events/${parsed.data.eventId}`);
+  redirect(`/admin/events/${parsed.data.eventId}`);
+}
+
+export async function approveRegistration(formData: FormData) {
+  await decideRegistration(formData, "registered");
+}
+
+export async function rejectRegistration(formData: FormData) {
+  await decideRegistration(formData, "cancelled");
 }
 
 // --- Opciones de perfil configurables por evento (Epic 31) ---

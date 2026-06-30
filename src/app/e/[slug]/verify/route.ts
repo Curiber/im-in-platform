@@ -58,10 +58,13 @@ export async function GET(
 
   const credentialUrl = `${appUrl}/e/${slug}/registered?registrationId=${registrationId}&token=${token}`;
 
-  // Ya verificada y activa: idempotente, llevar directo a la credencial.
+  // Ya verificada: idempotente, llevar directo a la credencial. `pending_approval`
+  // tambien (la pagina /registered muestra el estado "en revision"); reabrir el
+  // link no debe reintentar la verificacion.
   if (
     registration.status === "registered" ||
-    registration.status === "checked_in"
+    registration.status === "checked_in" ||
+    registration.status === "pending_approval"
   ) {
     return NextResponse.redirect(credentialUrl);
   }
@@ -110,11 +113,14 @@ export async function GET(
     return invalid;
   }
 
-  const { error } = await adminClient
-    .from("event_registrations")
-    .update({ status: "registered", profile_id: profileId })
-    .eq("id", registrationId)
-    .eq("status", "pending_verification");
+  // La transicion lee el modo del evento y fija el estado destino
+  // (`registered` u `pending_approval`) bajo el lock del evento, en una sola
+  // transaccion, para serializar con el cambio de modo (ver RPC). Resolver el
+  // modo aqui (sin lock) abriria una carrera que dejaria solicitudes huerfanas.
+  const { error } = await adminClient.rpc("activate_verified_registration", {
+    p_registration_id: registrationId,
+    p_profile_id: profileId,
+  });
 
   if (error) {
     return invalid;

@@ -10,7 +10,13 @@ export type VerifiedRegistration = {
   full_name_snapshot: string;
   interests: string[];
   public_profile_enabled: boolean;
-  status: "registered" | "checked_in" | "cancelled" | "no_show";
+  status:
+    | "pending_verification"
+    | "pending_approval"
+    | "registered"
+    | "checked_in"
+    | "cancelled"
+    | "no_show";
   qr_token_hash: string;
   attendee_profiles: {
     card_visibility: ProfileCardVisibility;
@@ -61,7 +67,14 @@ export async function verifyRegistrationAccess({
     return null;
   }
 
-  if (registration.status === "cancelled") {
+  // Las superficies de networking (perfil, directorio, conexiones) solo se
+  // habilitan para inscripciones activas. `pending_verification` (email sin
+  // verificar) y `pending_approval` (a la espera del organizador) aun no
+  // participan; `cancelled`/`no_show` tampoco.
+  if (
+    registration.status !== "registered" &&
+    registration.status !== "checked_in"
+  ) {
     return null;
   }
 

@@ -1,4 +1,11 @@
-import { Camera, CheckCircle2, Mail, QrCode, UserRound } from "lucide-react";
+import {
+  Camera,
+  CheckCircle2,
+  Clock3,
+  Mail,
+  QrCode,
+  UserRound,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -75,6 +82,17 @@ export default async function RegisteredPage({
   if (registration.status === "pending_verification") {
     redirect(
       `/e/${slug}/verify?registrationId=${registration.id}&token=${token}`,
+    );
+  }
+
+  // Eventos con aprobacion: email verificado pero a la espera del organizador.
+  // No hay QR todavia; se muestra el estado "en revision".
+  if (registration.status === "pending_approval") {
+    return (
+      <PendingApprovalView
+        eventName={registration.events?.name ?? "el evento"}
+        fullName={registration.full_name_snapshot}
+      />
     );
   }
 
@@ -281,6 +299,48 @@ export default async function RegisteredPage({
           </details>
         </aside>
       </section>
+    </main>
+  );
+}
+
+function PendingApprovalView({
+  eventName,
+  fullName,
+}: {
+  eventName: string;
+  fullName: string;
+}) {
+  return (
+    <main className="grid min-h-screen place-items-center bg-brand-gradient-soft px-5 py-12 text-brand-slate-900">
+      <div className="w-full max-w-lg rounded-3xl border border-brand-border bg-white p-8 text-center shadow-xl shadow-brand-blue-700/10">
+        <Link className="inline-flex" href="/">
+          <Image
+            alt="I'M IN"
+            className="mx-auto h-auto w-36"
+            height={45}
+            src="/brand/im-in-logo.png"
+            width={180}
+          />
+        </Link>
+        <span className="mx-auto mt-8 flex size-12 items-center justify-center rounded-2xl bg-brand-mint-300/40 text-brand-navy-950">
+          <Clock3 className="size-7" aria-hidden="true" />
+        </span>
+        <p className="mt-5 text-sm font-semibold uppercase tracking-[0.18em] text-brand-cyan-500">
+          Inscripcion en revision
+        </p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-brand-navy-950">
+          {fullName}, confirmamos tu email
+        </h1>
+        <p className="mt-4 leading-7 text-brand-slate-600">
+          {eventName} requiere aprobacion del organizador. Tu solicitud quedo
+          registrada y sera revisada.
+        </p>
+        <p className="mt-4 flex items-start justify-center gap-2 text-sm leading-6 text-brand-slate-600">
+          <Mail className="mt-0.5 size-4 shrink-0 text-brand-cyan-500" />
+          Guarda este enlace y vuelve a abrirlo mas tarde: cuando tu inscripcion
+          sea aprobada, aqui mismo apareceran tu credencial y el QR de acceso.
+        </p>
+      </div>
     </main>
   );
 }
