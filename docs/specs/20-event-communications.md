@@ -39,8 +39,20 @@ real hace falta poder mandar un recordatorio o un aviso a la audiencia.
 ### Modelo de datos
 
 - `event_communications` (event_id, audience, subject, body, recipient_count,
-  sent_by, created_at). `audience` enum `all_active|confirmed|checked_in`.
-- RLS: miembros de la organizacion leen; owner/admin/event_admin insertan.
+  delivered_count, idempotency_key, sent_by, created_at). `audience` enum
+  `all_active|confirmed|checked_in`. `unique (idempotency_key)`.
+- RLS: miembros de la organizacion leen; owner/admin/event_admin insertan. El
+  conteo de entregados lo actualiza el envio en background via service_role.
+
+### Idempotencia
+
+- El composer genera una `idempotency_key` (uuid) por redaccion. Un doble
+  submit/reintento reusa la misma clave: el insert choca contra el `unique` y la
+  accion responde `duplicate` sin crear una segunda fila ni reenviar. El boton
+  ademas se deshabilita mientras se envia.
+- Hacia el proveedor, cada correo lleva una idempotency-key estable por
+  `(comunicacion, destinatario)`, de modo que un reintento del envio no duplica
+  correos en Resend.
 
 ### Audiencias
 
@@ -65,6 +77,12 @@ Mapean a estados de inscripcion **activos** (nunca a pending/cancelled):
   la lista. Best-effort: un fallo individual no aborta el resto; sin proveedor
   configurado, la comunicacion se registra pero no se entrega (mismo patron del
   resto del proyecto).
+- **No se reporta "entregado a N" de antemano**: la respuesta dice "en cola,
+  enviando a N". `delivered_count` se persiste cuando termina el envio y se
+  muestra en el historial (`entregados X/N`). Si el envio falla o no hay
+  proveedor, queda en 0, sin afirmar una entrega que no ocurrio.
+- Si la consulta de destinatarios falla (RLS/DB), la accion **aborta** con error
+  en vez de tratarlo como audiencia vacia y registrar un envio falso.
 
 ### UI
 

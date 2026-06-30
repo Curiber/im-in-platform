@@ -26,6 +26,9 @@ type EventBroadcastInput = {
   subject: string;
   body: string;
   eventName: string;
+  // Identificador del envio: deriva una idempotency-key por destinatario para
+  // que un reintento del mismo envio no duplique correos en el proveedor.
+  communicationId: string;
 };
 
 type DemoRequestNotificationInput = {
@@ -183,6 +186,7 @@ export async function sendEventBroadcastEmails({
   subject,
   body,
   eventName,
+  communicationId,
 }: EventBroadcastInput) {
   const apiKey = process.env.EMAIL_PROVIDER_API_KEY;
   const from = process.env.EMAIL_FROM;
@@ -201,12 +205,17 @@ export async function sendEventBroadcastEmails({
     const batch = recipients.slice(i, i + BATCH_SIZE);
     const results = await Promise.allSettled(
       batch.map((recipient) =>
-        resend.emails.send({
-          from,
-          to: recipient.email,
-          subject,
-          text,
-        }),
+        resend.emails.send(
+          {
+            from,
+            to: recipient.email,
+            subject,
+            text,
+          },
+          // Estable por (envio, destinatario): si este envio se reintenta, el
+          // proveedor deduplica en vez de mandar un segundo correo.
+          { idempotencyKey: `${communicationId}:${recipient.email}` },
+        ),
       ),
     );
 

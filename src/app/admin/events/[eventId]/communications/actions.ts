@@ -6,6 +6,7 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { sendEventBroadcastEmails } from "@/lib/email";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const audienceValues = ["all_active", "confirmed", "checked_in"] as const;
@@ -24,6 +25,9 @@ const communicationSchema = z.object({
   audience: z.enum(audienceValues),
   subject: z.string().trim().min(3, "Ingresa un asunto.").max(200),
   body: z.string().trim().min(10, "El mensaje es muy corto.").max(5000),
+  // Clave de idempotencia generada por el formulario (ver composer). Un doble
+  // submit reusa la misma clave -> el insert choca y no se reenvia.
+  requestId: z.string().uuid(),
 });
 
 export async function sendEventCommunication(formData: FormData) {
@@ -44,6 +48,7 @@ export async function sendEventCommunication(formData: FormData) {
     audience: formData.get("audience"),
     subject: formData.get("subject"),
     body: formData.get("body"),
+    requestId: formData.get("requestId"),
   });
 
   if (!parsed.success) {
@@ -75,22 +80,33 @@ export async function sendEventCommunication(formData: FormData) {
     redirect(`${redirectBase}?status=forbidden`);
   }
 
-  // Destinatarios segun audiencia (lectura bajo RLS de miembro).
-  const { data: recipientRows } = await supabase
+  // Destinatarios segun audiencia (lectura bajo RLS de miembro). Un error de
+  // RLS/DB NO debe degradarse en una audiencia vacia que igual se registra como
+  // envio exitoso: se aborta explicitamente.
+  const { data: recipientRows, error: recipientsError } = await supabase
     .from("event_registrations")
     .select("email, full_name_snapshot")
     .eq("event_id", parsed.data.eventId)
     .in("status", statusByAudience[parsed.data.audience])
     .returns<{ email: string; full_name_snapshot: string }[]>();
 
+  if (recipientsError) {
+    redirect(`${redirectBase}?status=error`);
+  }
+
   const recipients = (recipientRows ?? []).map((row) => ({
     email: row.email,
     name: row.full_name_snapshot,
   }));
 
-  // Registra el envio (historial) antes de despachar. recipient_count es el
-  // tamaño de la audiencia al momento del envio.
-  const { error: insertError } = await supabase
+  if (recipients.length === 0) {
+    redirect(`${redirectBase}?status=empty`);
+  }
+
+  // Registra el envio (historial) ANTES de despachar, con la clave de
+  // idempotencia: un doble submit con el mismo requestId choca contra el unique
+  // y no genera una segunda fila ni un segundo envio.
+  const { data: inserted, error: insertError } = await supabase
     .from("event_communications")
     .insert({
       event_id: parsed.data.eventId,
@@ -98,42 +114,57 @@ export async function sendEventCommunication(formData: FormData) {
       subject: parsed.data.subject,
       body: parsed.data.body,
       recipient_count: recipients.length,
+      idempotency_key: parsed.data.requestId,
       sent_by: user.id,
-    });
+    })
+    .select("id")
+    .single<{ id: string }>();
 
   if (insertError) {
+    // 23505 = misma idempotency_key: ya se proceso este envio, no se reenvia.
+    if (insertError.code === "23505") {
+      redirect(`${redirectBase}?status=duplicate`);
+    }
     redirect(`${redirectBase}?status=error`);
   }
 
-  // El envio real ocurre DESPUES de responder (after): no bloquea la respuesta
-  // ni depende de cuantos destinatarios haya. No es una cola durable: se loguea
-  // cualquier fallo.
-  if (recipients.length > 0) {
-    const subject = parsed.data.subject;
-    const body = parsed.data.body;
-    const eventName = event.name;
+  // El envio real ocurre DESPUES de responder (after): no bloquea la respuesta.
+  // No se reporta "entregado a N" de antemano; `delivered_count` se persiste al
+  // terminar y se muestra en el historial. La actualizacion va por service_role
+  // (escritura de sistema post-envio). No es una cola durable: se loguea fallo.
+  const communicationId = inserted.id;
+  const subject = parsed.data.subject;
+  const body = parsed.data.body;
+  const eventName = event.name;
 
-    after(async () => {
-      try {
-        const result = await sendEventBroadcastEmails({
-          recipients,
-          subject,
-          body,
-          eventName,
-        });
+  after(async () => {
+    try {
+      const result = await sendEventBroadcastEmails({
+        recipients,
+        subject,
+        body,
+        eventName,
+        communicationId,
+      });
 
-        if (!result.sent) {
-          console.error(
-            "Comunicacion no enviada: proveedor de email no configurado",
-            parsed.data.eventId,
-          );
-        }
-      } catch (broadcastError) {
-        console.error("Fallo el envio de la comunicacion", broadcastError);
+      if (!result.sent) {
+        console.error(
+          "Comunicacion no entregada: proveedor de email no configurado",
+          communicationId,
+        );
+        return;
       }
-    });
-  }
+
+      const adminClient = createSupabaseAdminClient();
+      await adminClient
+        .from("event_communications")
+        .update({ delivered_count: result.delivered })
+        .eq("id", communicationId);
+    } catch (broadcastError) {
+      console.error("Fallo el envio de la comunicacion", broadcastError);
+    }
+  });
 
   revalidatePath(redirectBase);
-  redirect(`${redirectBase}?status=sent&count=${recipients.length}`);
+  redirect(`${redirectBase}?status=queued&total=${recipients.length}`);
 }

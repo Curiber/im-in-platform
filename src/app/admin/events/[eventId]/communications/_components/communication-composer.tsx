@@ -3,6 +3,7 @@
 import { CalendarClock, Send } from "lucide-react";
 import { useState } from "react";
 
+import { SubmitButton } from "@/app/admin/_components/submit-button";
 import { sendEventCommunication } from "@/app/admin/events/[eventId]/communications/actions";
 
 export function CommunicationComposer({
@@ -17,6 +18,9 @@ export function CommunicationComposer({
   const [audience, setAudience] = useState("all_active");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  // Una clave por redaccion: identifica este intento de envio para idempotencia
+  // server-side (un doble submit reusa la misma clave).
+  const [requestId] = useState(() => crypto.randomUUID());
 
   function applyReminderTemplate() {
     setAudience("all_active");
@@ -27,6 +31,7 @@ export function CommunicationComposer({
   return (
     <form action={sendEventCommunication} className="space-y-5">
       <input name="eventId" type="hidden" value={eventId} />
+      <input name="requestId" type="hidden" value={requestId} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <label className="block">
@@ -85,13 +90,10 @@ export function CommunicationComposer({
         </span>
       </label>
 
-      <button
-        className="inline-flex h-11 items-center gap-2 rounded-md bg-brand-navy-950 px-5 text-sm font-semibold text-white transition hover:bg-brand-navy-900"
-        type="submit"
-      >
+      <SubmitButton className="inline-flex h-11 items-center gap-2 rounded-md bg-brand-navy-950 px-5 text-sm font-semibold text-white transition hover:bg-brand-navy-900 disabled:opacity-60">
         <Send className="size-4" aria-hidden="true" />
         Enviar comunicacion
-      </button>
+      </SubmitButton>
     </form>
   );
 }

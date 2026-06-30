@@ -21,6 +21,7 @@ type Communication = {
   subject: string;
   body: string;
   recipient_count: number;
+  delivered_count: number;
   sent_by: string | null;
   created_at: string;
 };
@@ -36,10 +37,10 @@ export default async function EventCommunicationsPage({
   searchParams,
 }: {
   params: Promise<{ eventId: string }>;
-  searchParams: Promise<{ status?: string; count?: string }>;
+  searchParams: Promise<{ status?: string; total?: string }>;
 }) {
   const { eventId } = await params;
-  const { status, count } = await searchParams;
+  const { status, total } = await searchParams;
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -62,7 +63,9 @@ export default async function EventCommunicationsPage({
 
   const { data: communications } = await supabase
     .from("event_communications")
-    .select("id, audience, subject, body, recipient_count, sent_by, created_at")
+    .select(
+      "id, audience, subject, body, recipient_count, delivered_count, sent_by, created_at",
+    )
     .eq("event_id", event.id)
     .order("created_at", { ascending: false })
     .returns<Communication[]>();
@@ -112,7 +115,7 @@ export default async function EventCommunicationsPage({
           </p>
         </div>
 
-        {status ? <StatusBanner count={count} status={status} /> : null}
+        {status ? <StatusBanner status={status} total={total} /> : null}
 
         <div className="rounded-2xl border border-brand-border bg-white p-6 shadow-sm">
           <h2 className="flex items-center gap-2 text-lg font-semibold">
@@ -143,7 +146,8 @@ export default async function EventCommunicationsPage({
                     </p>
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-brand-slate-600">
                       <Users className="size-3.5" aria-hidden="true" />
-                      {communication.recipient_count} ·{" "}
+                      {communication.delivered_count}/
+                      {communication.recipient_count} entregados ·{" "}
                       {audienceLabels[communication.audience]}
                     </span>
                   </div>
@@ -173,14 +177,16 @@ export default async function EventCommunicationsPage({
 
 function StatusBanner({
   status,
-  count,
+  total,
 }: {
   status: string;
-  count?: string;
+  total?: string;
 }) {
-  const isSent = status === "sent";
+  const positive = status === "queued" || status === "duplicate";
   const messages: Record<string, string> = {
-    sent: `Comunicacion enviada a ${count ?? 0} destinatario(s). La entrega puede tardar unos minutos.`,
+    queued: `En cola: enviando a ${total ?? 0} destinatario(s). El detalle de entrega aparece en el historial.`,
+    duplicate: "Esta comunicacion ya se habia enviado; evitamos duplicarla.",
+    empty: "No hay inscritos en esa audiencia; no se envio nada.",
     invalid: "Revisa el asunto y el mensaje antes de enviar.",
     forbidden: "No tienes permisos para enviar comunicaciones de este evento.",
     error: "No se pudo enviar la comunicacion. Intentalo nuevamente.",
@@ -189,7 +195,7 @@ function StatusBanner({
   return (
     <p
       className={`rounded-md p-4 text-sm font-semibold ${
-        isSent
+        positive
           ? "bg-brand-mint-300/30 text-brand-navy-950"
           : "bg-red-50 text-red-700"
       }`}

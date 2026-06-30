@@ -22,6 +22,11 @@ create table public.event_communications (
   subject text not null,
   body text not null,
   recipient_count integer not null default 0,
+  delivered_count integer not null default 0,
+  -- Clave de idempotencia generada por el cliente (una por redaccion): un doble
+  -- submit/reintento reusa la misma clave y el insert choca (unique), evitando
+  -- una segunda fila y un segundo envio.
+  idempotency_key uuid not null,
   sent_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
   constraint event_communications_subject_not_blank check (
@@ -29,15 +34,18 @@ create table public.event_communications (
   ),
   constraint event_communications_body_not_blank check (
     length(trim(body)) > 0
-  )
+  ),
+  unique (idempotency_key)
 );
 
 create index event_communications_event_id_created_idx
   on public.event_communications (event_id, created_at desc);
 
 -- Privilegios de tabla explicitos (no depender de los automaticos de Supabase).
+-- authenticated solo lee e inserta (bajo RLS); el conteo de entregados lo
+-- actualiza el envio en background via service_role.
 grant select, insert on table public.event_communications to authenticated;
-grant select, insert on table public.event_communications to service_role;
+grant select, insert, update on table public.event_communications to service_role;
 
 alter table public.event_communications enable row level security;
 
