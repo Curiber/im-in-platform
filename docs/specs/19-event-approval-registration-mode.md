@@ -29,8 +29,9 @@ apruebe quien entra antes de emitir la credencial.
 ## No objetivos
 
 - Notificar por email la aprobacion/rechazo (se hara con el feature de
-  comunicaciones, item 2.2). Por ahora la persona ve el estado al volver a su
-  link.
+  comunicaciones, item 2.2). Por ahora la persona ve el estado al volver a abrir
+  su mismo enlace; la pantalla "en revision" se lo dice explicitamente y no
+  promete ningun correo.
 - Un estado `rejected` distinto de `cancelled`: el rechazo reusa `cancelled`
   (libera cupo, excluido en todas las superficies). Si mas adelante se necesita
   distinguirlos en reportes, se agrega entonces.
@@ -58,6 +59,11 @@ register -> pending_verification --(verifica email)-->
 - Aprobar/rechazar son server actions (`approveRegistration`/`rejectRegistration`)
   con guard `eq('status','pending_approval')` para no pisar decisiones
   concurrentes ni reactivar inscripciones ya resueltas.
+- **Cambio de modo approval -> open**: `updateEvent` promueve cualquier
+  `pending_approval` del evento a `registered`. En modo abierto no hay cola ni
+  quien apruebe, asi que dejar solicitudes pendientes las dejaria bloqueadas y
+  ocultas; promoverlas es coherente con "abierto" (ya verificaron email).
+  Idempotente.
 
 ### Capacidad
 

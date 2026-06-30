@@ -332,13 +332,13 @@ function PendingApprovalView({
           {fullName}, confirmamos tu email
         </h1>
         <p className="mt-4 leading-7 text-brand-slate-600">
-          {eventName} requiere aprobacion del organizador. Revisaremos tu
-          solicitud y, cuando sea aprobada, recibiras tu credencial con el QR de
-          acceso.
+          {eventName} requiere aprobacion del organizador. Tu solicitud quedo
+          registrada y sera revisada.
         </p>
         <p className="mt-4 flex items-start justify-center gap-2 text-sm leading-6 text-brand-slate-600">
           <Mail className="mt-0.5 size-4 shrink-0 text-brand-cyan-500" />
-          Si el proveedor de email esta configurado, te avisaremos por correo.
+          Guarda este enlace y vuelve a abrirlo mas tarde: cuando tu inscripcion
+          sea aprobada, aqui mismo apareceran tu credencial y el QR de acceso.
         </p>
       </div>
     </main>

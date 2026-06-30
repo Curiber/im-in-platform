@@ -287,6 +287,26 @@ export async function updateEvent(
     return { error: "No se pudo actualizar el evento." };
   }
 
+  // Al pasar a inscripcion abierta, las solicitudes que esperaban aprobacion ya
+  // no tienen quien las apruebe ni cola donde verse: se promueven a `registered`
+  // (ya verificaron email, asi que tienen perfil). Idempotente y sin efecto si
+  // el modo ya era `open`.
+  if (parsed.data.registrationMode === "open") {
+    const adminClient = createSupabaseAdminClient();
+    const { error: promoteError } = await adminClient
+      .from("event_registrations")
+      .update({ status: "registered" })
+      .eq("event_id", eventId)
+      .eq("status", "pending_approval");
+
+    if (promoteError) {
+      return {
+        error:
+          "El evento se actualizo, pero quedaron solicitudes pendientes sin promover. Reintenta.",
+      };
+    }
+  }
+
   revalidatePath("/admin/events");
   revalidatePath(`/admin/events/${eventId}`);
   redirect(`/admin/events/${eventId}`);
