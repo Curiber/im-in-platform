@@ -28,6 +28,15 @@ create table public.event_profile_options (
 create index event_profile_options_event_kind_idx
   on public.event_profile_options (event_id, kind, position);
 
+-- Privilegios de tabla explicitos (no depender de los privilegios automaticos
+-- de Supabase, que pueden estar desactivados). RLS sigue gobernando el acceso
+-- fila a fila para `authenticated`; `service_role` los ignora y es quien usan
+-- las server actions (escrituras) y las paginas publicas (lecturas).
+grant select, insert, update, delete
+  on table public.event_profile_options to authenticated;
+grant select, insert, update, delete
+  on table public.event_profile_options to service_role;
+
 alter table public.event_profile_options enable row level security;
 
 -- Lectura: cualquier miembro de la organizacion dueña del evento. Las

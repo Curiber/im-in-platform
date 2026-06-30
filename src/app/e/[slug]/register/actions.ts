@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { sendRegistrationVerificationEmail } from "@/lib/email";
 import { getAppUrl } from "@/lib/env";
+import { getEventProfileOptions } from "@/lib/event-profile-options";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   createRegistrationToken,
@@ -78,6 +79,22 @@ export async function registerForEvent(
     return {
       status: "error",
       message: "Este evento no esta disponible para inscripcion.",
+    };
+  }
+
+  // El catalogo de opciones no es solo de UI: se valida el area y los intereses
+  // enviados contra las opciones efectivas del evento (propias o defaults). El
+  // Server Action es invocable directo, asi que no se confia en el formulario.
+  const eventOptions = await getEventProfileOptions(adminClient, event.id);
+  const industryValid = eventOptions.industries.includes(parsed.data.industry);
+  const interestsValid = parsed.data.interests.every((interest) =>
+    eventOptions.interests.includes(interest),
+  );
+
+  if (!industryValid || !interestsValid) {
+    return {
+      status: "error",
+      message: "Selecciona un area y unos intereses validos para este evento.",
     };
   }
 

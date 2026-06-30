@@ -566,9 +566,15 @@ export async function customizeEventProfileOptions(formData: FormData) {
       position: index,
     }));
 
+    // upsert con ignoreDuplicates: dos "Personalizar" simultaneos pueden ver
+    // ambos count=0 y sembrar a la vez; el on-conflict (event_id, kind, label)
+    // hace que el segundo no falle con 23505 en vez de abortar la accion.
     const { error } = await adminClient
       .from("event_profile_options")
-      .insert(rows);
+      .upsert(rows, {
+        onConflict: "event_id,kind,label",
+        ignoreDuplicates: true,
+      });
 
     if (error) {
       throw new Error("No se pudieron personalizar las opciones.");

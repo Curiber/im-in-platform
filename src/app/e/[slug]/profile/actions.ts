@@ -83,8 +83,12 @@ export async function updateAttendeeProfile(formData: FormData) {
     registration.event_id,
   );
   const allowedInterests = new Set(eventOptions.interests);
+  const industryValid = eventOptions.industries.includes(parsed.data.industry);
+  const interestsValid = parsed.data.interests.every((item) =>
+    allowedInterests.has(item),
+  );
 
-  if (!parsed.data.interests.every((item) => allowedInterests.has(item))) {
+  if (!industryValid || !interestsValid) {
     redirect(`${fallbackPath}&profileStatus=invalid`);
   }
 

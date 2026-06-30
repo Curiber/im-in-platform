@@ -55,8 +55,13 @@ vocabulario.
   (`register/page.tsx` → `RegistrationForm`) y perfil (`profile/page.tsx`). El
   directorio, export y tarjeta publica consumen los **valores guardados** en los
   perfiles, no el catalogo, asi que no cambian.
-- La validacion de intereses en `profile/actions.ts` pasa de una lista fija al
-  catalogo efectivo del evento.
+- **Validacion server-side** (no solo UI): tanto el registro (`register/actions.ts`)
+  como el guardado de perfil (`profile/actions.ts`) validan el area y los
+  intereses enviados contra el catalogo efectivo del evento antes de persistir.
+  Los Server Actions son invocables directo, asi que no se confia en el form.
+- El resolver `getEventProfileOptions` falla explicitamente ante un error de la
+  consulta (permisos/migracion/disponibilidad) en vez de degradarse en silencio
+  a los defaults, que mostraria el vocabulario equivocado.
 
 ### UI de administracion
 

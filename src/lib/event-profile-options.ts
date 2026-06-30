@@ -26,13 +26,23 @@ export async function getEventProfileOptions(
   client: SupabaseClient,
   eventId: string,
 ): Promise<EventProfileOptions> {
-  const { data } = await client
+  const { data, error } = await client
     .from("event_profile_options")
     .select("kind, label")
     .eq("event_id", eventId)
     .order("position", { ascending: true })
     .order("label", { ascending: true })
     .returns<OptionRow[]>();
+
+  // Fallar explicitamente: un error de permisos/migracion/disponibilidad NO debe
+  // degradarse en silencio a los defaults, porque haria que un evento
+  // personalizado muestre el vocabulario equivocado. El fallback a defaults solo
+  // aplica cuando la consulta tuvo exito y no hay filas propias.
+  if (error) {
+    throw new Error(
+      `No se pudieron cargar las opciones de perfil del evento: ${error.message}`,
+    );
+  }
 
   const rows = data ?? [];
   const customIndustries = rows
