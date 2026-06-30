@@ -59,11 +59,15 @@ register -> pending_verification --(verifica email)-->
 - Aprobar/rechazar son server actions (`approveRegistration`/`rejectRegistration`)
   con guard `eq('status','pending_approval')` para no pisar decisiones
   concurrentes ni reactivar inscripciones ya resueltas.
-- **Cambio de modo approval -> open**: `updateEvent` promueve cualquier
-  `pending_approval` del evento a `registered`. En modo abierto no hay cola ni
-  quien apruebe, asi que dejar solicitudes pendientes las dejaria bloqueadas y
-  ocultas; promoverlas es coherente con "abierto" (ya verificaron email).
-  Idempotente.
+- **Cambio de modo (RPC atomica)**: `updateEvent` ya no escribe
+  `registration_mode` directo; lo hace la RPC `set_event_registration_mode`
+  (`security definer`, valida rol con `auth.uid()`, lock `for update` del
+  evento). Al pasar a `open` promueve cualquier `pending_approval` del evento a
+  `registered` en la MISMA transaccion: en modo abierto no hay cola ni quien
+  apruebe, asi que dejar solicitudes pendientes las bloquearia y ocultaria;
+  promoverlas es coherente con "abierto" (ya verificaron email). Hacerlo en dos
+  escrituras dejaba estado parcial y promovia con service_role (bypass de RLS);
+  la RPC elimina ambos. Idempotente.
 
 ### Capacidad
 

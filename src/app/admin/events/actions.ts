@@ -264,6 +264,9 @@ export async function updateEvent(
     return { error: parsed.error.issues[0]?.message ?? "Datos invalidos." };
   }
 
+  // El modo de inscripcion NO se toca aqui: cambiarlo (y promover las solicitudes
+  // pendientes al pasar a `open`) debe ser atomico, asi que lo hace la RPC
+  // `set_event_registration_mode` mas abajo, dentro de una transaccion.
   const { error } = await supabase
     .from("events")
     .update({
@@ -276,7 +279,6 @@ export async function updateEvent(
       modality: parsed.data.modality,
       capacity: parsed.data.capacity,
       event_type: parsed.data.eventType,
-      registration_mode: parsed.data.registrationMode,
       networking_enabled: parsed.data.networkingEnabled,
     })
     .eq("id", eventId)
@@ -287,24 +289,19 @@ export async function updateEvent(
     return { error: "No se pudo actualizar el evento." };
   }
 
-  // Al pasar a inscripcion abierta, las solicitudes que esperaban aprobacion ya
-  // no tienen quien las apruebe ni cola donde verse: se promueven a `registered`
-  // (ya verificaron email, asi que tienen perfil). Idempotente y sin efecto si
-  // el modo ya era `open`.
-  if (parsed.data.registrationMode === "open") {
-    const adminClient = createSupabaseAdminClient();
-    const { error: promoteError } = await adminClient
-      .from("event_registrations")
-      .update({ status: "registered" })
-      .eq("event_id", eventId)
-      .eq("status", "pending_approval");
+  // Cambio de modo + promocion de pendientes en una sola transaccion (RPC
+  // security definer que valida el rol con la sesion del usuario, sin
+  // service_role). Idempotente: fijar el mismo modo no tiene efecto adverso.
+  const { error: modeError } = await supabase.rpc(
+    "set_event_registration_mode",
+    {
+      p_event_id: eventId,
+      p_mode: parsed.data.registrationMode,
+    },
+  );
 
-    if (promoteError) {
-      return {
-        error:
-          "El evento se actualizo, pero quedaron solicitudes pendientes sin promover. Reintenta.",
-      };
-    }
+  if (modeError) {
+    return { error: "No se pudo actualizar el modo de inscripcion." };
   }
 
   revalidatePath("/admin/events");
