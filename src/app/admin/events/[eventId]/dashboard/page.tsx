@@ -2,6 +2,7 @@ import { ArrowLeft, Download, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { AutoRefresh } from "@/app/admin/events/[eventId]/dashboard/_components/auto-refresh";
 import { AdminShell } from "@/app/admin/_components/admin-shell";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -32,6 +33,7 @@ type ConnectionMetric = {
 };
 
 type ProfileViewMetric = {
+  viewer_registration_id: string;
   viewed: {
     full_name_snapshot: string;
   } | null;
@@ -81,7 +83,7 @@ export default async function EventDashboardPage({
       supabase
         .from("profile_views")
         .select(
-          "viewed:event_registrations!profile_views_viewed_registration_id_fkey(full_name_snapshot)",
+          "viewer_registration_id, viewed:event_registrations!profile_views_viewed_registration_id_fkey(full_name_snapshot)",
         )
         .eq("event_id", event.id)
         .returns<ProfileViewMetric[]>(),
@@ -104,6 +106,7 @@ export default async function EventDashboardPage({
   const networking = activeRegistrations.filter(
     (registration) => registration.networking_opt_in,
   );
+  const totalConnections = (connections ?? []).length;
   const acceptedConnections = (connections ?? []).filter(
     (connection) => connection.status === "accepted",
   );
@@ -111,6 +114,19 @@ export default async function EventDashboardPage({
   const attendanceRate = activeRegistrations.length
     ? Math.round((checkedIn.length / activeRegistrations.length) * 100)
     : 0;
+
+  // Networking: opt-in sobre inscripciones activas; aceptacion sobre el total de
+  // solicitudes; alcance del directorio via profile_views.
+  const optInRate = activeRegistrations.length
+    ? Math.round((networking.length / activeRegistrations.length) * 100)
+    : 0;
+  const acceptanceRate = totalConnections
+    ? Math.round((acceptedConnections.length / totalConnections) * 100)
+    : 0;
+  const totalViews = (profileViews ?? []).length;
+  const uniqueViewers = new Set(
+    (profileViews ?? []).map((view) => view.viewer_registration_id),
+  ).size;
 
   return (
     <AdminShell>
@@ -131,27 +147,48 @@ export default async function EventDashboardPage({
               Inscripcion, asistencia y networking
             </h2>
           </div>
-          <Link
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white hover:bg-brand-navy-900"
-            href={`/admin/events/${event.id}/export`}
-          >
-            <Download className="size-4" aria-hidden="true" />
-            Descargar CSV
-          </Link>
+          <div className="flex flex-col items-start gap-3 sm:items-end">
+            <AutoRefresh />
+            <Link
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-brand-navy-950 px-4 text-sm font-semibold text-white hover:bg-brand-navy-900"
+              href={`/admin/events/${event.id}/export`}
+            >
+              <Download className="size-4" aria-hidden="true" />
+              Descargar CSV
+            </Link>
+          </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-slate-600">
+          Asistencia
+        </h3>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Inscritos" value={activeRegistrations.length} />
           <MetricCard label="Acreditados" value={checkedIn.length} />
           <MetricCard label="Asistencia" value={`${attendanceRate}%`} />
           <MetricCard label="Cupos" value={event.capacity} />
-          <MetricCard label="Perfiles publicos" value={publicProfiles.length} />
-          <MetricCard label="Networking activo" value={networking.length} />
+        </div>
+
+        <h3 className="mt-8 text-sm font-semibold uppercase tracking-[0.16em] text-brand-slate-600">
+          Networking
+        </h3>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard
-            label="Solicitudes"
-            value={(connections ?? []).length}
+            hint={`${publicProfiles.length} perfiles publicos`}
+            label="Opt-in networking"
+            value={`${optInRate}%`}
           />
-          <MetricCard label="Aceptadas" value={acceptedConnections.length} />
+          <MetricCard label="Solicitudes de conexion" value={totalConnections} />
+          <MetricCard
+            hint={`${acceptanceRate}% de aceptacion`}
+            label="Conexiones aceptadas"
+            value={acceptedConnections.length}
+          />
+          <MetricCard
+            hint={`${uniqueViewers} visitantes unicos`}
+            label="Perfiles vistos"
+            value={totalViews}
+          />
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
@@ -189,9 +226,11 @@ export default async function EventDashboardPage({
 function MetricCard({
   label,
   value,
+  hint,
 }: {
   label: string;
   value: number | string;
+  hint?: string;
 }) {
   return (
     <article className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
@@ -200,6 +239,9 @@ function MetricCard({
         {label}
       </p>
       <p className="mt-3 text-3xl font-semibold">{value}</p>
+      {hint ? (
+        <p className="mt-1 text-xs text-brand-slate-600">{hint}</p>
+      ) : null}
     </article>
   );
 }
