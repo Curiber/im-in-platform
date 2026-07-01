@@ -145,7 +145,7 @@ para eventos reales.
 | 2.2 | Comunicaciones: email a inscritos (confirmados/acreditados) + recordatorio pre-evento | spec 12 §F.5 / spec 20 | `[x]` (Epic 33: broadcast por audiencia + plantilla de recordatorio + historial. Falta scheduling) |
 | 2.3 | Dashboard de networking (conexiones, perfiles vistos, opt-in) + tiempo real/polling | spec 12 §F.6 / spec 21 | `[x]` (Epic 34: secciones Asistencia/Networking, tasas opt-in/aceptacion/alcance, polling suave togglable) |
 | 2.4 | Gestion de reuniones (puntos de encuentro + vista de reuniones del evento) | spec 12 §F.4 / spec 22 | `[~]` (Epic 35 admin: modelo `meeting_locations`/`meetings` + CRUD de ubicaciones + vista read-only. Flujo del asistente en Fase 4.2) |
-| 2.5 | Reportes post-evento (ademas del CSV) | spec 12 §F.7 | `[ ]` |
+| 2.5 | Reportes post-evento (ademas del CSV) | spec 12 §F.7 / spec 23 | `[x]` (Epic 36: reporte imprimible a PDF + resumen CSV agregado, capa `getEventReport`) |
 
 Nota: gestion de equipo (invitar/cambiar rol/quitar) y shell admin ya estan
 hechos (spec 16, epics 40-42; equivalen a epics 29-30 del spec 10).
