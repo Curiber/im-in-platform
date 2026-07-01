@@ -64,23 +64,25 @@ export async function getEventReport(
   supabase: SupabaseClient,
   eventId: string,
 ): Promise<EventReport | null> {
-  const { data: event } = await supabase
+  const { data: event, error: eventError } = await supabase
     .from("events")
     .select("id, name, starts_at, location, capacity")
     .eq("id", eventId)
     .is("deleted_at", null)
     .single<EventReport["event"]>();
 
+  // PGRST116 = no rows (evento inexistente/eliminado) -> notFound. Cualquier otro
+  // error es una falla real: no se degrada en un reporte vacio.
+  if (eventError && eventError.code !== "PGRST116") {
+    throw new Error(`No se pudo cargar el evento: ${eventError.message}`);
+  }
+
   if (!event) {
     return null;
   }
 
-  const [
-    { data: registrations },
-    { data: connections },
-    { data: meetings },
-    { data: viewStatsRows },
-  ] = await Promise.all([
+  const [registrationsRes, connectionsRes, meetingsRes, viewStatsRes] =
+    await Promise.all([
     supabase
       .from("event_registrations")
       .select(
@@ -101,7 +103,22 @@ export async function getEventReport(
     supabase.rpc("event_profile_view_stats", { p_event_id: event.id }),
   ]);
 
-  const viewStats: ProfileViewStats = (viewStatsRows as
+  // Un error en cualquiera de las fuentes NO se degrada en ceros: el reporte
+  // (PDF/CSV) presentaria datos falsos como validos. Se falla explicitamente.
+  if (
+    registrationsRes.error ||
+    connectionsRes.error ||
+    meetingsRes.error ||
+    viewStatsRes.error
+  ) {
+    throw new Error("No se pudieron cargar los datos del reporte.");
+  }
+
+  const registrations = registrationsRes.data;
+  const connections = connectionsRes.data;
+  const meetings = meetingsRes.data;
+
+  const viewStats: ProfileViewStats = (viewStatsRes.data as
     | ProfileViewStats[]
     | null)?.[0] ?? {
     total_views: 0,

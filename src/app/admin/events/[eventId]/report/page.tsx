@@ -187,8 +187,12 @@ function RankingTable({ title, rows }: { title: string; rows: EventReport["topIn
 }
 
 function formatDate(value: string) {
+  // Fija la zona horaria: sin esto, el runtime (Vercel) formatea en UTC y las
+  // horas salen incorridas. El modelo no tiene tz por evento; la plataforma
+  // asume Chile (locale es-CL en toda la app).
   return new Intl.DateTimeFormat("es-CL", {
     dateStyle: "long",
     timeStyle: "short",
+    timeZone: "America/Santiago",
   }).format(new Date(value));
 }

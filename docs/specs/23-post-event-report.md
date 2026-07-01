@@ -59,8 +59,20 @@ stakeholders/sponsors) con asistencia y networking, no una tabla de filas.
 - [x] Link desde el detalle del evento.
 - [ ] Prueba manual: revisar el reporte y ambas descargas con datos reales.
 
+## Integridad y presentacion
+
+- `getEventReport` **falla explicitamente** si cualquier query o la RPC devuelve
+  error, en vez de degradarse en ceros: el reporte (PDF/CSV) nunca presenta datos
+  falsos como validos. `PGRST116` (evento inexistente) sigue siendo `notFound`.
+- Las fechas del reporte se formatean con `timeZone: America/Santiago` fijo: sin
+  eso el runtime (Vercel) formatea en UTC y muestra horas incorrectas. El modelo
+  no tiene tz por evento; la plataforma asume Chile (locale es-CL en toda la app).
+
 ## Riesgos / futuro
 
 - El resumen no incluye graficos; si se piden, se agregan como SVG imprimible.
+- La zona horaria fija (`America/Santiago`) asume eventos en Chile; cuando haya
+  eventos en otras zonas, agregar `time_zone` por evento y usarlo en todo el
+  formateo de fechas de la app (no solo el reporte).
 - Reportes comparativos y branding por evento quedan para despues del hito de
   evento real.
