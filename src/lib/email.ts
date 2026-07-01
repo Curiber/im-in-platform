@@ -181,6 +181,19 @@ export async function sendDemoRequestNotification({
 // ve los emails de los demas. Se envia en lotes para no abrir cientos de
 // conexiones a la vez. Devuelve cuantos se enviaron sin error (best-effort: un
 // fallo individual no aborta el resto).
+const BATCH_SIZE = 100; // Limite del batch API de Resend.
+const MAX_BATCH_ATTEMPTS = 3;
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Envia con el batch API de Resend: 1 request por lote de hasta 100 (en vez de
+// N requests simultaneos). Cada lote lleva una idempotency-key estable por
+// (comunicacion, indice de lote), de modo que un reintento no duplica correos.
+// Reintenta cada lote con backoff ante errores transitorios; devuelve cuantos
+// se enviaron y si TODOS los lotes salieron (para que el outbox sepa si marcar
+// `sent` o `failed`).
 export async function sendEventBroadcastEmails({
   recipients,
   subject,
@@ -192,39 +205,66 @@ export async function sendEventBroadcastEmails({
   const from = process.env.EMAIL_FROM;
 
   if (!apiKey || !from) {
-    return { sent: false as const, delivered: 0 };
+    return { sent: false as const, delivered: 0, allSucceeded: false };
   }
 
   const resend = new Resend(apiKey);
   const text = [body.trim(), "", "—", `${eventName} · via I'm IN`].join("\n");
 
-  const BATCH_SIZE = 20;
   let delivered = 0;
+  let allSucceeded = true;
 
   for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
-    const batch = recipients.slice(i, i + BATCH_SIZE);
-    const results = await Promise.allSettled(
-      batch.map((recipient) =>
-        resend.emails.send(
-          {
-            from,
-            to: recipient.email,
-            subject,
-            text,
-          },
-          // Estable por (envio, destinatario): si este envio se reintenta, el
-          // proveedor deduplica en vez de mandar un segundo correo.
-          { idempotencyKey: `${communicationId}:${recipient.email}` },
-        ),
-      ),
-    );
+    const batchIndex = i / BATCH_SIZE;
+    const chunk = recipients.slice(i, i + BATCH_SIZE);
+    const payload = chunk.map((recipient) => ({
+      from,
+      to: recipient.email,
+      subject,
+      text,
+    }));
 
-    for (const result of results) {
-      if (result.status === "fulfilled" && !result.value.error) {
-        delivered += 1;
+    let batchDelivered = 0;
+    let batchOk = false;
+
+    for (let attempt = 1; attempt <= MAX_BATCH_ATTEMPTS; attempt += 1) {
+      try {
+        const { data, error } = await resend.batch.send(payload, {
+          idempotencyKey: `${communicationId}:batch:${batchIndex}`,
+        });
+
+        if (!error) {
+          // data.data contiene un id por email aceptado.
+          batchDelivered = data?.data?.length ?? chunk.length;
+          batchOk = true;
+          break;
+        }
+
+        console.error(
+          "Lote de comunicacion rechazado",
+          communicationId,
+          batchIndex,
+          error,
+        );
+      } catch (sendError) {
+        console.error(
+          "Error de transporte enviando lote de comunicacion",
+          communicationId,
+          batchIndex,
+          sendError,
+        );
       }
+
+      if (attempt < MAX_BATCH_ATTEMPTS) {
+        await delay(500 * 2 ** (attempt - 1)); // 500ms, 1s, 2s...
+      }
+    }
+
+    delivered += batchDelivered;
+    if (!batchOk) {
+      allSucceeded = false;
     }
   }
 
-  return { sent: true as const, delivered };
+  return { sent: true as const, delivered, allSucceeded };
 }

@@ -22,6 +22,7 @@ type Communication = {
   body: string;
   recipient_count: number;
   delivered_count: number;
+  status: "pending" | "sending" | "sent" | "failed";
   sent_by: string | null;
   created_at: string;
 };
@@ -30,6 +31,13 @@ const audienceLabels: Record<Communication["audience"], string> = {
   all_active: "Todos los inscritos activos",
   confirmed: "Confirmados",
   checked_in: "Acreditados",
+};
+
+const statusLabels: Record<Communication["status"], string> = {
+  pending: "En cola",
+  sending: "Enviando",
+  sent: "Enviado",
+  failed: "Reintentando",
 };
 
 export default async function EventCommunicationsPage({
@@ -64,7 +72,7 @@ export default async function EventCommunicationsPage({
   const { data: communications } = await supabase
     .from("event_communications")
     .select(
-      "id, audience, subject, body, recipient_count, delivered_count, sent_by, created_at",
+      "id, audience, subject, body, recipient_count, delivered_count, status, sent_by, created_at",
     )
     .eq("event_id", event.id)
     .order("created_at", { ascending: false })
@@ -144,12 +152,21 @@ export default async function EventCommunicationsPage({
                     <p className="font-semibold text-brand-navy-950">
                       {communication.subject}
                     </p>
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-brand-slate-600">
-                      <Users className="size-3.5" aria-hidden="true" />
-                      {communication.delivered_count}/
-                      {communication.recipient_count} entregados ·{" "}
-                      {audienceLabels[communication.audience]}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadgeClass(
+                          communication.status,
+                        )}`}
+                      >
+                        {statusLabels[communication.status]}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-brand-slate-600">
+                        <Users className="size-3.5" aria-hidden="true" />
+                        {communication.delivered_count}/
+                        {communication.recipient_count} entregados ·{" "}
+                        {audienceLabels[communication.audience]}
+                      </span>
+                    </div>
                   </div>
                   <p className="mt-2 whitespace-pre-line text-sm leading-6 text-brand-slate-600">
                     {communication.body}
@@ -203,6 +220,16 @@ function StatusBanner({
       {messages[status] ?? messages.error}
     </p>
   );
+}
+
+function statusBadgeClass(status: Communication["status"]) {
+  if (status === "sent") {
+    return "bg-brand-mint-300/30 text-brand-navy-950";
+  }
+  if (status === "failed") {
+    return "bg-red-50 text-red-700";
+  }
+  return "bg-brand-surface-soft text-brand-slate-600";
 }
 
 function formatDate(value: string) {

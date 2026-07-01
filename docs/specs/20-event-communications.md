@@ -36,13 +36,35 @@ real hace falta poder mandar un recordatorio o un aviso a la audiencia.
 
 ## Decisiones
 
-### Modelo de datos
+### Modelo de datos (outbox durable)
 
 - `event_communications` (event_id, audience, subject, body, recipient_count,
-  delivered_count, idempotency_key, sent_by, created_at). `audience` enum
-  `all_active|confirmed|checked_in`. `unique (idempotency_key)`.
+  delivered_count, `status`, `attempts`, `claimed_at`, `last_error`,
+  idempotency_key, sent_by, created_at). `audience` enum
+  `all_active|confirmed|checked_in`; `status` enum
+  `pending|sending|sent|failed`. `unique (idempotency_key)`.
+- La tabla es un **outbox**: la accion solo registra la comunicacion como
+  `pending`; el envio lo hace un procesador que reclama filas de forma atomica.
 - RLS: miembros de la organizacion leen; owner/admin/event_admin insertan. El
-  conteo de entregados lo actualiza el envio en background via service_role.
+  estado/conteo lo actualiza el procesador via service_role.
+
+### Durabilidad (outbox + claim atomico)
+
+- Un crash entre el registro y el envio NO pierde el correo: la fila queda
+  `pending`/`sending` y se retoma.
+- `claim_communications(limit, stale, max)` (RPC `security definer`) reclama
+  atomicamente con `for update skip locked` las filas `pending`, las `sending`
+  vencidas (intento previo muerto) y las `failed` con intentos < max, marcandolas
+  `sending`. Dos procesadores no pisan la misma fila.
+- Dos disparadores del mismo procesador:
+  - **Inmediato**: `after()` de la accion procesa unas pocas (baja latencia).
+  - **Respaldo**: cron cada 5 min -> `GET /api/communications/dispatch`
+    (protegido por `CRON_SECRET`; cerrado con 503 si no esta configurado)
+    procesa lo pendiente/atascado.
+- Al terminar, la fila se marca `sent` (todos los lotes ok) o `failed`
+  (reintentable). Persistir el estado se reintenta; si aun asi falla, la fila
+  queda `sending` y el cron la retoma como stale (sin doble envio por la
+  idempotency-key).
 
 ### Idempotencia
 
@@ -71,18 +93,17 @@ Mapean a estados de inscripcion **activos** (nunca a pending/cancelled):
 - La server action valida rol, calcula la audiencia y **registra** la
   comunicacion (lectura/insercion bajo RLS con la sesion del usuario, sin
   service_role).
-- El email se manda **individualmente a cada destinatario** (cada uno recibe su
-  propio correo; no se comparten emails entre asistentes), en lotes de 20, y
-  **despues de responder** (`after`) para no bloquear ni depender del tamaño de
-  la lista. Best-effort: un fallo individual no aborta el resto; sin proveedor
-  configurado, la comunicacion se registra pero no se entrega (mismo patron del
-  resto del proyecto).
+- El email se manda con el **batch API** de Resend (1 request por lote de hasta
+  100, en vez de N requests simultaneos), con **reintentos y backoff** por lote
+  ante errores transitorios. Cada uno recibe su propio correo; no se comparten
+  emails entre asistentes. Sin proveedor configurado, la fila queda `failed`
+  (se reintenta si luego se configura).
 - **No se reporta "entregado a N" de antemano**: la respuesta dice "en cola,
-  enviando a N". `delivered_count` se persiste cuando termina el envio y se
-  muestra en el historial (`entregados X/N`). Si el envio falla o no hay
-  proveedor, queda en 0, sin afirmar una entrega que no ocurrio.
-- Si la consulta de destinatarios falla (RLS/DB), la accion **aborta** con error
-  en vez de tratarlo como audiencia vacia y registrar un envio falso.
+  enviando a N". `delivered_count` y `status` se persisten cuando termina el
+  envio y se muestran en el historial (`entregados X/N` + estado). Si el envio
+  falla, no se afirma una entrega que no ocurrio.
+- Si la consulta de audiencia falla (RLS/DB), la accion **aborta** con error en
+  vez de tratarla como vacia y registrar un envio falso.
 
 ### UI
 
@@ -110,10 +131,17 @@ Mapean a estados de inscripcion **activos** (nunca a pending/cancelled):
 - [ ] Prueba manual: enviar a cada audiencia y verificar conteo, historial y
       recepcion (con proveedor configurado).
 
+## Operacion
+
+- En produccion, definir `CRON_SECRET` y habilitar el cron
+  (`vercel.json` -> `/api/communications/dispatch`, cada 5 min) para la entrega
+  durable. Sin el cron, el envio depende solo del intento inmediato (`after`) y
+  una comunicacion que quede `pending`/`failed` no se reintenta sola.
+
 ## Riesgos / futuro
 
-- Sin `communication_deliveries` no hay reintentos ni estado por destinatario:
-  si el proveedor falla a mitad, no se sabe a quien no llego. Aceptable para v1;
-  se agrega cuando haya volumen real.
-- Programar recordatorios (p.ej. 24h antes) requiere scheduling (pg_cron /
-  Scheduled Functions); queda para una iteracion posterior.
+- El estado es por comunicacion, no por destinatario (`communication_deliveries`):
+  se sabe si todos los lotes salieron, pero no que direccion individual rebota.
+  Aceptable para v1; se agrega cuando haya volumen real.
+- Programar recordatorios (p.ej. 24h antes) requiere scheduling adicional; queda
+  para una iteracion posterior. La plantilla de recordatorio es manual.
