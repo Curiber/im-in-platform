@@ -32,11 +32,10 @@ type ConnectionMetric = {
   status: "pending" | "accepted" | "rejected" | "cancelled";
 };
 
-type ProfileViewMetric = {
-  viewer_registration_id: string;
-  viewed: {
-    full_name_snapshot: string;
-  } | null;
+type ProfileViewStats = {
+  total_views: number;
+  unique_viewers: number;
+  top_viewed: { name: string; views: number }[];
 };
 
 export default async function EventDashboardPage({
@@ -66,7 +65,7 @@ export default async function EventDashboardPage({
     notFound();
   }
 
-  const [{ data: registrations }, { data: connections }, { data: profileViews }] =
+  const [{ data: registrations }, { data: connections }, { data: viewStatsRows }] =
     await Promise.all([
       supabase
         .from("event_registrations")
@@ -80,14 +79,17 @@ export default async function EventDashboardPage({
         .select("status")
         .eq("event_id", event.id)
         .returns<ConnectionMetric[]>(),
-      supabase
-        .from("profile_views")
-        .select(
-          "viewer_registration_id, viewed:event_registrations!profile_views_viewed_registration_id_fkey(full_name_snapshot)",
-        )
-        .eq("event_id", event.id)
-        .returns<ProfileViewMetric[]>(),
+      // Agregacion en la DB (count, count distinct, ranking top-8): evita bajar
+      // toda profile_views (tabla sin limite) en cada refresco.
+      supabase.rpc("event_profile_view_stats", { p_event_id: event.id }),
     ]);
+
+  const viewStats: ProfileViewStats =
+    (viewStatsRows as ProfileViewStats[] | null)?.[0] ?? {
+      total_views: 0,
+      unique_viewers: 0,
+      top_viewed: [],
+    };
 
   // "Activas" = ya confirmadas (verificadas y, si el evento lo exige, aprobadas).
   // Excluye pending_verification / pending_approval / cancelled / no_show para
@@ -123,10 +125,8 @@ export default async function EventDashboardPage({
   const acceptanceRate = totalConnections
     ? Math.round((acceptedConnections.length / totalConnections) * 100)
     : 0;
-  const totalViews = (profileViews ?? []).length;
-  const uniqueViewers = new Set(
-    (profileViews ?? []).map((view) => view.viewer_registration_id),
-  ).size;
+  const totalViews = viewStats.total_views;
+  const uniqueViewers = viewStats.unique_viewers;
 
   return (
     <AdminShell>
@@ -211,11 +211,10 @@ export default async function EventDashboardPage({
           />
           <Ranking
             title="Perfiles mas vistos"
-            rows={rank(
-              (profileViews ?? [])
-                .map((view) => view.viewed?.full_name_snapshot)
-                .filter((name): name is string => Boolean(name)),
-            )}
+            rows={viewStats.top_viewed.map((item) => ({
+              label: item.name,
+              value: item.views,
+            }))}
           />
         </div>
       </section>

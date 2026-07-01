@@ -2,7 +2,7 @@
 
 import { RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 // Polling suave del dashboard: refresca los datos del servidor
 // (`router.refresh()`) en un intervalo, sin recargar la pagina. Togglable, para
@@ -14,6 +14,22 @@ export function AutoRefresh() {
   const router = useRouter();
   const [enabled, setEnabled] = useState(true);
   const [refreshedAt, setRefreshedAt] = useState<Date | null>(null);
+  // `router.refresh()` dentro de una transicion: isPending sigue verdadero hasta
+  // que el re-render con datos frescos COMPLETA. Asi el timestamp marca el fin,
+  // no el inicio, y se evita solapar refrescos.
+  const [isPending, startTransition] = useTransition();
+  const pendingRef = useRef(false);
+  const wasPending = useRef(false);
+
+  useEffect(() => {
+    pendingRef.current = isPending;
+
+    if (wasPending.current && !isPending) {
+      setRefreshedAt(new Date());
+    }
+
+    wasPending.current = isPending;
+  }, [isPending]);
 
   useEffect(() => {
     if (!enabled) {
@@ -21,8 +37,10 @@ export function AutoRefresh() {
     }
 
     const id = setInterval(() => {
-      router.refresh();
-      setRefreshedAt(new Date());
+      // No arrancar un refresco si el anterior sigue en curso.
+      if (!pendingRef.current) {
+        startTransition(() => router.refresh());
+      }
     }, INTERVAL_MS);
 
     return () => clearInterval(id);
@@ -30,16 +48,17 @@ export function AutoRefresh() {
 
   return (
     <div className="flex items-center gap-3">
-      {refreshedAt ? (
-        <span className="text-xs text-brand-slate-600">
-          Actualizado{" "}
-          {refreshedAt.toLocaleTimeString("es-CL", {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          })}
-        </span>
-      ) : null}
+      <span className="text-xs text-brand-slate-600">
+        {isPending
+          ? "Actualizando…"
+          : refreshedAt
+            ? `Actualizado ${refreshedAt.toLocaleTimeString("es-CL", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              })}`
+            : ""}
+      </span>
       <button
         aria-pressed={enabled}
         className={`inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-semibold transition ${
@@ -51,7 +70,9 @@ export function AutoRefresh() {
         type="button"
       >
         <RefreshCw
-          className={`size-4 ${enabled ? "text-brand-cyan-500" : ""}`}
+          className={`size-4 ${isPending ? "animate-spin" : ""} ${
+            enabled ? "text-brand-cyan-500" : ""
+          }`}
           aria-hidden="true"
         />
         {enabled ? "Auto-actualizar activo" : "Auto-actualizar en pausa"}

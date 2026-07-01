@@ -36,8 +36,12 @@ actualice solo, sin recargar.
 ## Decisiones
 
 - Los datos ya existen en DB (`event_registrations`, `connection_requests`,
-  `profile_views`): el dashboard solo agrega la capa de agregacion. Sin nuevas
-  tablas ni migraciones.
+  `profile_views`): el dashboard solo agrega la capa de agregacion.
+- `profile_views` crece sin limite (una fila por vista), asi que NO se baja
+  entera: una RPC `event_profile_view_stats` (`security definer`, valida
+  membresia) hace `count`, `count distinct` de visitantes y el ranking top-8 en
+  la DB, devolviendo un resultado pequeño y constante. Indice
+  `(event_id, viewer_registration_id)` para el distinct.
 - **Activos** = `registered` + `checked_in` (base de las tasas), consistente con
   el resto del admin.
 - Metricas nuevas:
@@ -46,9 +50,12 @@ actualice solo, sin recargar.
   - Conexiones aceptadas + tasa = aceptadas / total de solicitudes.
   - Perfiles vistos = filas de `profile_views`; visitantes unicos = distinct
     `viewer_registration_id` (hint).
-- **Polling**: componente cliente `AutoRefresh` que llama `router.refresh()`
-  cada 15s, togglable, con hora de ultima actualizacion. La pagina sigue siendo
-  server component `force-dynamic`, asi que el refresh re-consulta.
+- **Polling**: componente cliente `AutoRefresh` que refresca cada 15s,
+  togglable. Usa `useTransition`: `router.refresh()` va dentro de la transicion,
+  cuyo `isPending` sigue verdadero hasta que el re-render con datos frescos
+  COMPLETA. Asi la hora de "Actualizado" marca el fin (no el inicio) y un
+  intervalo no arranca un refresco si el anterior sigue en curso (sin solapes).
+  La pagina sigue siendo server component `force-dynamic`.
 
 ## Criterios de aceptacion
 
@@ -65,8 +72,8 @@ actualice solo, sin recargar.
 
 ## Riesgos / futuro
 
-- Visitantes unicos se calcula trayendo los `viewer_registration_id` y
-  deduplicando en memoria; para volumenes muy altos conviene un count distinct
-  en DB (RPC). Aceptable para eventos medianos.
+- `event_registrations` y `connection_requests` aun se traen enteras (acotadas
+  por cupo y por asistentes); si algun evento las hace pesadas, se agregan por
+  RPC como `profile_views`.
 - El polling cada 15s multiplica las consultas del dashboard; si crece el costo,
   subir el intervalo o pasar a Realtime.
