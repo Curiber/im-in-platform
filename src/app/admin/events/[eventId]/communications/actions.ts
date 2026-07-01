@@ -74,25 +74,34 @@ export async function sendEventCommunication(formData: FormData) {
     redirect(`${redirectBase}?status=forbidden`);
   }
 
-  // Tamaño de la audiencia (para el chequeo de vacio y recipient_count). Un
-  // error de RLS/DB NO se degrada en audiencia vacia: se aborta.
-  const { count, error: countError } = await supabase
+  // Snapshot de destinatarios al encolar, en orden estable (por email). El
+  // despacho envia contra este snapshot, no recomputa la audiencia: asi altas/
+  // bajas o reintentos no cambian el set ni el orden de los lotes. Un error de
+  // RLS/DB NO se degrada en audiencia vacia: se aborta.
+  const { data: recipientRows, error: recipientsError } = await supabase
     .from("event_registrations")
-    .select("id", { count: "exact", head: true })
+    .select("email, full_name_snapshot")
     .eq("event_id", parsed.data.eventId)
-    .in("status", audienceStatuses[parsed.data.audience]);
+    .in("status", audienceStatuses[parsed.data.audience])
+    .order("email", { ascending: true })
+    .returns<{ email: string; full_name_snapshot: string }[]>();
 
-  if (countError) {
+  if (recipientsError) {
     redirect(`${redirectBase}?status=error`);
   }
 
-  if (!count || count === 0) {
+  const recipients = (recipientRows ?? []).map((row) => ({
+    email: row.email,
+    name: row.full_name_snapshot,
+  }));
+
+  if (recipients.length === 0) {
     redirect(`${redirectBase}?status=empty`);
   }
 
-  // Registra la comunicacion como `pending` (outbox) con su idempotency_key: un
-  // doble submit con el mismo requestId choca contra el unique y no genera una
-  // segunda fila ni un segundo envio.
+  // Registra la comunicacion como `pending` (outbox) con su idempotency_key y el
+  // snapshot de destinatarios: un doble submit con el mismo requestId choca
+  // contra el unique y no genera una segunda fila ni un segundo envio.
   const { error: insertError } = await supabase
     .from("event_communications")
     .insert({
@@ -100,7 +109,8 @@ export async function sendEventCommunication(formData: FormData) {
       audience: parsed.data.audience,
       subject: parsed.data.subject,
       body: parsed.data.body,
-      recipient_count: count,
+      recipients,
+      recipient_count: recipients.length,
       idempotency_key: parsed.data.requestId,
       sent_by: user.id,
     });
@@ -127,5 +137,5 @@ export async function sendEventCommunication(formData: FormData) {
   });
 
   revalidatePath(redirectBase);
-  redirect(`${redirectBase}?status=queued&total=${count}`);
+  redirect(`${redirectBase}?status=queued&total=${recipients.length}`);
 }

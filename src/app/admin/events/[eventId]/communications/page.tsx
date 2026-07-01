@@ -21,7 +21,7 @@ type Communication = {
   subject: string;
   body: string;
   recipient_count: number;
-  delivered_count: number;
+  accepted_count: number;
   status: "pending" | "sending" | "sent" | "failed";
   sent_by: string | null;
   created_at: string;
@@ -72,7 +72,7 @@ export default async function EventCommunicationsPage({
   const { data: communications } = await supabase
     .from("event_communications")
     .select(
-      "id, audience, subject, body, recipient_count, delivered_count, status, sent_by, created_at",
+      "id, audience, subject, body, recipient_count, accepted_count, status, sent_by, created_at",
     )
     .eq("event_id", event.id)
     .order("created_at", { ascending: false })
@@ -162,8 +162,8 @@ export default async function EventCommunicationsPage({
                       </span>
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-brand-slate-600">
                         <Users className="size-3.5" aria-hidden="true" />
-                        {communication.delivered_count}/
-                        {communication.recipient_count} entregados ·{" "}
+                        {communication.accepted_count}/
+                        {communication.recipient_count} aceptados ·{" "}
                         {audienceLabels[communication.audience]}
                       </span>
                     </div>

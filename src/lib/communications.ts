@@ -12,17 +12,20 @@ export const audienceStatuses: Record<CommunicationAudience, string[]> = {
   checked_in: ["checked_in"],
 };
 
+type SnapshotRecipient = { email: string; name: string };
+
 type ClaimedCommunication = {
   id: string;
   event_id: string;
   audience: CommunicationAudience;
   subject: string;
   body: string;
+  recipients: SnapshotRecipient[] | null;
 };
 
 type StatusPatch = {
   status: "sent" | "failed";
-  delivered_count?: number;
+  accepted_count?: number;
   last_error?: string | null;
 };
 
@@ -61,31 +64,15 @@ async function dispatchCommunication(
     .eq("id", communication.event_id)
     .single<{ name: string }>();
 
-  const { data: recipientRows, error: recipientsError } = await adminClient
-    .from("event_registrations")
-    .select("email, full_name_snapshot")
-    .eq("event_id", communication.event_id)
-    .in("status", audienceStatuses[communication.audience])
-    .returns<{ email: string; full_name_snapshot: string }[]>();
-
-  if (recipientsError) {
-    // No se pudo resolver la audiencia: falla (reintentable por el cron).
-    await markCommunication(adminClient, communication.id, {
-      status: "failed",
-      last_error: `recipients: ${recipientsError.message}`,
-    });
-    return;
-  }
-
-  const recipients = (recipientRows ?? []).map((row) => ({
-    email: row.email,
-    name: row.full_name_snapshot,
-  }));
+  // Se envia contra el snapshot capturado al encolar (orden y set estables), no
+  // recomputando la audiencia: asi los lotes y sus idempotency-keys por indice
+  // son identicos entre reintentos.
+  const recipients = communication.recipients ?? [];
 
   if (recipients.length === 0) {
     await markCommunication(adminClient, communication.id, {
       status: "sent",
-      delivered_count: 0,
+      accepted_count: 0,
     });
     return;
   }
@@ -108,7 +95,7 @@ async function dispatchCommunication(
 
   await markCommunication(adminClient, communication.id, {
     status: result.allSucceeded ? "sent" : "failed",
-    delivered_count: result.delivered,
+    accepted_count: result.accepted,
     last_error: result.allSucceeded ? null : "algunos lotes fallaron",
   });
 }

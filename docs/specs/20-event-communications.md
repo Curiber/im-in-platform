@@ -38,13 +38,20 @@ real hace falta poder mandar un recordatorio o un aviso a la audiencia.
 
 ### Modelo de datos (outbox durable)
 
-- `event_communications` (event_id, audience, subject, body, recipient_count,
-  delivered_count, `status`, `attempts`, `claimed_at`, `last_error`,
-  idempotency_key, sent_by, created_at). `audience` enum
-  `all_active|confirmed|checked_in`; `status` enum
+- `event_communications` (event_id, audience, subject, body, `recipients`
+  (snapshot jsonb), recipient_count, `accepted_count`, `status`, `attempts`,
+  `claimed_at`, `last_error`, idempotency_key, sent_by, created_at). `audience`
+  enum `all_active|confirmed|checked_in`; `status` enum
   `pending|sending|sent|failed`. `unique (idempotency_key)`.
 - La tabla es un **outbox**: la accion solo registra la comunicacion como
   `pending`; el envio lo hace un procesador que reclama filas de forma atomica.
+- **Snapshot de destinatarios**: al encolar se guarda la lista `[{email,name}]`
+  en orden estable (por email). El despacho envia contra ese snapshot, no
+  recomputa la audiencia; asi altas/bajas o reintentos no cambian el set ni el
+  orden, y los lotes (con idempotency-key por indice) quedan alineados entre
+  reintentos.
+- `accepted_count` cuenta los correos que el proveedor **acepto**, no entrega
+  confirmada (eso requeriria webhooks de Resend; futuro). La UI dice "aceptados".
 - RLS: miembros de la organizacion leen; owner/admin/event_admin insertan. El
   estado/conteo lo actualiza el procesador via service_role.
 
@@ -54,8 +61,11 @@ real hace falta poder mandar un recordatorio o un aviso a la audiencia.
   `pending`/`sending` y se retoma.
 - `claim_communications(limit, stale, max)` (RPC `security definer`) reclama
   atomicamente con `for update skip locked` las filas `pending`, las `sending`
-  vencidas (intento previo muerto) y las `failed` con intentos < max, marcandolas
-  `sending`. Dos procesadores no pisan la misma fila.
+  vencidas (intento previo muerto) **con intentos < max** y las `failed` con
+  intentos < max, marcandolas `sending`. El tope de intentos aplica tambien a
+  las `sending` vencidas: sin eso, un job que muere siempre a mitad se
+  reclamaria indefinidamente y, tras expirar la TTL de idempotencia del
+  proveedor, duplicaria. Al agotar intentos la fila deja de reclamarse.
 - Dos disparadores del mismo procesador:
   - **Inmediato**: `after()` de la accion procesa unas pocas (baja latencia).
   - **Respaldo**: cron cada 5 min -> `GET /api/communications/dispatch`

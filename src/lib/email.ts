@@ -205,13 +205,13 @@ export async function sendEventBroadcastEmails({
   const from = process.env.EMAIL_FROM;
 
   if (!apiKey || !from) {
-    return { sent: false as const, delivered: 0, allSucceeded: false };
+    return { sent: false as const, accepted: 0, allSucceeded: false };
   }
 
   const resend = new Resend(apiKey);
   const text = [body.trim(), "", "—", `${eventName} · via I'm IN`].join("\n");
 
-  let delivered = 0;
+  let accepted = 0;
   let allSucceeded = true;
 
   for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
@@ -224,7 +224,7 @@ export async function sendEventBroadcastEmails({
       text,
     }));
 
-    let batchDelivered = 0;
+    let batchAccepted = 0;
     let batchOk = false;
 
     for (let attempt = 1; attempt <= MAX_BATCH_ATTEMPTS; attempt += 1) {
@@ -234,8 +234,9 @@ export async function sendEventBroadcastEmails({
         });
 
         if (!error) {
-          // data.data contiene un id por email aceptado.
-          batchDelivered = data?.data?.length ?? chunk.length;
+          // data.data contiene un id por email ACEPTADO por el proveedor (no es
+          // entrega confirmada).
+          batchAccepted = data?.data?.length ?? chunk.length;
           batchOk = true;
           break;
         }
@@ -260,11 +261,11 @@ export async function sendEventBroadcastEmails({
       }
     }
 
-    delivered += batchDelivered;
+    accepted += batchAccepted;
     if (!batchOk) {
       allSucceeded = false;
     }
   }
 
-  return { sent: true as const, delivered, allSucceeded };
+  return { sent: true as const, accepted, allSucceeded };
 }

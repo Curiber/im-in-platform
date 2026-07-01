@@ -36,7 +36,14 @@ create table public.event_communications (
   subject text not null,
   body text not null,
   recipient_count integer not null default 0,
-  delivered_count integer not null default 0,
+  -- Snapshot de destinatarios [{email, name}] capturado al encolar, en orden
+  -- estable. El despacho envia contra este snapshot (no recomputa la audiencia),
+  -- de modo que altas/bajas o reintentos no cambian el set ni el orden: los
+  -- lotes son estables y sus idempotency-keys por indice siguen alineadas.
+  recipients jsonb not null default '[]'::jsonb,
+  -- Cuantos correos ACEPTO el proveedor (no entrega confirmada; eso requeriria
+  -- webhooks). Se llama accepted, no delivered, para no afirmar de mas.
+  accepted_count integer not null default 0,
   status public.communication_status not null default 'pending',
   attempts integer not null default 0,
   claimed_at timestamptz,
@@ -136,6 +143,7 @@ begin
       or (
         c2.status = 'sending'
         and c2.claimed_at < now() - make_interval(secs => p_stale_seconds)
+        and c2.attempts < p_max_attempts
       )
       or (c2.status = 'failed' and c2.attempts < p_max_attempts)
     order by c2.created_at
