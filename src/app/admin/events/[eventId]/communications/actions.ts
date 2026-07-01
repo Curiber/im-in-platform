@@ -5,10 +5,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { z } from "zod";
 
-import {
-  audienceStatuses,
-  processPendingCommunications,
-} from "@/lib/communications";
+import { processPendingCommunications } from "@/lib/communications";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -20,7 +17,7 @@ const communicationSchema = z.object({
   subject: z.string().trim().min(3, "Ingresa un asunto.").max(200),
   body: z.string().trim().min(10, "El mensaje es muy corto.").max(5000),
   // Clave de idempotencia generada por el formulario (ver composer). Un doble
-  // submit reusa la misma clave -> el insert choca y no se reenvia.
+  // submit reusa la misma clave -> el insert de la RPC choca y no se reenvia.
   requestId: z.string().uuid(),
 });
 
@@ -49,77 +46,38 @@ export async function sendEventCommunication(formData: FormData) {
     redirect(`${redirectBase}?status=invalid`);
   }
 
-  // Autorizacion: debe ser miembro de la organizacion dueña del evento (los tres
-  // roles gestionan eventos). La RLS de event_communications exige el mismo rol
-  // al insertar.
-  const { data: event } = await supabase
-    .from("events")
-    .select("id, organization_id")
-    .eq("id", parsed.data.eventId)
-    .is("deleted_at", null)
-    .single<{ id: string; organization_id: string }>();
+  // Encolado seguro: la RPC (security definer) valida el rol y COMPUTA el
+  // snapshot de destinatarios server-side. El cliente no puede inyectar una
+  // audiencia arbitraria (no tiene INSERT directo sobre la tabla).
+  const { data, error } = await supabase.rpc("enqueue_event_communication", {
+    p_event_id: parsed.data.eventId,
+    p_audience: parsed.data.audience,
+    p_subject: parsed.data.subject,
+    p_body: parsed.data.body,
+    p_idempotency_key: parsed.data.requestId,
+  });
 
-  if (!event) {
+  if (error) {
+    if (error.code === "42501") {
+      redirect(`${redirectBase}?status=forbidden`);
+    }
+    console.error("No se pudo encolar la comunicacion", error);
     redirect(`${redirectBase}?status=error`);
   }
 
-  const { data: membership } = await supabase
-    .from("organization_users")
-    .select("role")
-    .eq("organization_id", event.organization_id)
-    .eq("user_id", user.id)
-    .single<{ role: string }>();
+  const row = Array.isArray(data) ? data[0] : data;
+  const result = row?.result as string | undefined;
+  const total = (row?.recipient_count as number | undefined) ?? 0;
 
-  if (!membership) {
-    redirect(`${redirectBase}?status=forbidden`);
-  }
-
-  // Snapshot de destinatarios al encolar, en orden estable (por email). El
-  // despacho envia contra este snapshot, no recomputa la audiencia: asi altas/
-  // bajas o reintentos no cambian el set ni el orden de los lotes. Un error de
-  // RLS/DB NO se degrada en audiencia vacia: se aborta.
-  const { data: recipientRows, error: recipientsError } = await supabase
-    .from("event_registrations")
-    .select("email, full_name_snapshot")
-    .eq("event_id", parsed.data.eventId)
-    .in("status", audienceStatuses[parsed.data.audience])
-    .order("email", { ascending: true })
-    .returns<{ email: string; full_name_snapshot: string }[]>();
-
-  if (recipientsError) {
-    redirect(`${redirectBase}?status=error`);
-  }
-
-  const recipients = (recipientRows ?? []).map((row) => ({
-    email: row.email,
-    name: row.full_name_snapshot,
-  }));
-
-  if (recipients.length === 0) {
+  if (result === "empty") {
     redirect(`${redirectBase}?status=empty`);
   }
 
-  // Registra la comunicacion como `pending` (outbox) con su idempotency_key y el
-  // snapshot de destinatarios: un doble submit con el mismo requestId choca
-  // contra el unique y no genera una segunda fila ni un segundo envio.
-  const { error: insertError } = await supabase
-    .from("event_communications")
-    .insert({
-      event_id: parsed.data.eventId,
-      audience: parsed.data.audience,
-      subject: parsed.data.subject,
-      body: parsed.data.body,
-      recipients,
-      recipient_count: recipients.length,
-      idempotency_key: parsed.data.requestId,
-      sent_by: user.id,
-    });
+  if (result === "duplicate") {
+    redirect(`${redirectBase}?status=duplicate`);
+  }
 
-  if (insertError) {
-    // 23505 = misma idempotency_key: ya se registro este envio, no se duplica.
-    if (insertError.code === "23505") {
-      redirect(`${redirectBase}?status=duplicate`);
-    }
+  if (result !== "ok") {
     redirect(`${redirectBase}?status=error`);
   }
 
@@ -137,5 +95,5 @@ export async function sendEventCommunication(formData: FormData) {
   });
 
   revalidatePath(redirectBase);
-  redirect(`${redirectBase}?status=queued&total=${recipients.length}`);
+  redirect(`${redirectBase}?status=queued&total=${total}`);
 }

@@ -72,9 +72,12 @@ create index event_communications_dispatch_idx
   where status in ('pending', 'sending', 'failed');
 
 -- Privilegios de tabla explicitos (no depender de los automaticos de Supabase).
--- authenticated solo lee e inserta (bajo RLS); el conteo de entregados lo
--- actualiza el envio en background via service_role.
-grant select, insert on table public.event_communications to authenticated;
+-- authenticated SOLO lee: el alta se hace via enqueue_event_communication
+-- (security definer), que valida rol y computa el snapshot server-side. Asi un
+-- manager no puede insertar por la Data API una fila con `recipients` fuera de
+-- la audiencia (que el worker enviaria a ciegas). El envio en background
+-- actualiza estado/conteo via service_role.
+grant select on table public.event_communications to authenticated;
 grant select, insert, update on table public.event_communications to service_role;
 
 alter table public.event_communications enable row level security;
@@ -93,23 +96,105 @@ using (
   )
 );
 
--- Insercion: owner/admin/event_admin de la organizacion dueña del evento.
-create policy "org managers create event communications"
-on public.event_communications
-for insert
-to authenticated
-with check (
-  exists (
-    select 1
-    from public.events e
-    where e.id = event_communications.event_id
-      and app_private.has_organization_role(
-        e.organization_id,
-        auth.uid(),
-        array['owner', 'admin', 'event_admin']::public.organization_role[]
-      )
-  )
-);
+-- No hay policy de INSERT para authenticated: el alta pasa solo por la RPC
+-- enqueue_event_communication (definer). service_role (worker) inserta sin RLS.
+
+-- Encola una comunicacion de forma segura: valida que el llamador gestione el
+-- evento y COMPUTA el snapshot de destinatarios server-side (el cliente no lo
+-- provee). Devuelve el resultado para que la accion distinga vacio/duplicado.
+create or replace function public.enqueue_event_communication(
+  p_event_id uuid,
+  p_audience public.communication_audience,
+  p_subject text,
+  p_body text,
+  p_idempotency_key uuid
+)
+returns table (result text, recipient_count integer)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_caller uuid := auth.uid();
+  v_org_id uuid;
+  v_statuses public.registration_status[];
+  v_recipients jsonb;
+  v_count integer;
+begin
+  if v_caller is null then
+    raise exception 'No autenticado' using errcode = '28000';
+  end if;
+
+  select organization_id
+  into v_org_id
+  from public.events
+  where id = p_event_id and deleted_at is null;
+
+  if not found then
+    raise exception 'Evento invalido' using errcode = 'P0002';
+  end if;
+
+  if not app_private.has_organization_role(
+       v_org_id,
+       v_caller,
+       array['owner', 'admin', 'event_admin']::public.organization_role[]
+     ) then
+    raise exception 'Sin permisos sobre este evento' using errcode = '42501';
+  end if;
+
+  v_statuses := case p_audience
+    when 'all_active' then
+      array['registered', 'checked_in']::public.registration_status[]
+    when 'confirmed' then array['registered']::public.registration_status[]
+    when 'checked_in' then array['checked_in']::public.registration_status[]
+  end;
+
+  -- Snapshot autoritativo de la audiencia, orden estable por email.
+  select
+    coalesce(
+      jsonb_agg(
+        jsonb_build_object('email', r.email, 'name', r.full_name_snapshot)
+        order by r.email
+      ),
+      '[]'::jsonb
+    ),
+    count(*)
+  into v_recipients, v_count
+  from public.event_registrations r
+  where r.event_id = p_event_id
+    and r.status = any(v_statuses);
+
+  if v_count = 0 then
+    return query select 'empty'::text, 0;
+    return;
+  end if;
+
+  begin
+    insert into public.event_communications (
+      event_id, audience, subject, body, recipients, recipient_count,
+      idempotency_key, sent_by
+    )
+    values (
+      p_event_id, p_audience, p_subject, p_body, v_recipients, v_count,
+      p_idempotency_key, v_caller
+    );
+  exception when unique_violation then
+    -- Mismo idempotency_key: doble submit, no se duplica.
+    return query select 'duplicate'::text, 0;
+    return;
+  end;
+
+  return query select 'ok'::text, v_count;
+end;
+$$;
+
+revoke execute on function public.enqueue_event_communication(
+  uuid, public.communication_audience, text, text, uuid
+) from public, anon;
+
+grant execute on function public.enqueue_event_communication(
+  uuid, public.communication_audience, text, text, uuid
+) to authenticated;
 
 -- Claim atomico del outbox: reclama hasta p_limit comunicaciones despachables y
 -- las marca `sending` en una sola operacion. `for update skip locked` evita que
@@ -131,6 +216,16 @@ security definer
 set search_path = ''
 as $$
 begin
+  -- Transiciona a `failed` terminal los jobs atascados en `sending` que agotaron
+  -- intentos (un intento previo murio a mitad repetidamente): asi no quedan
+  -- eternamente como "enviando" y dejan de considerarse en vuelo.
+  update public.event_communications
+  set status = 'failed',
+      last_error = coalesce(last_error, 'agoto reintentos en sending')
+  where status = 'sending'
+    and attempts >= p_max_attempts
+    and claimed_at < now() - make_interval(secs => p_stale_seconds);
+
   return query
   update public.event_communications c
   set status = 'sending',

@@ -65,7 +65,9 @@ real hace falta poder mandar un recordatorio o un aviso a la audiencia.
   intentos < max, marcandolas `sending`. El tope de intentos aplica tambien a
   las `sending` vencidas: sin eso, un job que muere siempre a mitad se
   reclamaria indefinidamente y, tras expirar la TTL de idempotencia del
-  proveedor, duplicaria. Al agotar intentos la fila deja de reclamarse.
+  proveedor, duplicaria. Ademas, antes de reclamar, transiciona a `failed`
+  terminal los `sending` vencidos que ya agotaron intentos, para que no queden
+  eternamente como "enviando".
 - Dos disparadores del mismo procesador:
   - **Inmediato**: `after()` de la accion procesa unas pocas (baja latencia).
   - **Respaldo**: cron cada 5 min -> `GET /api/communications/dispatch`
@@ -98,11 +100,16 @@ Mapean a estados de inscripcion **activos** (nunca a pending/cancelled):
 
 `recipient_count` es el tamaño de la audiencia al momento del envio.
 
-### Envio
+### Alta segura (sin INSERT directo)
 
-- La server action valida rol, calcula la audiencia y **registra** la
-  comunicacion (lectura/insercion bajo RLS con la sesion del usuario, sin
-  service_role).
+- `authenticated` **no** tiene INSERT sobre `event_communications` (solo SELECT):
+  el alta pasa solo por la RPC `enqueue_event_communication` (`security
+  definer`), que valida el rol del llamador y **computa el snapshot de
+  destinatarios server-side**. Asi un manager no puede POSTear por la Data API
+  una fila con `recipients` fuera de la audiencia (que el worker enviaria a
+  ciegas). La RPC devuelve `ok|empty|duplicate` para que la accion redirija.
+
+### Envio
 - El email se manda con el **batch API** de Resend (1 request por lote de hasta
   100, en vez de N requests simultaneos), con **reintentos y backoff** por lote
   ante errores transitorios. Cada uno recibe su propio correo; no se comparten

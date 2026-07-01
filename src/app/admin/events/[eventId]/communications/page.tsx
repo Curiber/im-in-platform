@@ -37,7 +37,7 @@ const statusLabels: Record<Communication["status"], string> = {
   pending: "En cola",
   sending: "Enviando",
   sent: "Enviado",
-  failed: "Reintentando",
+  failed: "Con fallos",
 };
 
 export default async function EventCommunicationsPage({

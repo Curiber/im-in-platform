@@ -4,14 +4,6 @@ import { sendEventBroadcastEmails } from "@/lib/email";
 
 export type CommunicationAudience = "all_active" | "confirmed" | "checked_in";
 
-// Cada audiencia mapea a los estados de inscripcion ACTIVOS que la componen.
-// Nunca se escribe a pending_verification / pending_approval / cancelled.
-export const audienceStatuses: Record<CommunicationAudience, string[]> = {
-  all_active: ["registered", "checked_in"],
-  confirmed: ["registered"],
-  checked_in: ["checked_in"],
-};
-
 type SnapshotRecipient = { email: string; name: string };
 
 type ClaimedCommunication = {
