@@ -14,6 +14,10 @@ const serverEnvSchema = publicEnvSchema.extend({
   EMAIL_PROVIDER_API_KEY: z.string().min(1).optional(),
   EMAIL_FROM: z.string().email().optional(),
   SALES_NOTIFICATION_EMAIL: z.string().email().optional(),
+  // Protege el endpoint de despacho del outbox de comunicaciones (cron). Sin
+  // esta variable el endpoint queda cerrado (503) y las comunicaciones dependen
+  // solo del intento inmediato; definela para habilitar la durabilidad.
+  CRON_SECRET: z.string().min(1).optional(),
 });
 
 // Variables que DEBEN estar presentes y bien formadas en produccion. El boot
@@ -40,6 +44,7 @@ export function getServerEnv() {
     EMAIL_PROVIDER_API_KEY: process.env.EMAIL_PROVIDER_API_KEY,
     EMAIL_FROM: process.env.EMAIL_FROM,
     SALES_NOTIFICATION_EMAIL: process.env.SALES_NOTIFICATION_EMAIL,
+    CRON_SECRET: process.env.CRON_SECRET,
   });
 }
 
