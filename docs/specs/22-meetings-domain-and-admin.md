@@ -23,8 +23,11 @@ acepte reuniones 1:1.
 - `meeting_locations`: CRUD (crear, editar nombre/capacidad/notas) + archivado
   reversible.
 - `meetings`: modelo y estados `pending/accepted/declined/cancelled/completed`.
-- Restricciones basicas en DB: mismo evento (trigger), participantes distintos
-  (check), horario valido (check `ends_at > starts_at`).
+- Restricciones basicas en DB: participantes distintos (check), horario valido
+  (check `ends_at > starts_at`) y **mismo evento por FK compuestas**
+  `(event_id, id)` hacia `event_registrations` y `meeting_locations` (no un
+  trigger): la garantia se mantiene siempre, incluso si se intenta mover el
+  `event_id` de un padre. Indices en las columnas FK para las cascadas.
 - RLS: managers (owner/admin/event_admin) gestionan ubicaciones; `meetings` es
   **solo lectura** desde el admin (miembros de la organizacion leen).
 - Vista admin `/admin/events/[eventId]/meetings`: ubicaciones con CRUD/archivado
@@ -43,8 +46,8 @@ acepte reuniones 1:1.
 - La escritura de `meetings` la hara el asistente por una via propia (RPC
   `security definer` / policy dedicada), no la Data API directa: hoy `meetings`
   no tiene policy de INSERT/UPDATE para `authenticated`.
-- El trigger `meetings_enforce_same_event` ya valida integridad para cualquier
-  via de escritura.
+- Las FK compuestas ya garantizan integridad de "mismo evento" para cualquier
+  via de escritura (sin trigger).
 - Los estados y columnas (`starts_at`, `ends_at`, `location_id`, `message`,
   `responded_at`) estan listos para el flujo proponer -> aceptar/rechazar ->
   completar/cancelar.
@@ -60,8 +63,8 @@ acepte reuniones 1:1.
 
 ## Tareas
 
-- [x] Migracion: `meeting_locations`, `meetings`, enum, trigger de mismo evento,
-      RLS.
+- [x] Migracion: `meeting_locations`, `meetings`, enum, FK compuestas de mismo
+      evento + indices, RLS.
 - [x] Acciones CRUD/archivado de ubicaciones.
 - [x] Vista admin con ubicaciones y reuniones (read-only) + filtro.
 - [x] Link desde el detalle del evento.

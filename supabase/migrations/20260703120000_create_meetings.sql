@@ -18,16 +18,28 @@ create table public.meeting_locations (
   constraint meeting_locations_name_not_blank check (length(trim(name)) > 0),
   constraint meeting_locations_capacity_positive check (
     capacity is null or capacity > 0
-  )
+  ),
+  -- Target de la FK compuesta de meetings.location_id y, al liderar por
+  -- event_id, indice para la cascada de borrado del evento (cubre TODAS las
+  -- filas, archivadas incluidas, a diferencia del indice parcial de abajo).
+  constraint meeting_locations_event_id_id_key unique (event_id, id)
 );
 
-create index meeting_locations_event_id_idx
+-- Consulta de ubicaciones activas del evento.
+create index meeting_locations_event_id_active_idx
   on public.meeting_locations (event_id)
   where archived_at is null;
 
 create trigger meeting_locations_set_updated_at
 before update on public.meeting_locations
 for each row execute function public.set_updated_at();
+
+-- event_registrations necesita un unique (event_id, id) para ser target de las
+-- FK compuestas de meetings (garantia de "mismo evento" a nivel de FK, no solo
+-- por trigger). id ya es PK, asi que es unico trivialmente; el unique compuesto
+-- habilita la referencia y sirve de indice para las cascadas.
+alter table public.event_registrations
+  add constraint event_registrations_event_id_id_key unique (event_id, id);
 
 -- Reuniones 1:1. Reusa el patron de connection_requests (not_self, mismo evento,
 -- estados). starts_at/ends_at y location se llenan cuando se agenda.
@@ -42,11 +54,9 @@ create type public.meeting_status as enum (
 create table public.meetings (
   id uuid primary key default gen_random_uuid(),
   event_id uuid not null references public.events(id) on delete cascade,
-  requester_registration_id uuid not null
-    references public.event_registrations(id) on delete cascade,
-  receiver_registration_id uuid not null
-    references public.event_registrations(id) on delete cascade,
-  location_id uuid references public.meeting_locations(id) on delete set null,
+  requester_registration_id uuid not null,
+  receiver_registration_id uuid not null,
+  location_id uuid,
   status public.meeting_status not null default 'pending',
   starts_at timestamptz not null,
   ends_at timestamptz not null,
@@ -57,7 +67,24 @@ create table public.meetings (
   constraint meetings_not_self check (
     requester_registration_id <> receiver_registration_id
   ),
-  constraint meetings_valid_schedule check (ends_at > starts_at)
+  constraint meetings_valid_schedule check (ends_at > starts_at),
+  -- "Mismo evento" garantizado por FK compuestas: ambos participantes (y la
+  -- ubicacion, si hay) deben pertenecer al event_id de la reunion. La DB lo
+  -- mantiene siempre, incluso si se intenta mover el event_id de un padre
+  -- (queda bloqueado por la FK), no solo al escribir meetings.
+  constraint meetings_requester_fk
+    foreign key (event_id, requester_registration_id)
+    references public.event_registrations (event_id, id) on delete cascade,
+  constraint meetings_receiver_fk
+    foreign key (event_id, receiver_registration_id)
+    references public.event_registrations (event_id, id) on delete cascade,
+  -- location_id nullable: con MATCH SIMPLE, si es null la FK no se chequea. Las
+  -- ubicaciones se archivan, no se borran; on delete no action evita borrar una
+  -- referenciada (durante el borrado del evento, meetings ya cayo por su propia
+  -- cascada, asi que no bloquea).
+  constraint meetings_location_fk
+    foreign key (event_id, location_id)
+    references public.meeting_locations (event_id, id) on delete no action
 );
 
 create index meetings_event_id_status_idx
@@ -66,52 +93,19 @@ create index meetings_event_id_status_idx
 create index meetings_event_id_starts_at_idx
   on public.meetings (event_id, starts_at);
 
+-- Indices para las columnas FK (cascada de borrado de participantes/ubicacion).
+create index meetings_requester_registration_id_idx
+  on public.meetings (requester_registration_id);
+
+create index meetings_receiver_registration_id_idx
+  on public.meetings (receiver_registration_id);
+
+create index meetings_location_id_idx
+  on public.meetings (location_id);
+
 create trigger meetings_set_updated_at
 before update on public.meetings
 for each row execute function public.set_updated_at();
-
--- "Mismo evento": ambos participantes y la ubicacion (si hay) deben pertenecer
--- al event_id de la reunion. Un check no puede cruzar tablas, asi que se hace
--- con un trigger — vale para cualquier via de escritura (incluida la futura del
--- asistente en 4.2).
-create or replace function app_private.meetings_enforce_same_event()
-returns trigger
-language plpgsql
-security definer
-set search_path = public, pg_temp
-as $$
-begin
-  if not exists (
-    select 1 from public.event_registrations r
-    where r.id = new.requester_registration_id and r.event_id = new.event_id
-  ) then
-    raise exception 'El solicitante no pertenece al evento'
-      using errcode = '23514';
-  end if;
-
-  if not exists (
-    select 1 from public.event_registrations r
-    where r.id = new.receiver_registration_id and r.event_id = new.event_id
-  ) then
-    raise exception 'El receptor no pertenece al evento'
-      using errcode = '23514';
-  end if;
-
-  if new.location_id is not null and not exists (
-    select 1 from public.meeting_locations l
-    where l.id = new.location_id and l.event_id = new.event_id
-  ) then
-    raise exception 'La ubicacion no pertenece al evento'
-      using errcode = '23514';
-  end if;
-
-  return new;
-end;
-$$;
-
-create trigger meetings_enforce_same_event
-before insert or update on public.meetings
-for each row execute function app_private.meetings_enforce_same_event();
 
 -- ---------------------------------------------------------------------------
 -- RLS
