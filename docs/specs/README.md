@@ -25,6 +25,7 @@ Este directorio contiene la base de spec-driven development para el MVP.
 19. [18-configurable-event-profile-options.md](18-configurable-event-profile-options.md)
 20. [19-event-approval-registration-mode.md](19-event-approval-registration-mode.md)
 21. [20-event-communications.md](20-event-communications.md)
+22. [22-meetings-domain-and-admin.md](22-meetings-domain-and-admin.md)
 
 ## Criterio de spec-driven development
 

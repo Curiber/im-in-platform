@@ -243,6 +243,12 @@ export default async function AdminEventDetailPage({
               </Link>
               <Link
                 className="inline-flex h-10 items-center rounded-md border border-brand-border px-4 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
+                href={`/admin/events/${event.id}/meetings`}
+              >
+                Reuniones
+              </Link>
+              <Link
+                className="inline-flex h-10 items-center rounded-md border border-brand-border px-4 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
                 href={`/admin/events/${event.id}/dashboard`}
               >
                 Dashboard
