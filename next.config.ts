@@ -33,6 +33,17 @@ const nextConfig: NextConfig = {
         ],
         source: "/e/:path*",
       },
+      {
+        // El service worker no debe quedar cacheado: una version vieja pegada
+        // seguiria interceptando fetches aunque se despliegue una nueva.
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-cache, no-store, must-revalidate",
+          },
+        ],
+        source: "/sw.js",
+      },
     ];
   },
 };

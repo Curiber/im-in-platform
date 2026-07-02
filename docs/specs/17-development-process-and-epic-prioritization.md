@@ -166,7 +166,7 @@ Nota: crear organizacion + asignar owner ya existe (spec 10 Epic 21).
 | 4.0 | Mantener el flujo web del asistente funcionando (directorio, conexiones, perfil, QR) | `[x]` base existente |
 | 4.1 | Objetivos de networking en registro/perfil + matchmaking score v1 con explicacion del match | `[x]` (Epic 43, spec 26: goals busco/ofrezco configurables por evento + score compuesto 3/1/1 con razones en directorio y detalle) |
 | 4.2 | Reuniones 1:1 simples (proponer franja + punto de encuentro, aceptar/rechazar, agenda personal) | `[x]` (Epic 44, spec 27: RPCs con lock anti-doble-reserva/capacidad + pestaña Agenda + propuesta desde el directorio) |
-| 4.3 | PWA instalable (manifest + service worker) | `[ ]` |
+| 4.3 | PWA instalable (manifest + service worker) | `[x]` (Epic 45, spec 28: manifest + SW conservador + registro en el flujo del asistente) |
 
 ### FASE 5 — Habilitadores de app
 
