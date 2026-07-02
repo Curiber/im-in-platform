@@ -148,15 +148,21 @@ as $$
 declare
   v_caller uuid := auth.uid();
   v_promoted integer;
+  v_suspended boolean;
 begin
   if v_caller is null then
     raise exception 'No autenticado' using errcode = '28000';
   end if;
 
-  if exists (
-    select 1 from public.organizations
-    where id = p_organization_id and suspended_at is not null
-  ) then
+  -- Lock FOR SHARE de la org: serializa con suspend_organization (UPDATE) para
+  -- que no se pueda transferir "activa" mientras se suspende en paralelo.
+  select o.suspended_at is not null
+  into v_suspended
+  from public.organizations o
+  where o.id = p_organization_id
+  for share;
+
+  if coalesce(v_suspended, false) then
     raise exception 'La organizacion esta suspendida' using errcode = '42501';
   end if;
 
@@ -223,6 +229,7 @@ declare
   v_count integer;
   v_registration_id uuid;
   v_existing_id uuid;
+  v_org_suspended boolean;
 begin
   select id
   into v_existing_id
@@ -257,11 +264,16 @@ begin
     return;
   end if;
 
-  -- Organizacion suspendida: la inscripcion queda bloqueada.
-  if exists (
-    select 1 from public.organizations o
-    where o.id = v_event.organization_id and o.suspended_at is not null
-  ) then
+  -- Organizacion suspendida: bloqueada. FOR SHARE serializa contra
+  -- suspend_organization (UPDATE organizations): cierra la carrera entre el lock
+  -- del evento (arriba) y la suspension de la org, que tocan filas distintas.
+  select o.suspended_at is not null
+  into v_org_suspended
+  from public.organizations o
+  where o.id = v_event.organization_id
+  for share;
+
+  if coalesce(v_org_suspended, false) then
     return query select 'unavailable'::text, null::uuid;
     return;
   end if;
@@ -333,6 +345,7 @@ declare
   v_org_id uuid;
   v_status public.registration_status;
   v_target public.registration_status;
+  v_org_suspended boolean;
 begin
   select event_id
   into v_event_id
@@ -349,10 +362,15 @@ begin
   where id = v_event_id
   for update;
 
-  if exists (
-    select 1 from public.organizations o
-    where o.id = v_org_id and o.suspended_at is not null
-  ) then
+  -- FOR SHARE de la org: serializa contra suspend_organization (UPDATE), bajo el
+  -- mismo lock del evento tomado arriba.
+  select o.suspended_at is not null
+  into v_org_suspended
+  from public.organizations o
+  where o.id = v_org_id
+  for share;
+
+  if coalesce(v_org_suspended, false) then
     raise exception 'La organizacion esta suspendida' using errcode = '42501';
   end if;
 
@@ -376,5 +394,62 @@ begin
       and status = 'pending_verification';
 
   return v_target::text;
+end;
+$$;
+
+-- claim_communications: no reclama comunicaciones de organizaciones suspendidas.
+-- Punto unico que cubre tanto el cron de respaldo como el despacho inmediato
+-- (`after`), que ambos pasan por aqui: un correo `pending`/`failed` encolado
+-- antes de suspender no se envia mientras la org este suspendida. Al reactivar,
+-- vuelve a ser reclamable (si sigue pending/failed<max). Cuerpo identico al de
+-- 20260702120000 + el filtro de suspension.
+create or replace function public.claim_communications(
+  p_limit integer default 10,
+  p_stale_seconds integer default 600,
+  p_max_attempts integer default 5
+)
+returns setof public.event_communications
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  update public.event_communications
+  set status = 'failed',
+      last_error = coalesce(last_error, 'agoto reintentos en sending')
+  where status = 'sending'
+    and attempts >= p_max_attempts
+    and claimed_at < now() - make_interval(secs => p_stale_seconds);
+
+  return query
+  update public.event_communications c
+  set status = 'sending',
+      claimed_at = now(),
+      attempts = c.attempts + 1
+  where c.id in (
+    select c2.id
+    from public.event_communications c2
+    where (
+        c2.status = 'pending'
+        or (
+          c2.status = 'sending'
+          and c2.claimed_at < now() - make_interval(secs => p_stale_seconds)
+          and c2.attempts < p_max_attempts
+        )
+        or (c2.status = 'failed' and c2.attempts < p_max_attempts)
+      )
+      -- Excluye organizaciones suspendidas: sus correos no se despachan.
+      and not exists (
+        select 1
+        from public.events e
+        join public.organizations o on o.id = e.organization_id
+        where e.id = c2.event_id
+          and o.suspended_at is not null
+      )
+    order by c2.created_at
+    limit p_limit
+    for update skip locked
+  )
+  returning c.*;
 end;
 $$;
