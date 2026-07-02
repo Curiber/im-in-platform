@@ -29,6 +29,7 @@ export type VerifiedRegistration = {
     networking_enabled: boolean;
     deleted_at: string | null;
     cover_image_url: string | null;
+    organizations: { suspended_at: string | null } | null;
   } | null;
 };
 
@@ -49,7 +50,7 @@ export async function verifyRegistrationAccess({
   const { data: registration } = await adminClient
     .from("event_registrations")
     .select(
-      "id, event_id, profile_id, email, full_name_snapshot, interests, public_profile_enabled, status, qr_token_hash, attendee_profiles(card_visibility, profile_slug), events(id, slug, name, networking_enabled, deleted_at, cover_image_url)",
+      "id, event_id, profile_id, email, full_name_snapshot, interests, public_profile_enabled, status, qr_token_hash, attendee_profiles(card_visibility, profile_slug), events(id, slug, name, networking_enabled, deleted_at, cover_image_url, organizations(suspended_at))",
     )
     .eq("id", registrationId)
     .single()
@@ -60,6 +61,12 @@ export async function verifyRegistrationAccess({
   }
 
   if (registration.events.deleted_at) {
+    return null;
+  }
+
+  // Organizacion suspendida: el networking del evento queda congelado (perfil,
+  // directorio, conexiones), igual que sus superficies publicas.
+  if (registration.events.organizations?.suspended_at) {
     return null;
   }
 

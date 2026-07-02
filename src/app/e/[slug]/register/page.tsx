@@ -22,6 +22,7 @@ type RegistrationEvent = {
   cover_image_url: string | null;
   organizations: {
     name: string;
+    suspended_at: string | null;
   } | null;
 };
 
@@ -36,7 +37,7 @@ export default async function RegisterPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, name, description, starts_at, location, capacity, networking_enabled, cover_image_url, organizations(name)",
+      "id, name, description, starts_at, location, capacity, networking_enabled, cover_image_url, organizations(name, suspended_at)",
     )
     .eq("slug", slug)
     .eq("status", "published")
@@ -44,7 +45,8 @@ export default async function RegisterPage({
     .single()
     .returns<RegistrationEvent>();
 
-  if (!event) {
+  // Organizacion suspendida: la inscripcion queda bloqueada.
+  if (!event || event.organizations?.suspended_at) {
     notFound();
   }
 
