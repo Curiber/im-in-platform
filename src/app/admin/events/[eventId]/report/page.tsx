@@ -3,7 +3,11 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { PrintButton } from "@/app/admin/events/[eventId]/report/_components/print-button";
-import { type EventReport, getEventReport } from "@/lib/event-report";
+import {
+  type EventReport,
+  formatReportDateTime,
+  getEventReport,
+} from "@/lib/event-report";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -71,7 +75,7 @@ export default async function EventReportPage({
               {report.event.name}
             </h1>
             <p className="mt-2 text-sm text-brand-slate-600">
-              {formatDate(report.event.starts_at)}
+              {formatReportDateTime(report.event.starts_at)}
               {report.event.location ? ` · ${report.event.location}` : ""}
             </p>
           </header>
@@ -127,7 +131,8 @@ export default async function EventReportPage({
           </div>
 
           <footer className="mt-8 border-t border-brand-border pt-4 text-xs text-brand-slate-600">
-            Generado el {formatDate(new Date().toISOString())} · I&apos;m IN
+            Generado el {formatReportDateTime(new Date().toISOString())} ·
+            I&apos;m IN
           </footer>
         </article>
       </div>
@@ -186,13 +191,3 @@ function RankingTable({ title, rows }: { title: string; rows: EventReport["topIn
   );
 }
 
-function formatDate(value: string) {
-  // Fija la zona horaria: sin esto, el runtime (Vercel) formatea en UTC y las
-  // horas salen incorridas. El modelo no tiene tz por evento; la plataforma
-  // asume Chile (locale es-CL en toda la app).
-  return new Intl.DateTimeFormat("es-CL", {
-    dateStyle: "long",
-    timeStyle: "short",
-    timeZone: "America/Santiago",
-  }).format(new Date(value));
-}

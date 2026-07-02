@@ -64,9 +64,11 @@ stakeholders/sponsors) con asistencia y networking, no una tabla de filas.
 - `getEventReport` **falla explicitamente** si cualquier query o la RPC devuelve
   error, en vez de degradarse en ceros: el reporte (PDF/CSV) nunca presenta datos
   falsos como validos. `PGRST116` (evento inexistente) sigue siendo `notFound`.
-- Las fechas del reporte se formatean con `timeZone: America/Santiago` fijo: sin
-  eso el runtime (Vercel) formatea en UTC y muestra horas incorrectas. El modelo
-  no tiene tz por evento; la plataforma asume Chile (locale es-CL en toda la app).
+- Las fechas del reporte se formatean con `formatReportDateTime`
+  (`src/lib/event-report.ts`, testeado): helper canonico compartido por la
+  pagina (PDF) y el CSV, con `timeZone: America/Santiago` fijo. Ambas salidas
+  muestran LA MISMA hora; sin el timeZone, el runtime (Vercel) formatea en UTC.
+  El modelo no tiene tz por evento; la plataforma asume Chile (locale es-CL).
 
 ## Riesgos / futuro
 

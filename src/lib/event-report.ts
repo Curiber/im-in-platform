@@ -177,6 +177,18 @@ export async function getEventReport(
   };
 }
 
+// Formateo canonico de fechas del reporte, compartido por la pagina (PDF) y el
+// CSV para que ambas salidas muestren LA MISMA hora. Zona horaria fija: sin
+// ella el runtime (Vercel) formatea en UTC. El modelo no tiene tz por evento;
+// la plataforma asume Chile (locale es-CL en toda la app).
+export function formatReportDateTime(value: string) {
+  return new Intl.DateTimeFormat("es-CL", {
+    dateStyle: "long",
+    timeStyle: "short",
+    timeZone: "America/Santiago",
+  }).format(new Date(value));
+}
+
 function rate(part: number, total: number) {
   return total ? Math.round((part / total) * 100) : 0;
 }

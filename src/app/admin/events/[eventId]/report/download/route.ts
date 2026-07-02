@@ -2,7 +2,11 @@ import { notFound, redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 
 import { escapeCsvValue } from "@/lib/csv";
-import { type EventReport, getEventReport } from "@/lib/event-report";
+import {
+  type EventReport,
+  formatReportDateTime,
+  getEventReport,
+} from "@/lib/event-report";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 // Resumen post-evento como CSV (metricas agregadas + rankings), complemento del
@@ -42,7 +46,9 @@ export async function GET(
 function toSummaryCsv(report: EventReport) {
   const rows: [string, string, string | number][] = [
     ["Evento", "Nombre", report.event.name],
-    ["Evento", "Fecha", report.event.starts_at],
+    // Misma zona horaria y formato que la pagina/PDF: ambas salidas del reporte
+    // deben mostrar LA MISMA hora.
+    ["Evento", "Fecha", formatReportDateTime(report.event.starts_at)],
     ["Evento", "Lugar", report.event.location ?? ""],
     ["Evento", "Cupos", report.event.capacity],
     ["Asistencia", "Inscritos confirmados", report.attendance.registered],
