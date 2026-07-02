@@ -7,6 +7,7 @@ import { z } from "zod";
 import { sendRegistrationVerificationEmail } from "@/lib/email";
 import { getAppUrl } from "@/lib/env";
 import { getEventProfileOptions } from "@/lib/event-profile-options";
+import { formatDateTime } from "@/lib/datetime";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   createRegistrationToken,
@@ -206,7 +207,7 @@ export async function registerForEvent(
       const result = await sendRegistrationVerificationEmail({
         attendeeName: parsed.data.fullName,
         verificationUrl: `${getAppUrl()}/e/${parsed.data.slug}/verify?registrationId=${registrationId}&token=${token}`,
-        eventDate: formatDate(event.starts_at),
+        eventDate: formatDateTime(event.starts_at),
         eventName: event.name,
         to: parsed.data.email,
       });
@@ -226,9 +227,3 @@ export async function registerForEvent(
   redirect(`/e/${parsed.data.slug}/check-email`);
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("es-CL", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}

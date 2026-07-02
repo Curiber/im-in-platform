@@ -14,6 +14,7 @@ import {
   type ProfileOptionRow,
 } from "@/app/admin/events/[eventId]/edit/_components/profile-options-manager";
 import { SubmitButton } from "@/app/admin/_components/submit-button";
+import { toDateTimeLocalValue } from "@/lib/datetime";
 import { DEFAULT_EVENT_COVER } from "@/lib/event-cover";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -206,7 +207,7 @@ export default async function EditEventPage({
               </span>
               <input
                 className="mt-2 h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
-                defaultValue={toDateTimeLocal(event.starts_at)}
+                defaultValue={toDateTimeLocalValue(event.starts_at)}
                 name="startsAt"
                 type="datetime-local"
                 required
@@ -219,7 +220,7 @@ export default async function EditEventPage({
               </span>
               <input
                 className="mt-2 h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
-                defaultValue={toDateTimeLocal(event.arrival_starts_at)}
+                defaultValue={toDateTimeLocalValue(event.arrival_starts_at)}
                 name="arrivalStartsAt"
                 type="datetime-local"
               />
@@ -231,7 +232,7 @@ export default async function EditEventPage({
               </span>
               <input
                 className="mt-2 h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
-                defaultValue={toDateTimeLocal(event.ends_at)}
+                defaultValue={toDateTimeLocalValue(event.ends_at)}
                 name="endsAt"
                 type="datetime-local"
               />
@@ -344,14 +345,6 @@ export default async function EditEventPage({
       </section>
     </AdminShell>
   );
-}
-
-function toDateTimeLocal(value: string | null) {
-  if (!value) {
-    return "";
-  }
-
-  return new Date(value).toISOString().slice(0, 16);
 }
 
 function formatCoverStatus(status: CoverStatus) {
