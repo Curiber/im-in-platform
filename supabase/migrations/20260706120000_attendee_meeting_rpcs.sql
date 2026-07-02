@@ -37,6 +37,11 @@ declare
   v_participants integer;
   v_location_ok boolean;
   v_meeting_id uuid;
+  -- Debe coincidir con generateMeetingSlots (src/lib/meeting-slots.ts):
+  -- franjas fijas de 30 min y, cuando el evento no declara termino, una
+  -- ventana de respaldo de 8 horas desde el inicio.
+  v_slot constant interval := interval '30 minutes';
+  v_window_end timestamptz;
 begin
   if p_requester_registration_id = p_receiver_registration_id then
     return query select 'invalid_participant'::text, null::uuid;
@@ -77,14 +82,27 @@ begin
     return;
   end if;
 
-  -- Franja valida: dentro de la ventana del evento y bien formada. (El check
-  -- de la tabla ya exige ends_at > starts_at; se repite para responder con un
-  -- status legible en vez de una excepcion.)
+  -- Franja valida y autoritativa: no se confia en el termino que envia la
+  -- action (el Server Action es invocable directo). Debe ser exactamente una
+  -- de las franjas que ofreceria generateMeetingSlots:
+  --   * duracion fija de 30 min (no horarios arbitrarios),
+  --   * alineada al inicio del evento en pasos de 30 min,
+  --   * dentro de la ventana del evento (o de la de respaldo de 8h si el
+  --     evento no declara termino).
+  v_window_end := coalesce(
+    v_event.ends_at,
+    v_event.starts_at + interval '8 hours'
+  );
+
   if p_starts_at is null
     or p_ends_at is null
-    or p_ends_at <= p_starts_at
+    or p_ends_at - p_starts_at <> v_slot
     or p_starts_at < v_event.starts_at
-    or (v_event.ends_at is not null and p_ends_at > v_event.ends_at)
+    or p_ends_at > v_window_end
+    or mod(
+         extract(epoch from (p_starts_at - v_event.starts_at))::bigint,
+         extract(epoch from v_slot)::bigint
+       ) <> 0
   then
     return query select 'invalid_slot'::text, null::uuid;
     return;
@@ -195,6 +213,10 @@ set search_path = ''
 as $$
 declare
   v_meeting public.meetings%rowtype;
+  v_event public.events%rowtype;
+  v_org_suspended boolean;
+  v_active_participants integer;
+  v_location_ok boolean;
   v_capacity integer;
   v_occupied integer;
 begin
@@ -212,7 +234,8 @@ begin
 
   -- Lock del evento y re-lectura del estado bajo el lock: serializa contra
   -- otras aceptaciones/propuestas del mismo evento.
-  perform 1
+  select *
+  into v_event
   from public.events
   where id = v_meeting.event_id
   for update;
@@ -229,6 +252,8 @@ begin
     return;
   end if;
 
+  -- Rechazar es siempre valido (no re-abre el networking): se procesa antes de
+  -- revalidar el estado del evento.
   if not p_accept then
     update public.meetings
     set status = 'declined', responded_at = now()
@@ -236,6 +261,66 @@ begin
 
     return query select 'ok'::text;
     return;
+  end if;
+
+  -- Aceptar SI reactiva una reunion: entre proponer y aceptar el evento pudo
+  -- terminar, deshabilitar networking, borrarse o suspenderse la org. Se
+  -- revalida bajo el lock (mismo criterio que propose_meeting); sin esto un
+  -- token valido podria confirmar una reunion en un evento ya cerrado.
+  if v_event.id is null  -- evento inexistente (defensa; la FK lo garantiza)
+    or v_event.deleted_at is not null
+    or v_event.status <> 'published'
+    or not v_event.networking_enabled
+    or (v_event.ends_at is not null and v_event.ends_at < now())
+  then
+    return query select 'unavailable'::text;
+    return;
+  end if;
+
+  select o.suspended_at is not null
+  into v_org_suspended
+  from public.organizations o
+  where o.id = v_event.organization_id
+  for share;
+
+  if coalesce(v_org_suspended, false) then
+    return query select 'unavailable'::text;
+    return;
+  end if;
+
+  -- Ambos participantes siguen activos y visibles en el directorio: uno pudo
+  -- cancelar su inscripcion o salir del networking tras la propuesta.
+  select count(*)
+  into v_active_participants
+  from public.event_registrations r
+  where r.event_id = v_meeting.event_id
+    and r.id in (
+      v_meeting.requester_registration_id,
+      v_meeting.receiver_registration_id
+    )
+    and r.status in ('registered', 'checked_in')
+    and r.public_profile_enabled;
+
+  if v_active_participants <> 2 then
+    return query select 'invalid_participant'::text;
+    return;
+  end if;
+
+  -- La ubicacion (si hay) sigue activa: pudo archivarse tras la propuesta.
+  if v_meeting.location_id is not null then
+    select exists (
+      select 1
+      from public.meeting_locations l
+      where l.id = v_meeting.location_id
+        and l.event_id = v_meeting.event_id
+        and l.archived_at is null
+    )
+    into v_location_ok;
+
+    if not v_location_ok then
+      return query select 'invalid_location'::text;
+      return;
+    end if;
   end if;
 
   -- Solape con reuniones aceptadas de cualquiera de los dos participantes.
