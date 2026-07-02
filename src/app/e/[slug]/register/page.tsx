@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { RegistrationForm } from "@/app/e/[slug]/register/registration-form";
+import { formatDateTime } from "@/lib/datetime";
 import { resolveEventCover } from "@/lib/event-cover";
 import { getEventProfileOptions } from "@/lib/event-profile-options";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -22,6 +23,7 @@ type RegistrationEvent = {
   cover_image_url: string | null;
   organizations: {
     name: string;
+    suspended_at: string | null;
   } | null;
 };
 
@@ -36,7 +38,7 @@ export default async function RegisterPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, name, description, starts_at, location, capacity, networking_enabled, cover_image_url, organizations(name)",
+      "id, name, description, starts_at, location, capacity, networking_enabled, cover_image_url, organizations(name, suspended_at)",
     )
     .eq("slug", slug)
     .eq("status", "published")
@@ -44,7 +46,8 @@ export default async function RegisterPage({
     .single()
     .returns<RegistrationEvent>();
 
-  if (!event) {
+  // Organizacion suspendida: la inscripcion queda bloqueada.
+  if (!event || event.organizations?.suspended_at) {
     notFound();
   }
 
@@ -123,7 +126,7 @@ export default async function RegisterPage({
               <DetailRow
                 icon={<Calendar className="size-5" aria-hidden="true" />}
                 label="Fecha"
-                value={formatDate(event.starts_at)}
+                value={formatDateTime(event.starts_at)}
               />
               <DetailRow
                 icon={<MapPin className="size-5" aria-hidden="true" />}
@@ -160,9 +163,3 @@ function DetailRow({
   );
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("es-CL", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}

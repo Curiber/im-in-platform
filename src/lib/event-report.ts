@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { APP_TIME_ZONE } from "@/lib/datetime";
+
 // Capa de agregacion compartida por la pagina de reporte (imprimible) y la
 // descarga de resumen CSV. Reutiliza las mismas fuentes que el dashboard
 // (inscripciones, conexiones, reuniones) y la RPC agregada de vistas de perfil.
@@ -178,14 +180,13 @@ export async function getEventReport(
 }
 
 // Formateo canonico de fechas del reporte, compartido por la pagina (PDF) y el
-// CSV para que ambas salidas muestren LA MISMA hora. Zona horaria fija: sin
-// ella el runtime (Vercel) formatea en UTC. El modelo no tiene tz por evento;
-// la plataforma asume Chile (locale es-CL en toda la app).
+// CSV para que ambas salidas muestren LA MISMA hora. Estilo "long" propio del
+// documento; la zona horaria viene de la libreria canonica (src/lib/datetime).
 export function formatReportDateTime(value: string) {
   return new Intl.DateTimeFormat("es-CL", {
     dateStyle: "long",
     timeStyle: "short",
-    timeZone: "America/Santiago",
+    timeZone: APP_TIME_ZONE,
   }).format(new Date(value));
 }
 

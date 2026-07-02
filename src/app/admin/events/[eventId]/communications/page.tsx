@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { CommunicationComposer } from "@/app/admin/events/[eventId]/communications/_components/communication-composer";
 import { AdminShell } from "@/app/admin/_components/admin-shell";
+import { formatDateTime } from "@/lib/datetime";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -97,7 +98,7 @@ export default async function EventCommunicationsPage({
     );
   }
 
-  const eventDate = formatDate(event.starts_at);
+  const eventDate = formatDateTime(event.starts_at);
   const reminderSubject = `Recordatorio: ${event.name} es el ${eventDate}`;
   const reminderBody = [
     `Te esperamos en ${event.name}.`,
@@ -172,7 +173,7 @@ export default async function EventCommunicationsPage({
                     {communication.body}
                   </p>
                   <p className="mt-3 text-xs text-brand-slate-600">
-                    {formatDate(communication.created_at)}
+                    {formatDateTime(communication.created_at)}
                     {communication.sent_by &&
                     senderEmails.get(communication.sent_by)
                       ? ` · ${senderEmails.get(communication.sent_by)}`
@@ -232,9 +233,3 @@ function statusBadgeClass(status: Communication["status"]) {
   return "bg-brand-surface-soft text-brand-slate-600";
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("es-CL", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}

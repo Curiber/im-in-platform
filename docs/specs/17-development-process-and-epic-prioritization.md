@@ -154,8 +154,8 @@ hechos (spec 16, epics 40-42; equivalen a epics 29-30 del spec 10).
 
 | Orden | Trabajo | Estado |
 | --- | --- | --- |
-| 3.0 | Listado y gestion de todas las organizaciones (ver, suspender/archivar) | `[ ]` |
-| 3.1 | Metricas globales de plataforma | `[ ]` |
+| 3.0 | Listado y gestion de todas las organizaciones (ver, suspender/archivar) | `[x]` (Epic 37, spec 24: suspension reversible con enforcement en 3 capas) |
+| 3.1 | Metricas globales de plataforma | `[x]` (Epic 38, spec 25: RPC platform_stats + banda de metricas) |
 
 Nota: crear organizacion + asignar owner ya existe (spec 10 Epic 21).
 

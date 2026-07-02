@@ -14,6 +14,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { formatDateTime, formatDateTimeRange } from "@/lib/datetime";
 import { resolveEventCover } from "@/lib/event-cover";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -31,6 +32,7 @@ type PublicEvent = {
   cover_image_url: string | null;
   organizations: {
     name: string;
+    suspended_at: string | null;
   } | null;
 };
 
@@ -60,7 +62,7 @@ export default async function PublicEventPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, name, description, starts_at, location, capacity, networking_enabled, status, cover_image_url, organizations(name)",
+      "id, name, description, starts_at, location, capacity, networking_enabled, status, cover_image_url, organizations(name, suspended_at)",
     )
     .eq("slug", slug)
     .is("deleted_at", null)
@@ -68,7 +70,8 @@ export default async function PublicEventPage({
     .single()
     .returns<PublicEvent>();
 
-  if (!event) {
+  // Organizacion suspendida: la pagina publica del evento deja de existir.
+  if (!event || event.organizations?.suspended_at) {
     notFound();
   }
 
@@ -138,7 +141,7 @@ export default async function PublicEventPage({
               <DetailRow
                 icon={<Calendar className="size-5" aria-hidden="true" />}
                 label="Fecha"
-                value={formatDate(event.starts_at)}
+                value={formatDateTime(event.starts_at)}
               />
               <DetailRow
                 icon={<MapPin className="size-5" aria-hidden="true" />}
@@ -192,7 +195,7 @@ export default async function PublicEventPage({
                     }}
                   >
                     <p className="text-sm font-semibold text-brand-blue-700">
-                      {formatTimeRange(item.starts_at, item.ends_at)}
+                      {formatDateTimeRange(item.starts_at, item.ends_at)}
                     </p>
                     <p className="mt-1 font-semibold text-brand-navy-950">
                       {item.title}
@@ -270,25 +273,4 @@ function DetailRow({
       </div>
     </div>
   );
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("es-CL", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
-
-function formatTimeRange(startsAt: string, endsAt: string | null) {
-  const start = formatDate(startsAt);
-
-  if (!endsAt) {
-    return start;
-  }
-
-  const end = new Intl.DateTimeFormat("es-CL", {
-    timeStyle: "short",
-  }).format(new Date(endsAt));
-
-  return `${start} - ${end}`;
 }

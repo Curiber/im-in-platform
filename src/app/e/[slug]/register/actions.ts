@@ -7,6 +7,7 @@ import { z } from "zod";
 import { sendRegistrationVerificationEmail } from "@/lib/email";
 import { getAppUrl } from "@/lib/env";
 import { getEventProfileOptions } from "@/lib/event-profile-options";
+import { formatDateTime } from "@/lib/datetime";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   createRegistrationToken,
@@ -66,16 +67,27 @@ export async function registerForEvent(
   const adminClient = createSupabaseAdminClient();
   const { data: event } = await adminClient
     .from("events")
-    .select("id, status, name, starts_at")
+    .select("id, status, name, starts_at, organizations(suspended_at)")
     .eq("id", parsed.data.eventId)
     .eq("slug", parsed.data.slug)
     .is("deleted_at", null)
-    .single<{ id: string; status: string; name: string; starts_at: string }>();
+    .single<{
+      id: string;
+      status: string;
+      name: string;
+      starts_at: string;
+      organizations: { suspended_at: string | null } | null;
+    }>();
 
   // Fast-fail uniforme. La RPC `register_attendee` es la validacion autoritativa
-  // bajo lock (estado, fin del evento, capacidad, duplicado), asi que aqui no se
-  // mira el email del que se inscribe (sin enumeracion) ni se valida capacidad.
-  if (!event || event.status !== "published") {
+  // bajo lock (estado, suspension de la organizacion, fin del evento, capacidad,
+  // duplicado), asi que aqui no se mira el email del que se inscribe (sin
+  // enumeracion) ni se valida capacidad.
+  if (
+    !event ||
+    event.status !== "published" ||
+    event.organizations?.suspended_at
+  ) {
     return {
       status: "error",
       message: "Este evento no esta disponible para inscripcion.",
@@ -195,7 +207,7 @@ export async function registerForEvent(
       const result = await sendRegistrationVerificationEmail({
         attendeeName: parsed.data.fullName,
         verificationUrl: `${getAppUrl()}/e/${parsed.data.slug}/verify?registrationId=${registrationId}&token=${token}`,
-        eventDate: formatDate(event.starts_at),
+        eventDate: formatDateTime(event.starts_at),
         eventName: event.name,
         to: parsed.data.email,
       });
@@ -215,9 +227,3 @@ export async function registerForEvent(
   redirect(`/e/${parsed.data.slug}/check-email`);
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("es-CL", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}

@@ -2,6 +2,7 @@ import { QrCode } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 
 import { CheckInForm } from "@/app/admin/events/[eventId]/check-in/check-in-form";
+import { formatDateTime } from "@/lib/datetime";
 import { AdminShell } from "@/app/admin/_components/admin-shell";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -70,7 +71,7 @@ export default async function CheckInPage({
         <aside className="space-y-3">
           <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
             <p className="text-sm text-brand-slate-600">Fecha</p>
-            <p className="mt-1 font-semibold">{formatDate(event.starts_at)}</p>
+            <p className="mt-1 font-semibold">{formatDateTime(event.starts_at)}</p>
           </div>
           <div className="rounded-lg border border-brand-border bg-white p-5 shadow-sm">
             <p className="text-sm text-brand-slate-600">Inscritos</p>
@@ -85,9 +86,3 @@ export default async function CheckInPage({
   );
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("es-CL", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}

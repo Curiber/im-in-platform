@@ -17,6 +17,7 @@ import {
   createCheckInPayload,
   isRegistrationTokenValid,
 } from "@/lib/registration-token";
+import { formatDateTime } from "@/lib/datetime";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -154,7 +155,7 @@ export default async function RegisteredPage({
             </p>
             <p className="mt-1 text-sm text-brand-slate-600">
               {registration.events?.starts_at
-                ? formatDate(registration.events.starts_at)
+                ? formatDateTime(registration.events.starts_at)
                 : "Fecha por confirmar"}
             </p>
             <p className="mt-1 text-sm text-brand-slate-600">
@@ -345,12 +346,6 @@ function PendingApprovalView({
   );
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("es-CL", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
 
 function formatPhotoStatus(
   status: "error" | "invalid" | "missing" | "uploaded",
