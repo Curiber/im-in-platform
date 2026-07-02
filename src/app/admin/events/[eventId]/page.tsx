@@ -24,6 +24,7 @@ import {
   type PendingRegistration,
 } from "@/app/admin/events/[eventId]/_components/approval-queue";
 import { AdminShell } from "@/app/admin/_components/admin-shell";
+import { formatDateTime, formatDateTimeRange } from "@/lib/datetime";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -137,7 +138,7 @@ export default async function AdminEventDetailPage({
           <article className="rounded-lg border border-brand-border bg-white p-6 shadow-sm">
             <div className="rounded-md border border-red-200 bg-red-50 p-4">
               <p className="font-semibold text-red-700">
-                Este evento fue eliminado el {formatDate(event.deleted_at)}
+                Este evento fue eliminado el {formatDateTime(event.deleted_at)}
                 {deletedByEmail ? ` por ${deletedByEmail}` : ""}.
               </p>
               <p className="mt-1 text-sm leading-6 text-brand-slate-600">
@@ -161,7 +162,7 @@ export default async function AdminEventDetailPage({
               <InfoBlock
                 icon={<Calendar className="size-5" aria-hidden="true" />}
                 label="Fecha"
-                value={formatDate(event.starts_at)}
+                value={formatDateTime(event.starts_at)}
               />
               <InfoBlock
                 icon={<MapPin className="size-5" aria-hidden="true" />}
@@ -294,7 +295,7 @@ export default async function AdminEventDetailPage({
             <InfoBlock
               icon={<Calendar className="size-5" aria-hidden="true" />}
               label="Fecha"
-              value={formatDate(event.starts_at)}
+              value={formatDateTime(event.starts_at)}
             />
             <InfoBlock
               icon={<MapPin className="size-5" aria-hidden="true" />}
@@ -326,7 +327,7 @@ export default async function AdminEventDetailPage({
                   >
                     <div>
                       <p className="text-sm font-semibold text-brand-blue-700">
-                        {formatTimeRange(item.starts_at, item.ends_at)}
+                        {formatDateTimeRange(item.starts_at, item.ends_at)}
                       </p>
                       <p className="mt-1 font-semibold">{item.title}</p>
                       {item.description ? (
@@ -550,27 +551,6 @@ function Row({ label, value }: { label: string; value: string }) {
       <dd className="font-semibold">{value}</dd>
     </div>
   );
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("es-CL", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
-
-function formatTimeRange(startsAt: string, endsAt: string | null) {
-  const start = formatDate(startsAt);
-
-  if (!endsAt) {
-    return start;
-  }
-
-  const end = new Intl.DateTimeFormat("es-CL", {
-    timeStyle: "short",
-  }).format(new Date(endsAt));
-
-  return `${start} - ${end}`;
 }
 
 function formatStatus(status: EventDetail["status"]) {

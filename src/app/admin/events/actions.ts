@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import type { FormState } from "@/app/admin/_components/form-state";
+import { parseDateTimeLocal } from "@/lib/datetime";
 import { DEFAULT_INDUSTRIES, DEFAULT_INTERESTS } from "@/lib/profile-options";
 import { objectPathFromPublicUrl } from "@/lib/storage";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -162,13 +163,22 @@ export async function removeEventCover(formData: FormData) {
   redirect(`/admin/events/${eventId}/edit?coverStatus=removed`);
 }
 
+// Los <input type="datetime-local"> envian la hora de pared que escribio el
+// organizador. Se interpreta como hora de Chile (parseDateTimeLocal), NO en la
+// zona del server (UTC en Vercel), que corria las horas guardadas.
+const wallClockDate = z.preprocess(
+  (value) =>
+    typeof value === "string" ? (parseDateTimeLocal(value) ?? value) : value,
+  z.date({ message: "Ingresa una fecha valida." }),
+);
+
 const eventSchema = z.object({
   organizationId: z.string().uuid(),
   name: z.string().trim().min(3, "Ingresa el nombre del evento."),
   description: z.string().trim().optional(),
-  startsAt: z.coerce.date(),
-  arrivalStartsAt: z.coerce.date().optional().nullable(),
-  endsAt: z.coerce.date().optional().nullable(),
+  startsAt: wallClockDate,
+  arrivalStartsAt: wallClockDate.optional().nullable(),
+  endsAt: wallClockDate.optional().nullable(),
   location: z.string().trim().min(2, "Ingresa el lugar del evento."),
   modality: z.enum(["in_person", "online", "hybrid"]),
   capacity: z.coerce.number().int().positive(),
@@ -455,8 +465,8 @@ const agendaItemSchema = z.object({
   title: z.string().trim().min(3, "Ingresa el titulo del bloque."),
   description: z.string().trim().optional(),
   location: z.string().trim().optional(),
-  startsAt: z.coerce.date(),
-  endsAt: z.coerce.date().optional().nullable(),
+  startsAt: wallClockDate,
+  endsAt: wallClockDate.optional().nullable(),
 });
 
 export async function createAgendaItem(formData: FormData) {

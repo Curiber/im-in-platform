@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminShell } from "@/app/admin/_components/admin-shell";
+import { formatDateTime } from "@/lib/datetime";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -131,7 +132,7 @@ export default async function AdminEventsPage({
                     </p>
                   </div>
                   <p className="text-sm text-brand-slate-600">
-                    {formatDate(event.starts_at)}
+                    {formatDateTime(event.starts_at)}
                   </p>
                   <p className="text-sm text-brand-slate-600">
                     {event.capacity} cupos
@@ -154,12 +155,12 @@ export default async function AdminEventsPage({
                     <p className="font-semibold">{event.name}</p>
                     <p className="mt-1 text-sm text-brand-slate-600">
                       {event.organizations?.name ?? "Organizacion"} /{" "}
-                      {formatDate(event.starts_at)}
+                      {formatDateTime(event.starts_at)}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-red-700">
-                      Eliminado {formatDate(event.deleted_at)}
+                      Eliminado {formatDateTime(event.deleted_at)}
                     </p>
                     <p className="mt-1 text-sm text-brand-slate-600">
                       {event.deleted_by
@@ -258,12 +259,6 @@ async function loadUserEmails(userIds: string[]) {
   return emails;
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("es-CL", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
 
 function formatStatus(status: AdminEvent["status"]) {
   const labels = {

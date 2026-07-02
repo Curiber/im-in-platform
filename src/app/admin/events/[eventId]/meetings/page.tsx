@@ -8,6 +8,7 @@ import {
   updateMeetingLocation,
 } from "@/app/admin/events/[eventId]/meetings/actions";
 import { AdminShell } from "@/app/admin/_components/admin-shell";
+import { formatDateTimeRange } from "@/lib/datetime";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -262,7 +263,7 @@ export default async function EventMeetingsPage({
                       {meeting.receiver?.full_name_snapshot ?? "?"}
                     </p>
                     <p className="text-sm text-brand-slate-600">
-                      {formatRange(meeting.starts_at, meeting.ends_at)}
+                      {formatDateTimeRange(meeting.starts_at, meeting.ends_at)}
                       {meeting.location ? ` · ${meeting.location.name}` : ""}
                     </p>
                   </div>
@@ -363,16 +364,4 @@ function LocationRow({
       </div>
     </div>
   );
-}
-
-function formatRange(startsAt: string, endsAt: string) {
-  const start = new Intl.DateTimeFormat("es-CL", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(startsAt));
-  const end = new Intl.DateTimeFormat("es-CL", {
-    timeStyle: "short",
-  }).format(new Date(endsAt));
-
-  return `${start} – ${end}`;
 }

@@ -16,6 +16,7 @@ import {
   reactivateOrganization,
   suspendOrganization,
 } from "@/app/admin/actions";
+import { formatDate } from "@/lib/datetime";
 import { isPlatformAdmin } from "@/lib/platform-admin";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -364,10 +365,7 @@ function OrganizationRow({
           )}
         </div>
         <p className="text-sm text-brand-slate-600">
-          {new Intl.DateTimeFormat("es-CL", {
-            dateStyle: "medium",
-            timeZone: "America/Santiago",
-          }).format(new Date(organization.created_at))}
+          {formatDate(organization.created_at)}
         </p>
       </div>
 
