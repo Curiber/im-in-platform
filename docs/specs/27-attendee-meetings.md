@@ -43,14 +43,21 @@ como preveia el spec 22. Todas toman el **lock de la fila del evento** (patron
 `register_attendee`) para serializar propuestas/aceptaciones concurrentes:
 
 - `propose_meeting`: valida evento publicado + networking habilitado + org no
-  suspendida (FOR SHARE) + evento no terminado; franja dentro de la ventana del
-  evento; ambos participantes activos y visibles en el directorio; ubicacion
-  del evento no archivada; sin solape con aceptadas de cualquiera de los dos ni
-  propuesta pendiente duplicada entre la pareja. Inserta `pending`.
-- `respond_meeting`: solo el receiver, solo `pending`. Al aceptar re-chequea
-  bajo el lock solapes de ambos y **capacidad del punto** (aceptadas solapadas
-  en el mismo punto < `capacity`); con conflicto responde `conflict` y la
-  reunion queda `pending` (se puede cancelar y proponer otra franja).
+  suspendida (FOR SHARE) + evento no terminado; **franja autoritativa** (no se
+  confia en el termino que envia la action: duracion fija de 30 min, alineada
+  al inicio del evento y dentro de la ventana del evento o de la de respaldo de
+  8h si no hay termino, igual que `generateMeetingSlots`); ambos participantes
+  activos y visibles en el directorio; ubicacion del evento no archivada; sin
+  solape con aceptadas de cualquiera de los dos ni propuesta pendiente
+  duplicada entre la pareja. Inserta `pending`.
+- `respond_meeting`: solo el receiver, solo `pending`. Rechazar es siempre
+  valido. **Aceptar re-valida bajo el lock todo el estado del evento** (no
+  borrado, publicado, networking habilitado, no terminado, org no suspendida),
+  que ambos participantes sigan activos y visibles, y que la ubicacion no se
+  haya archivado, ademas de los solapes de ambos y la **capacidad del punto**
+  (aceptadas solapadas en el mismo punto < `capacity`). Sin esto un token
+  valido podria confirmar una reunion en un evento ya cerrado. Con conflicto
+  responde `conflict` y la reunion queda `pending`.
 - `cancel_meeting`: requester o receiver, sobre `pending`/`accepted`.
 
 Los estados de resultado (`ok`/`unavailable`/`invalid_slot`/`invalid_location`/
