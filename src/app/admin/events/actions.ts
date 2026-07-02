@@ -6,7 +6,11 @@ import { z } from "zod";
 
 import type { FormState } from "@/app/admin/_components/form-state";
 import { parseDateTimeLocal } from "@/lib/datetime";
-import { DEFAULT_INDUSTRIES, DEFAULT_INTERESTS } from "@/lib/profile-options";
+import {
+  DEFAULT_GOALS,
+  DEFAULT_INDUSTRIES,
+  DEFAULT_INTERESTS,
+} from "@/lib/profile-options";
 import { objectPathFromPublicUrl } from "@/lib/storage";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -627,10 +631,14 @@ export async function rejectRegistration(formData: FormData) {
 // usuario gestiona el evento (`authorizeEventManager`), igual que el resto de
 // las acciones de evento. Todas redirigen de vuelta a la pagina de edicion.
 
-const optionKindSchema = z.enum(["industry", "interest"]);
+const optionKindSchema = z.enum(["industry", "interest", "goal"]);
 
-function defaultOptionsFor(kind: "industry" | "interest") {
-  return kind === "industry" ? DEFAULT_INDUSTRIES : DEFAULT_INTERESTS;
+function defaultOptionsFor(kind: "industry" | "interest" | "goal") {
+  if (kind === "industry") {
+    return DEFAULT_INDUSTRIES;
+  }
+
+  return kind === "interest" ? DEFAULT_INTERESTS : DEFAULT_GOALS;
 }
 
 // "Personalizar": siembra los defaults de plataforma como filas editables del

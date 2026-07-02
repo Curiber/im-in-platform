@@ -8,6 +8,8 @@ type RegistrationProfileInput = {
   company: string;
   industry: string;
   interests: string[];
+  goalsSeeking: string[];
+  goalsOffering: string[];
 };
 
 type AttendeeProfileRow = {
@@ -35,6 +37,8 @@ export async function upsertAttendeeProfileFromRegistration(
         company: input.company,
         industry: input.industry,
         interests: input.interests,
+        goals_seeking: input.goalsSeeking,
+        goals_offering: input.goalsOffering,
       })
       .eq("id", existingProfile.id);
 
@@ -51,6 +55,8 @@ export async function upsertAttendeeProfileFromRegistration(
       company: input.company,
       industry: input.industry,
       interests: input.interests,
+      goals_seeking: input.goalsSeeking,
+      goals_offering: input.goalsOffering,
       profile_slug: buildProfileSlug(input.fullName),
     })
     .select("id")

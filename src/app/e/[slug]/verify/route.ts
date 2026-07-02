@@ -14,6 +14,8 @@ type VerifyRegistration = {
   company_snapshot: string | null;
   industry_snapshot: string | null;
   interests: string[];
+  goals_seeking: string[];
+  goals_offering: string[];
   status: string;
   qr_token_hash: string;
   registered_at: string;
@@ -43,7 +45,7 @@ export async function GET(
   const { data: registration } = await adminClient
     .from("event_registrations")
     .select(
-      "id, email, full_name_snapshot, phone_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, status, qr_token_hash, registered_at, events(slug, ends_at)",
+      "id, email, full_name_snapshot, phone_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, goals_seeking, goals_offering, status, qr_token_hash, registered_at, events(slug, ends_at)",
     )
     .eq("id", registrationId)
     .single<VerifyRegistration>();
@@ -100,6 +102,8 @@ export async function GET(
     company: registration.company_snapshot ?? "",
     industry: registration.industry_snapshot ?? "",
     interests: registration.interests ?? [],
+    goalsSeeking: registration.goals_seeking ?? [],
+    goalsOffering: registration.goals_offering ?? [],
   });
 
   // No marcar `registered` sin perfil: dejaria la inscripcion sin poder editar

@@ -1,16 +1,18 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
+  DEFAULT_GOALS,
   DEFAULT_INDUSTRIES,
   DEFAULT_INTERESTS,
   resolveEffectiveOptions,
 } from "@/lib/profile-options";
 
-export type ProfileOptionKind = "industry" | "interest";
+export type ProfileOptionKind = "industry" | "interest" | "goal";
 
 export type EventProfileOptions = {
   industries: string[];
   interests: string[];
+  goals: string[];
 };
 
 type OptionRow = { kind: ProfileOptionKind; label: string };
@@ -51,9 +53,13 @@ export async function getEventProfileOptions(
   const customInterests = rows
     .filter((row) => row.kind === "interest")
     .map((row) => row.label);
+  const customGoals = rows
+    .filter((row) => row.kind === "goal")
+    .map((row) => row.label);
 
   return {
     industries: resolveEffectiveOptions(customIndustries, DEFAULT_INDUSTRIES),
     interests: resolveEffectiveOptions(customInterests, DEFAULT_INTERESTS),
+    goals: resolveEffectiveOptions(customGoals, DEFAULT_GOALS),
   };
 }

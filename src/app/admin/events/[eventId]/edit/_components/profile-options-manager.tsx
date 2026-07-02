@@ -6,16 +6,22 @@ import {
   removeEventProfileOption,
   resetEventProfileOptions,
 } from "@/app/admin/events/actions";
-import { DEFAULT_INDUSTRIES, DEFAULT_INTERESTS } from "@/lib/profile-options";
+import {
+  DEFAULT_GOALS,
+  DEFAULT_INDUSTRIES,
+  DEFAULT_INTERESTS,
+} from "@/lib/profile-options";
 
 export type ProfileOptionRow = { id: string; label: string };
 
 export function EventProfileOptionsManager({
   eventId,
+  goals,
   industries,
   interests,
 }: {
   eventId: string;
+  goals: ProfileOptionRow[];
   industries: ProfileOptionRow[];
   interests: ProfileOptionRow[];
 }) {
@@ -30,9 +36,9 @@ export function EventProfileOptionsManager({
             Opciones de networking
           </h2>
           <p className="mt-1 text-sm leading-6 text-brand-slate-600">
-            Personaliza las areas e intereses que los asistentes pueden elegir
-            al inscribirse y en su perfil. Si no personalizas, se usan las
-            opciones por defecto de la plataforma.
+            Personaliza las areas, intereses y objetivos de networking que los
+            asistentes pueden elegir al inscribirse y en su perfil. Si no
+            personalizas, se usan las opciones por defecto de la plataforma.
           </p>
         </div>
       </div>
@@ -52,6 +58,13 @@ export function EventProfileOptionsManager({
           options={interests}
           title="Intereses"
         />
+        <OptionGroup
+          defaults={DEFAULT_GOALS}
+          eventId={eventId}
+          kind="goal"
+          options={goals}
+          title="Objetivos de networking (busco/ofrezco)"
+        />
       </div>
     </div>
   );
@@ -65,7 +78,7 @@ function OptionGroup({
   defaults,
 }: {
   eventId: string;
-  kind: "industry" | "interest";
+  kind: "industry" | "interest" | "goal";
   title: string;
   options: ProfileOptionRow[];
   defaults: string[];
