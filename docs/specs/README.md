@@ -28,6 +28,7 @@ Este directorio contiene la base de spec-driven development para el MVP.
 22. [21-networking-dashboard.md](21-networking-dashboard.md)
 23. [22-meetings-domain-and-admin.md](22-meetings-domain-and-admin.md)
 24. [23-post-event-report.md](23-post-event-report.md)
+25. [24-organization-suspension.md](24-organization-suspension.md)
 
 ## Criterio de spec-driven development
 
