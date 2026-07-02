@@ -41,15 +41,23 @@ perdidas de red, sin esperar a la app Expo.
   `maskable` sin variantes extra.
 - **`public/sw.js`** conservador:
   - `/_next/static`, `/brand`, `/icons`: cache-first (inmutables por hash).
-  - Navegaciones GET same-origin: network-first con fallback al cache (sin
-    red, se muestra la ultima copia visitada).
-  - Todo lo demas (POST/server actions, cross-origin): directo a red.
+  - Navegaciones GET **solo del flujo del asistente (`/e/*`)**: network-first
+    con fallback al cache (sin red, se muestra la ultima copia visitada). Se
+    limita a `/e/*` a proposito: `/admin`, `/login` y demas superficies con
+    datos sensibles NO se interceptan ni se cachean, para no servirlas offline
+    tras cerrar sesion.
+  - Todo lo demas (POST/server actions, cross-origin, /admin, /login): directo
+    a red.
+  - Las escrituras en cache van por `event.waitUntil(cache.put(...))`: el
+    worker no termina antes de persistir (sin esto el fallback offline seria
+    no determinista).
   - `install` -> `skipWaiting`; `activate` -> borra caches de versiones
     anteriores (`im-in-v1`) y `clients.claim()`.
 - **Registro** en un client component (`ServiceWorkerRegistration`) montado en
   el layout nuevo del flujo del asistente (`/e/[slug]/layout.tsx`), con
-  `scope: "/"` y `updateViaCache: "none"`. Mejora progresiva: si falla, la web
-  sigue igual.
+  `scope: "/"` y `updateViaCache: "none"`. El scope es `/` (el SW vive en la
+  raiz) pero solo cachea navegaciones `/e/*`. Mejora progresiva: si falla, la
+  web sigue igual.
 - **`next.config.ts`**: `Cache-Control: no-cache` para `/sw.js` (una version
   vieja pegada seguiria interceptando fetches tras un deploy).
 - **`theme-color`** via `export const viewport` en el layout raiz.

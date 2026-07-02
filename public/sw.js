@@ -3,11 +3,16 @@
 // Estrategia conservadora v1:
 //   - Assets estaticos versionados (/_next/static, /brand, /icons): cache-first
 //     (son inmutables por hash o cambian casi nunca).
-//   - Navegaciones: network-first con fallback al cache (si ya visitaste la
-//     pagina y te quedaste sin red dentro del evento, se muestra la ultima
-//     copia). Las credenciales van en la query del URL, que es la clave del
-//     cache del propio navegador (mismo alcance que el historial).
-//   - Todo lo demas (server actions, POST, cross-origin): pasa directo a red.
+//   - Navegaciones DEL FLUJO DEL ASISTENTE (/e/*): network-first con fallback
+//     al cache (si ya visitaste la pagina y te quedaste sin red dentro del
+//     evento, se muestra la ultima copia). Se limita a /e/* a proposito: NO se
+//     cachean /admin, /login ni otras superficies con datos sensibles, para no
+//     servirlas offline despues de cerrar sesion.
+//   - Todo lo demas (server actions, POST, cross-origin, /admin, /login): pasa
+//     directo a red.
+//
+// Las credenciales del asistente van en la query del URL, que forma parte de
+// la clave del cache (mismo alcance que el historial del navegador).
 //
 // Sin precache: no hay lista de rutas estables que valga la pena precargar y
 // el flujo del asistente depende de datos vivos.
@@ -50,16 +55,18 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (STATIC_PREFIXES.some((prefix) => url.pathname.startsWith(prefix))) {
-    event.respondWith(cacheFirst(request));
+    event.respondWith(cacheFirst(request, event));
     return;
   }
 
-  if (request.mode === "navigate") {
-    event.respondWith(networkFirst(request));
+  // Solo se cachean navegaciones del flujo del asistente. El resto (/admin,
+  // /login, etc.) no se intercepta: va directo a red y nunca queda en cache.
+  if (request.mode === "navigate" && url.pathname.startsWith("/e/")) {
+    event.respondWith(networkFirst(request, event));
   }
 });
 
-async function cacheFirst(request) {
+async function cacheFirst(request, event) {
   const cached = await caches.match(request);
 
   if (cached) {
@@ -69,26 +76,25 @@ async function cacheFirst(request) {
   const response = await fetch(request);
 
   if (response.ok) {
-    const cache = await caches.open(CACHE_NAME);
-    cache.put(request, response.clone());
+    // waitUntil mantiene vivo el worker hasta que la escritura en cache
+    // termina; sin esto el put podria quedar a medias.
+    event.waitUntil(putInCache(request, response.clone()));
   }
 
   return response;
 }
 
-async function networkFirst(request) {
-  const cache = await caches.open(CACHE_NAME);
-
+async function networkFirst(request, event) {
   try {
     const response = await fetch(request);
 
     if (response.ok) {
-      cache.put(request, response.clone());
+      event.waitUntil(putInCache(request, response.clone()));
     }
 
     return response;
   } catch (error) {
-    const cached = await cache.match(request);
+    const cached = await caches.match(request);
 
     if (cached) {
       return cached;
@@ -96,4 +102,9 @@ async function networkFirst(request) {
 
     throw error;
   }
+}
+
+async function putInCache(request, response) {
+  const cache = await caches.open(CACHE_NAME);
+  await cache.put(request, response);
 }
