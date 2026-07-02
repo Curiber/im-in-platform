@@ -52,8 +52,12 @@ Una organizacion suspendida queda **congelada**:
    si); solo un suspend (raro) contiende.
 3. **Outbox de comunicaciones**: `claim_communications` excluye las filas de
    organizaciones suspendidas, asi un correo `pending`/`failed` encolado antes de
-   suspender no se despacha (ni por cron ni por el `after` inmediato); al
-   reactivar vuelve a ser reclamable.
+   suspender no se despacha (ni por cron ni por el `after` inmediato). Ademas, el
+   worker **re-chequea la suspension justo antes de despachar cada fila** (el
+   claim pudo ser hace rato y la org suspenderse entre el claim y el turno de la
+   fila, ya que el lote se procesa en serie): si esta suspendida, restaura la
+   fila a `pending` via `release_communication_claim` (deshaciendo el intento) y
+   no envia. Al reactivar vuelve a ser reclamable.
 4. **Helpers de actions con service_role** (`authorizeEventManager` x2,
    `requireOrgManager`, check-in): validan suspension en codigo, porque el
    service_role ignora RLS.

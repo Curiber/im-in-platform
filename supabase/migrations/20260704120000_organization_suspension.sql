@@ -453,3 +453,32 @@ begin
   returning c.*;
 end;
 $$;
+
+-- Libera un claim sin haber enviado: devuelve la fila a `pending` deshaciendo el
+-- incremento de intento (no fue un intento de entrega). Lo usa el worker cuando
+-- re-chequea la suspension JUSTO antes de despachar (el claim pudo ser hace
+-- rato y la org pudo suspenderse en el intervalo). Solo actua si la fila sigue
+-- `sending` (la posee el worker que la reclamo).
+create or replace function public.release_communication_claim(
+  p_communication_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  update public.event_communications
+  set status = 'pending',
+      claimed_at = null,
+      attempts = greatest(attempts - 1, 0)
+  where id = p_communication_id
+    and status = 'sending';
+end;
+$$;
+
+revoke execute on function public.release_communication_claim(uuid)
+  from public, anon, authenticated;
+
+grant execute on function public.release_communication_claim(uuid)
+  to service_role;
