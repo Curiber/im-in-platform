@@ -50,7 +50,10 @@ async function dispatchCommunication(
   adminClient: SupabaseClient,
   communication: ClaimedCommunication,
 ) {
-  const { data: event } = await adminClient
+  // Re-chequeo JUSTO antes de despachar: claim_communications valido la
+  // suspension al reclamar el lote, pero el worker procesa las filas en serie y
+  // la org pudo suspenderse entre el claim y el turno de esta fila.
+  const { data: event, error: eventError } = await adminClient
     .from("events")
     .select("name, organizations(suspended_at)")
     .eq("id", communication.event_id)
@@ -59,12 +62,11 @@ async function dispatchCommunication(
       organizations: { suspended_at: string | null } | null;
     }>();
 
-  // Re-chequeo JUSTO antes de despachar: claim_communications valido la
-  // suspension al reclamar el lote, pero el worker procesa las filas en serie y
-  // la org pudo suspenderse entre el claim y el turno de esta fila. Si esta
-  // suspendida, se restaura a `pending` (deshaciendo el claim) y no se envia; al
-  // reactivar se reclamara de nuevo.
-  if (event?.organizations?.suspended_at) {
+  // Si no se puede CONFIRMAR que la org esta activa (error de consulta, evento
+  // ausente o marca de suspension), NO se envia a ciegas: se restaura la fila a
+  // `pending` (deshaciendo el claim) y se reintenta luego. Fail-safe: ante duda,
+  // no despachar.
+  if (eventError || !event || event.organizations?.suspended_at) {
     await adminClient.rpc("release_communication_claim", {
       p_communication_id: communication.id,
     });
@@ -88,7 +90,7 @@ async function dispatchCommunication(
     recipients,
     subject: communication.subject,
     body: communication.body,
-    eventName: event?.name ?? "el evento",
+    eventName: event.name,
     communicationId: communication.id,
   });
 
