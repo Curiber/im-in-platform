@@ -66,6 +66,12 @@ export function toDateTimeLocalValue(value: string | Date | null) {
 // Interpreta lo enviado por un <input type="datetime-local"> ("YYYY-MM-DDTHH:mm")
 // como hora de pared en Chile y devuelve el instante UTC correspondiente.
 // Doble pasada de offset para acertar en los bordes de cambio de horario.
+//
+// Devuelve null si la hora de pared NO EXISTE: el salto de primavera del DST se
+// come una hora (p.ej. 2026-09-06T00:30 en Chile). Sin esta validacion, el
+// instante calculado quedaria guardado a una hora distinta a la que el usuario
+// escribio. Se detecta por round-trip: si formatear el instante de vuelta no
+// reproduce la pared pedida, la hora no existe.
 export function parseDateTimeLocal(value: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value.trim());
 
@@ -73,6 +79,7 @@ export function parseDateTimeLocal(value: string): Date | null {
     return null;
   }
 
+  const normalized = `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}`;
   const wallUtc = Date.UTC(
     Number(match[1]),
     Number(match[2]) - 1,
@@ -83,8 +90,15 @@ export function parseDateTimeLocal(value: string): Date | null {
 
   let offset = timeZoneOffsetMs(new Date(wallUtc));
   offset = timeZoneOffsetMs(new Date(wallUtc - offset));
+  const instant = new Date(wallUtc - offset);
 
-  return new Date(wallUtc - offset);
+  // Round-trip: si el instante no reproduce exactamente la pared pedida, esa
+  // hora no existe en la zona (salto de DST) -> se rechaza.
+  if (toDateTimeLocalValue(instant) !== normalized) {
+    return null;
+  }
+
+  return instant;
 }
 
 function toDate(value: string | Date) {

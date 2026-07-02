@@ -51,6 +51,14 @@ describe("parseDateTimeLocal", () => {
     expect(parseDateTimeLocal("no-es-fecha")).toBeNull();
     expect(parseDateTimeLocal("")).toBeNull();
   });
+
+  it("rechaza una hora inexistente por el salto de DST (no la guarda corrida)", () => {
+    // En Chile el 2026-09-06 los relojes saltan 00:00 -> 01:00: 00:30 no existe.
+    expect(parseDateTimeLocal("2026-09-06T00:30")).toBeNull();
+    // Las horas reales alrededor si parsean.
+    expect(parseDateTimeLocal("2026-09-06T01:30")).not.toBeNull();
+    expect(parseDateTimeLocal("2026-09-05T23:30")).not.toBeNull();
+  });
 });
 
 describe("toDateTimeLocalValue", () => {
