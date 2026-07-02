@@ -46,15 +46,27 @@ export async function checkInAttendee(
 
   const { data: event } = await supabase
     .from("events")
-    .select("id")
+    .select("id, organizations(suspended_at)")
     .eq("id", eventId)
     .is("deleted_at", null)
-    .single<{ id: string }>();
+    .single<{
+      id: string;
+      organizations: { suspended_at: string | null } | null;
+    }>();
 
   if (!event) {
     return {
       status: "error",
       message: "No tienes permisos para acreditar este evento.",
+    };
+  }
+
+  // La acreditacion escribe via service_role: el chequeo de suspension debe
+  // vivir aqui (una organizacion suspendida no opera eventos).
+  if (event.organizations?.suspended_at) {
+    return {
+      status: "error",
+      message: "La organizacion esta suspendida: check-in deshabilitado.",
     };
   }
 

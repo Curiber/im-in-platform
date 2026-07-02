@@ -20,13 +20,24 @@ async function authorizeEventManager(eventId: string) {
 
   const { data: event } = await supabase
     .from("events")
-    .select("id, organization_id")
+    .select("id, organization_id, organizations(suspended_at)")
     .eq("id", eventId)
     .is("deleted_at", null)
-    .single<{ id: string; organization_id: string }>();
+    .single<{
+      id: string;
+      organization_id: string;
+      organizations: { suspended_at: string | null } | null;
+    }>();
 
   if (!event) {
     throw new Error("Evento invalido.");
+  }
+
+  // Organizacion suspendida: panel en solo lectura.
+  if (event.organizations?.suspended_at) {
+    throw new Error(
+      "La organizacion esta suspendida: el panel es de solo lectura.",
+    );
   }
 
   const { data: membership } = await supabase

@@ -202,6 +202,85 @@ async function findOrInviteOwnerUser({
   return { ok: true, userId: data.user.id, invited: true };
 }
 
+// --- Suspension de organizaciones (Epic 37, platform admin) ---
+//
+// Las RPCs validan platform_role desde el JWT (app_metadata, firmada por
+// Supabase); se invocan con la sesion del usuario. El chequeo isPlatformAdmin
+// previo solo da un error mas claro.
+
+const suspendOrganizationSchema = z.object({
+  organizationId: z.string().uuid(),
+  reason: z.string().trim().min(5, "Ingresa un motivo de suspension."),
+});
+
+export async function suspendOrganization(formData: FormData) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  if (!isPlatformAdmin(user)) {
+    throw new Error("Solo platform admins pueden suspender organizaciones.");
+  }
+
+  const parsed = suspendOrganizationSchema.safeParse({
+    organizationId: formData.get("organizationId"),
+    reason: formData.get("reason"),
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Datos invalidos.");
+  }
+
+  const { error } = await supabase.rpc("suspend_organization", {
+    p_organization_id: parsed.data.organizationId,
+    p_reason: parsed.data.reason,
+  });
+
+  if (error) {
+    throw new Error("No se pudo suspender la organizacion.");
+  }
+
+  revalidatePath("/admin/organizations");
+  redirect("/admin/organizations");
+}
+
+export async function reactivateOrganization(formData: FormData) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  if (!isPlatformAdmin(user)) {
+    throw new Error("Solo platform admins pueden reactivar organizaciones.");
+  }
+
+  const organizationId = String(formData.get("organizationId") ?? "");
+
+  if (!organizationId) {
+    throw new Error("Organizacion invalida.");
+  }
+
+  const { error } = await supabase.rpc("reactivate_organization", {
+    p_organization_id: organizationId,
+  });
+
+  if (error) {
+    throw new Error("No se pudo reactivar la organizacion.");
+  }
+
+  revalidatePath("/admin/organizations");
+  redirect("/admin/organizations");
+}
+
 const organizationSettingsSchema = z.object({
   organizationId: z.string().uuid(),
   name: z.string().trim().min(2, "Ingresa el nombre de la organizacion."),
@@ -290,6 +369,22 @@ async function requireOrgManager(
 
   if (!membership || !["owner", "admin"].includes(membership.role)) {
     return { ok: false, error: "No tienes permisos para gestionar el equipo." };
+  }
+
+  // Organizacion suspendida: panel en solo lectura. Este helper gatea las
+  // escrituras de equipo que van via service_role (bypass de RLS), asi que el
+  // chequeo debe vivir aqui ademas de en has_organization_role.
+  const { data: organization } = await supabase
+    .from("organizations")
+    .select("suspended_at")
+    .eq("id", organizationId)
+    .single<{ suspended_at: string | null }>();
+
+  if (organization?.suspended_at) {
+    return {
+      ok: false,
+      error: "La organizacion esta suspendida: el panel es de solo lectura.",
+    };
   }
 
   return { ok: true, role: membership.role, userId: user.id };

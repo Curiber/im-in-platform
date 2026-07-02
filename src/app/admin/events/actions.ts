@@ -30,13 +30,26 @@ async function authorizeEventManager(eventId: string) {
 
   const { data: event } = await supabase
     .from("events")
-    .select("id, organization_id, slug")
+    .select("id, organization_id, slug, organizations(suspended_at)")
     .eq("id", eventId)
     .is("deleted_at", null)
-    .single<{ id: string; organization_id: string; slug: string }>();
+    .single<{
+      id: string;
+      organization_id: string;
+      slug: string;
+      organizations: { suspended_at: string | null } | null;
+    }>();
 
   if (!event) {
     throw new Error("Evento invalido.");
+  }
+
+  // Organizacion suspendida: panel en solo lectura. Este helper gatea las
+  // escrituras que van via service_role (bypass de RLS).
+  if (event.organizations?.suspended_at) {
+    throw new Error(
+      "La organizacion esta suspendida: el panel es de solo lectura.",
+    );
   }
 
   const { data: membership } = await supabase
