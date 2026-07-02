@@ -38,6 +38,19 @@ type OrganizationUser = {
   user_id: string;
 };
 
+type PlatformStats = {
+  organizations_total: number;
+  organizations_active: number;
+  organizations_suspended: number;
+  events_total: number;
+  events_published: number;
+  registrations_active: number;
+  registrations_checked_in: number;
+  connections_total: number;
+  connections_accepted: number;
+  meetings_total: number;
+};
+
 export default async function PlatformOrganizationsPage() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -51,6 +64,11 @@ export default async function PlatformOrganizationsPage() {
   if (!isPlatformAdmin(user)) {
     redirect("/admin");
   }
+
+  // Metricas globales: la RPC valida platform admin desde el JWT, asi que se
+  // invoca con la sesion del usuario (no el admin client).
+  const { data: statsRows } = await supabase.rpc("platform_stats");
+  const stats = (statsRows as PlatformStats[] | null)?.[0] ?? null;
 
   const adminClient = createSupabaseAdminClient();
   const [{ data: organizations }, { data: memberships }, { data: events }, authUsers] =
@@ -88,6 +106,36 @@ export default async function PlatformOrganizationsPage() {
 
   return (
     <AdminShell>
+      {stats ? (
+        <section className="mx-auto w-full max-w-7xl px-5 pt-8 sm:px-8">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-slate-600">
+            Plataforma
+          </h2>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            <PlatformMetric
+              hint={`${stats.organizations_active} activas · ${stats.organizations_suspended} suspendidas`}
+              label="Organizaciones"
+              value={stats.organizations_total}
+            />
+            <PlatformMetric
+              hint={`${stats.events_published} publicados`}
+              label="Eventos"
+              value={stats.events_total}
+            />
+            <PlatformMetric
+              hint={`${stats.registrations_checked_in} acreditados`}
+              label="Inscripciones activas"
+              value={stats.registrations_active}
+            />
+            <PlatformMetric
+              hint={`${stats.connections_accepted} aceptadas`}
+              label="Solicitudes de conexion"
+              value={stats.connections_total}
+            />
+            <PlatformMetric label="Reuniones" value={stats.meetings_total} />
+          </div>
+        </section>
+      ) : null}
       <section className="mx-auto grid w-full max-w-7xl gap-6 px-5 py-8 sm:px-8 lg:grid-cols-[1fr_400px]">
         <div className="rounded-lg border border-brand-border bg-white p-6 shadow-sm">
           <div className="flex items-start gap-4">
@@ -146,6 +194,26 @@ export default async function PlatformOrganizationsPage() {
         </aside>
       </section>
     </AdminShell>
+  );
+}
+
+function PlatformMetric({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: number;
+  hint?: string;
+}) {
+  return (
+    <article className="rounded-lg border border-brand-border bg-white p-4 shadow-sm">
+      <p className="text-sm text-brand-slate-600">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-brand-navy-950">{value}</p>
+      {hint ? (
+        <p className="mt-1 text-xs text-brand-slate-600">{hint}</p>
+      ) : null}
+    </article>
   );
 }
 
