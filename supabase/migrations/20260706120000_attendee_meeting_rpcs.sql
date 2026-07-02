@@ -108,6 +108,13 @@ begin
     return;
   end if;
 
+  -- No se propone en el pasado: la UI ya filtra franjas vencidas, pero el
+  -- Server Action es invocable directo.
+  if p_starts_at <= now() then
+    return query select 'expired'::text, null::uuid;
+    return;
+  end if;
+
   -- Ambos participantes: inscripcion activa del evento y visible en el
   -- directorio (opt-in de networking).
   select count(*)
@@ -285,6 +292,13 @@ begin
 
   if coalesce(v_org_suspended, false) then
     return query select 'unavailable'::text;
+    return;
+  end if;
+
+  -- La franja ya paso: no se confirma una reunion despues de su horario
+  -- (la UI no la ofrece, pero el Server Action es invocable directo).
+  if v_meeting.starts_at <= now() then
+    return query select 'expired'::text;
     return;
   end if;
 
