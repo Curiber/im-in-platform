@@ -55,25 +55,34 @@ export default async function EventDirectoryPage({
   }
 
   const adminClient = createSupabaseAdminClient();
-  const [{ data: profiles }, { count: pendingReceivedCount }] =
-    await Promise.all([
-      adminClient
-        .from("event_registrations")
-        .select(
-          "id, full_name_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, goals_seeking, goals_offering, attendee_profiles(headline, avatar_url)",
-        )
-        .eq("event_id", viewer.event_id)
-        .eq("public_profile_enabled", true)
-        .in("status", ["registered", "checked_in"])
-        .order("full_name_snapshot", { ascending: true })
-        .returns<DirectoryProfile[]>(),
-      adminClient
-        .from("connection_requests")
-        .select("id", { count: "exact", head: true })
-        .eq("event_id", viewer.event_id)
-        .eq("receiver_registration_id", viewer.id)
-        .eq("status", "pending"),
-    ]);
+  const [
+    { data: profiles },
+    { count: pendingReceivedCount },
+    { count: pendingMeetingsCount },
+  ] = await Promise.all([
+    adminClient
+      .from("event_registrations")
+      .select(
+        "id, full_name_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, goals_seeking, goals_offering, attendee_profiles(headline, avatar_url)",
+      )
+      .eq("event_id", viewer.event_id)
+      .eq("public_profile_enabled", true)
+      .in("status", ["registered", "checked_in"])
+      .order("full_name_snapshot", { ascending: true })
+      .returns<DirectoryProfile[]>(),
+    adminClient
+      .from("connection_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", viewer.event_id)
+      .eq("receiver_registration_id", viewer.id)
+      .eq("status", "pending"),
+    adminClient
+      .from("meetings")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", viewer.event_id)
+      .eq("receiver_registration_id", viewer.id)
+      .eq("status", "pending"),
+  ]);
 
   const viewerInterests = new Set(viewer.interests);
   const filteredProfiles = (profiles ?? []).filter((profile) => {
@@ -142,6 +151,7 @@ export default async function EventDirectoryPage({
         coverUrl={coverUrl}
         eventName={viewer.events.name}
         pendingCount={pendingReceivedCount ?? 0}
+        pendingMeetingsCount={pendingMeetingsCount ?? 0}
         slug={slug}
       />
 

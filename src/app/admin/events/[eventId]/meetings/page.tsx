@@ -88,7 +88,9 @@ export default async function EventMeetingsPage({
   let meetingsQuery = supabase
     .from("meetings")
     .select(
-      "id, status, starts_at, ends_at, requester:event_registrations!meetings_requester_registration_id_fkey(full_name_snapshot), receiver:event_registrations!meetings_receiver_registration_id_fkey(full_name_snapshot), location:meeting_locations(name)",
+      // Hints por NOMBRE DE CONSTRAINT (FKs compuestas del spec 22):
+      // meetings_requester_fk / meetings_receiver_fk / meetings_location_fk.
+      "id, status, starts_at, ends_at, requester:event_registrations!meetings_requester_fk(full_name_snapshot), receiver:event_registrations!meetings_receiver_fk(full_name_snapshot), location:meeting_locations!meetings_location_fk(name)",
     )
     .eq("event_id", event.id)
     .order("starts_at", { ascending: true });

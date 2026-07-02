@@ -65,26 +65,33 @@ export default async function ConnectionsPage({
   }
 
   const adminClient = createSupabaseAdminClient();
-  const [{ data: received }, { data: sent }] = await Promise.all([
-    adminClient
-      .from("connection_requests")
-      .select(
-        "id, requester_registration_id, receiver_registration_id, status, created_at",
-      )
-      .eq("event_id", viewer.event_id)
-      .eq("receiver_registration_id", viewer.id)
-      .order("created_at", { ascending: false })
-      .returns<ConnectionRequest[]>(),
-    adminClient
-      .from("connection_requests")
-      .select(
-        "id, requester_registration_id, receiver_registration_id, status, created_at",
-      )
-      .eq("event_id", viewer.event_id)
-      .eq("requester_registration_id", viewer.id)
-      .order("created_at", { ascending: false })
-      .returns<ConnectionRequest[]>(),
-  ]);
+  const [{ data: received }, { data: sent }, { count: pendingMeetingsCount }] =
+    await Promise.all([
+      adminClient
+        .from("connection_requests")
+        .select(
+          "id, requester_registration_id, receiver_registration_id, status, created_at",
+        )
+        .eq("event_id", viewer.event_id)
+        .eq("receiver_registration_id", viewer.id)
+        .order("created_at", { ascending: false })
+        .returns<ConnectionRequest[]>(),
+      adminClient
+        .from("connection_requests")
+        .select(
+          "id, requester_registration_id, receiver_registration_id, status, created_at",
+        )
+        .eq("event_id", viewer.event_id)
+        .eq("requester_registration_id", viewer.id)
+        .order("created_at", { ascending: false })
+        .returns<ConnectionRequest[]>(),
+      adminClient
+        .from("meetings")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", viewer.event_id)
+        .eq("receiver_registration_id", viewer.id)
+        .eq("status", "pending"),
+    ]);
 
   const contacts = await loadContacts([
     ...(received ?? []).map((request) => request.requester_registration_id),
@@ -109,6 +116,7 @@ export default async function ConnectionsPage({
         coverUrl={coverUrl}
         eventName={viewer.events?.name ?? "Evento"}
         pendingCount={pendingReceivedCount}
+        pendingMeetingsCount={pendingMeetingsCount ?? 0}
         slug={slug}
       />
 

@@ -2,8 +2,9 @@
 
 ## Estado
 
-`implementado (admin) — Epic 35, Fase 2.4`. El flujo del asistente es Fase 4.2 y
-queda documentado aqui como contrato futuro.
+`implementado (admin) — Epic 35, Fase 2.4`. El flujo del asistente (Fase 4.2)
+esta implementado en el [27-attendee-meetings.md](27-attendee-meetings.md)
+(Epic 44), siguiendo el contrato documentado aqui.
 
 Implementa el item 2.4 del
 [17-development-process-and-epic-prioritization.md](17-development-process-and-epic-prioritization.md),

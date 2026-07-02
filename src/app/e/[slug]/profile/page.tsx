@@ -78,12 +78,21 @@ export default async function EventProfilePage({
   const coverUrl = resolveEventCover(registration.events?.cover_image_url);
   const cardSlug =
     profile.card_visibility !== "private" ? profile.profile_slug : null;
-  const { count: pendingReceivedCount } = await adminClient
-    .from("connection_requests")
-    .select("id", { count: "exact", head: true })
-    .eq("event_id", registration.event_id)
-    .eq("receiver_registration_id", registration.id)
-    .eq("status", "pending");
+  const [{ count: pendingReceivedCount }, { count: pendingMeetingsCount }] =
+    await Promise.all([
+      adminClient
+        .from("connection_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", registration.event_id)
+        .eq("receiver_registration_id", registration.id)
+        .eq("status", "pending"),
+      adminClient
+        .from("meetings")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", registration.event_id)
+        .eq("receiver_registration_id", registration.id)
+        .eq("status", "pending"),
+    ]);
 
   return (
     <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
@@ -94,6 +103,7 @@ export default async function EventProfilePage({
         coverUrl={coverUrl}
         eventName={registration.events?.name ?? "Evento"}
         pendingCount={pendingReceivedCount ?? 0}
+        pendingMeetingsCount={pendingMeetingsCount ?? 0}
         slug={slug}
       />
 
