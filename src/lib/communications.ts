@@ -52,9 +52,24 @@ async function dispatchCommunication(
 ) {
   const { data: event } = await adminClient
     .from("events")
-    .select("name")
+    .select("name, organizations(suspended_at)")
     .eq("id", communication.event_id)
-    .single<{ name: string }>();
+    .single<{
+      name: string;
+      organizations: { suspended_at: string | null } | null;
+    }>();
+
+  // Re-chequeo JUSTO antes de despachar: claim_communications valido la
+  // suspension al reclamar el lote, pero el worker procesa las filas en serie y
+  // la org pudo suspenderse entre el claim y el turno de esta fila. Si esta
+  // suspendida, se restaura a `pending` (deshaciendo el claim) y no se envia; al
+  // reactivar se reclamara de nuevo.
+  if (event?.organizations?.suspended_at) {
+    await adminClient.rpc("release_communication_claim", {
+      p_communication_id: communication.id,
+    });
+    return;
+  }
 
   // Se envia contra el snapshot capturado al encolar (orden y set estables), no
   // recomputando la audiencia: asi los lotes y sus idempotency-keys por indice
