@@ -9,6 +9,9 @@ export type VerifiedRegistration = {
   email: string;
   full_name_snapshot: string;
   interests: string[];
+  goals_seeking: string[];
+  goals_offering: string[];
+  industry_snapshot: string | null;
   public_profile_enabled: boolean;
   status:
     | "pending_verification"
@@ -50,7 +53,7 @@ export async function verifyRegistrationAccess({
   const { data: registration } = await adminClient
     .from("event_registrations")
     .select(
-      "id, event_id, profile_id, email, full_name_snapshot, interests, public_profile_enabled, status, qr_token_hash, attendee_profiles(card_visibility, profile_slug), events(id, slug, name, networking_enabled, deleted_at, cover_image_url, organizations(suspended_at))",
+      "id, event_id, profile_id, email, full_name_snapshot, interests, goals_seeking, goals_offering, industry_snapshot, public_profile_enabled, status, qr_token_hash, attendee_profiles(card_visibility, profile_slug), events(id, slug, name, networking_enabled, deleted_at, cover_image_url, organizations(suspended_at))",
     )
     .eq("id", registrationId)
     .single()

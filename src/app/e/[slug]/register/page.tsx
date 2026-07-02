@@ -96,6 +96,7 @@ export default async function RegisterPage({
           <div className="mt-7">
             <RegistrationForm
               eventId={event.id}
+              goals={profileOptions.goals}
               industries={profileOptions.industries}
               interests={profileOptions.interests}
               slug={slug}

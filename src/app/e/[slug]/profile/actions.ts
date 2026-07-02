@@ -14,6 +14,8 @@ const profileSchema = z.object({
   company: z.string().trim().min(2, "Ingresa tu empresa u organizacion."),
   description: z.string().trim().max(500).optional(),
   fullName: z.string().trim().min(2, "Ingresa tu nombre."),
+  goalsSeeking: z.array(z.string().trim()).max(3),
+  goalsOffering: z.array(z.string().trim()).max(3),
   headline: z.string().trim().max(120).optional(),
   industry: z.string().trim().min(2, "Selecciona tu area o industria."),
   // La validacion contra el catalogo se hace despues, contra las opciones
@@ -43,6 +45,8 @@ export async function updateAttendeeProfile(formData: FormData) {
     company: String(formData.get("company") ?? ""),
     description: String(formData.get("description") ?? ""),
     fullName: String(formData.get("fullName") ?? ""),
+    goalsSeeking: formData.getAll("goalsSeeking"),
+    goalsOffering: formData.getAll("goalsOffering"),
     headline: String(formData.get("headline") ?? ""),
     industry: String(formData.get("industry") ?? ""),
     interests: formData.getAll("interests"),
@@ -83,12 +87,17 @@ export async function updateAttendeeProfile(formData: FormData) {
     registration.event_id,
   );
   const allowedInterests = new Set(eventOptions.interests);
+  const allowedGoals = new Set(eventOptions.goals);
   const industryValid = eventOptions.industries.includes(parsed.data.industry);
   const interestsValid = parsed.data.interests.every((item) =>
     allowedInterests.has(item),
   );
+  const goalsValid = [
+    ...parsed.data.goalsSeeking,
+    ...parsed.data.goalsOffering,
+  ].every((item) => allowedGoals.has(item));
 
-  if (!industryValid || !interestsValid) {
+  if (!industryValid || !interestsValid || !goalsValid) {
     redirect(`${fallbackPath}&profileStatus=invalid`);
   }
 
@@ -99,6 +108,8 @@ export async function updateAttendeeProfile(formData: FormData) {
       card_visibility: parsed.data.cardVisibility,
       description: parsed.data.description || null,
       full_name: parsed.data.fullName,
+      goals_seeking: parsed.data.goalsSeeking,
+      goals_offering: parsed.data.goalsOffering,
       headline: parsed.data.headline || null,
       industry: parsed.data.industry,
       interests: parsed.data.interests,
@@ -123,6 +134,8 @@ export async function updateAttendeeProfile(formData: FormData) {
     .update({
       company_snapshot: parsed.data.company,
       full_name_snapshot: parsed.data.fullName,
+      goals_seeking: parsed.data.goalsSeeking,
+      goals_offering: parsed.data.goalsOffering,
       industry_snapshot: parsed.data.industry,
       interests: parsed.data.interests,
       networking_opt_in: parsed.data.publicProfileEnabled,

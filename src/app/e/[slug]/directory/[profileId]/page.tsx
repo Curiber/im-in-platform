@@ -3,6 +3,7 @@ import {
   BriefcaseBusiness,
   Building2,
   IdCard,
+  Sparkles,
   UserRoundPlus,
 } from "lucide-react";
 import Link from "next/link";
@@ -10,6 +11,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { createConnectionRequest } from "@/app/e/[slug]/connections/actions";
+import { formatMatchReason, scoreMatch } from "@/lib/matchmaking";
 import type { ProfileCardVisibility } from "@/lib/profile-card-visibility";
 import { verifyRegistrationAccess } from "@/lib/registrations";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -23,6 +25,8 @@ type DirectoryProfileDetail = {
   company_snapshot: string | null;
   industry_snapshot: string | null;
   interests: string[];
+  goals_seeking: string[];
+  goals_offering: string[];
   attendee_profiles: {
     headline: string | null;
     description: string | null;
@@ -55,7 +59,7 @@ export default async function EventDirectoryProfilePage({
   const { data: profile } = await adminClient
     .from("event_registrations")
     .select(
-      "id, full_name_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, attendee_profiles(headline, description, avatar_url, card_visibility, profile_slug)",
+      "id, full_name_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, goals_seeking, goals_offering, attendee_profiles(headline, description, avatar_url, card_visibility, profile_slug)",
     )
     .eq("id", profileId)
     .eq("event_id", viewer.event_id)
@@ -95,6 +99,24 @@ export default async function EventDirectoryProfilePage({
 
   const accessQuery = `registrationId=${viewer.id}&token=${token}`;
   const isConnected = existingConnection?.status === "accepted";
+  // Razones del match contra el viewer (spec 26): concretas, sin porcentaje.
+  const matchReasons =
+    profile.id !== viewer.id
+      ? scoreMatch(
+          {
+            goalsSeeking: viewer.goals_seeking,
+            goalsOffering: viewer.goals_offering,
+            interests: viewer.interests,
+            industry: viewer.industry_snapshot,
+          },
+          {
+            goalsSeeking: profile.goals_seeking,
+            goalsOffering: profile.goals_offering,
+            interests: profile.interests,
+            industry: profile.industry_snapshot,
+          },
+        ).reasons
+      : [];
   const cardSlug =
     profile.attendee_profiles?.card_visibility !== "private"
       ? profile.attendee_profiles?.profile_slug
@@ -184,6 +206,36 @@ export default async function EventDirectoryProfilePage({
                 value={profile.industry_snapshot ?? "No informada"}
               />
             </div>
+
+            {matchReasons.length ? (
+              <div className="mt-8 rounded-2xl border border-brand-cyan-500/30 bg-[#eef9f6] p-5">
+                <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-brand-cyan-500">
+                  <Sparkles className="size-4" aria-hidden="true" />
+                  Por que conectar
+                </h3>
+                <ul className="mt-3 space-y-1.5">
+                  {matchReasons.map((reason) => (
+                    <li
+                      className="text-sm font-medium leading-6 text-brand-navy-950"
+                      key={reason.type}
+                    >
+                      {formatMatchReason(reason)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {profile.goals_seeking.length || profile.goals_offering.length ? (
+              <div className="mt-8 grid gap-4 sm:grid-cols-2">
+                {profile.goals_seeking.length ? (
+                  <GoalList label="Busca" values={profile.goals_seeking} />
+                ) : null}
+                {profile.goals_offering.length ? (
+                  <GoalList label="Ofrece" values={profile.goals_offering} />
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="mt-8">
               <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-cyan-500">
@@ -295,6 +347,26 @@ function initials(name: string) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+}
+
+function GoalList({ label, values }: { label: string; values: string[] }) {
+  return (
+    <div className="rounded-2xl border border-brand-border bg-brand-surface-soft p-4">
+      <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-cyan-500">
+        {label}
+      </h3>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {values.map((value) => (
+          <span
+            className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-brand-navy-900"
+            key={value}
+          >
+            {value}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function Info({

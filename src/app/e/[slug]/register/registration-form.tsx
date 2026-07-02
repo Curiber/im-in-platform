@@ -17,11 +17,13 @@ const initialState: RegistrationActionState = {
 export function RegistrationForm({
   eventId,
   slug,
+  goals,
   industries,
   interests,
 }: {
   eventId: string;
   slug: string;
+  goals: string[];
   industries: string[];
   interests: string[];
 }) {
@@ -126,6 +128,20 @@ export function RegistrationForm({
         </div>
       </fieldset>
 
+      <GoalFieldset
+        hint="Opcional. Elige hasta 3 para que te sugiramos a las personas correctas."
+        legend="¿Que buscas en este evento?"
+        name="goalsSeeking"
+        options={goals}
+      />
+
+      <GoalFieldset
+        hint="Opcional. Elige hasta 3 cosas que puedes aportar a otros asistentes."
+        legend="¿Que ofreces?"
+        name="goalsOffering"
+        options={goals}
+      />
+
       <div className="rounded-2xl border border-brand-cyan-500/30 bg-[#eef9f6] p-4">
         <label className="flex items-start gap-3">
           <input className="mt-1 size-4" name="networkingOptIn" type="checkbox" />
@@ -177,6 +193,42 @@ export function RegistrationForm({
         Al finalizar recibiras tu credencial QR para entrar al evento.
       </p>
     </form>
+  );
+}
+
+function GoalFieldset({
+  hint,
+  legend,
+  name,
+  options,
+}: {
+  hint: string;
+  legend: string;
+  name: string;
+  options: string[];
+}) {
+  return (
+    <fieldset>
+      <legend className="text-sm font-semibold text-brand-navy-950">
+        {legend}
+      </legend>
+      <p className="mt-1 text-sm text-brand-slate-600">{hint}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {options.map((option) => (
+          <label className="cursor-pointer" key={option}>
+            <input
+              className="peer sr-only"
+              name={name}
+              type="checkbox"
+              value={option}
+            />
+            <span className="inline-flex items-center rounded-xl border border-brand-border bg-white px-3.5 py-2 text-sm font-medium text-brand-slate-600 transition hover:border-brand-cyan-500/50 peer-checked:border-brand-navy-950 peer-checked:bg-brand-navy-950 peer-checked:text-white">
+              {option}
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 

@@ -77,13 +77,18 @@ export default async function EditEventPage({
     .eq("event_id", event.id)
     .order("position", { ascending: true })
     .order("label", { ascending: true })
-    .returns<{ id: string; kind: "industry" | "interest"; label: string }[]>();
+    .returns<
+      { id: string; kind: "industry" | "interest" | "goal"; label: string }[]
+    >();
 
   const industryOptions: ProfileOptionRow[] = (optionRows ?? [])
     .filter((row) => row.kind === "industry")
     .map((row) => ({ id: row.id, label: row.label }));
   const interestOptions: ProfileOptionRow[] = (optionRows ?? [])
     .filter((row) => row.kind === "interest")
+    .map((row) => ({ id: row.id, label: row.label }));
+  const goalOptions: ProfileOptionRow[] = (optionRows ?? [])
+    .filter((row) => row.kind === "goal")
     .map((row) => ({ id: row.id, label: row.label }));
 
   return (
@@ -339,6 +344,7 @@ export default async function EditEventPage({
 
         <EventProfileOptionsManager
           eventId={event.id}
+          goals={goalOptions}
           industries={industryOptions}
           interests={interestOptions}
         />

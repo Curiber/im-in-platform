@@ -24,6 +24,12 @@ const registrationSchema = z.object({
   company: z.string().trim().min(2, "Ingresa tu empresa u organizacion."),
   industry: z.string().trim().min(2, "Selecciona tu area o industria."),
   interests: z.array(z.string().trim()).min(1).max(5),
+  goalsSeeking: z
+    .array(z.string().trim())
+    .max(3, "Selecciona hasta 3 objetivos que buscas."),
+  goalsOffering: z
+    .array(z.string().trim())
+    .max(3, "Selecciona hasta 3 objetivos que ofreces."),
   networkingOptIn: z.boolean(),
   publicProfileEnabled: z.boolean(),
   dataConsent: z.literal(true),
@@ -50,6 +56,8 @@ export async function registerForEvent(
     company: formData.get("company"),
     industry: formData.get("industry"),
     interests: formData.getAll("interests"),
+    goalsSeeking: formData.getAll("goalsSeeking"),
+    goalsOffering: formData.getAll("goalsOffering"),
     networkingOptIn,
     publicProfileEnabled: networkingOptIn,
     dataConsent: formData.get("dataConsent") === "on",
@@ -102,11 +110,17 @@ export async function registerForEvent(
   const interestsValid = parsed.data.interests.every((interest) =>
     eventOptions.interests.includes(interest),
   );
+  const allowedGoals = new Set(eventOptions.goals);
+  const goalsValid = [
+    ...parsed.data.goalsSeeking,
+    ...parsed.data.goalsOffering,
+  ].every((goal) => allowedGoals.has(goal));
 
-  if (!industryValid || !interestsValid) {
+  if (!industryValid || !interestsValid || !goalsValid) {
     return {
       status: "error",
-      message: "Selecciona un area y unos intereses validos para este evento.",
+      message:
+        "Selecciona un area, intereses y objetivos validos para este evento.",
     };
   }
 
@@ -131,6 +145,8 @@ export async function registerForEvent(
     p_company: parsed.data.company,
     p_industry: parsed.data.industry,
     p_interests: parsed.data.interests,
+    p_goals_seeking: parsed.data.goalsSeeking,
+    p_goals_offering: parsed.data.goalsOffering,
     p_networking_opt_in: parsed.data.networkingOptIn,
     p_public_profile_enabled: parsed.data.publicProfileEnabled,
     p_qr_token_hash: tokenHash,

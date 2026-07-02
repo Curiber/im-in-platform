@@ -20,6 +20,8 @@ type AttendeeProfile = {
   company: string | null;
   description: string | null;
   full_name: string;
+  goals_seeking: string[];
+  goals_offering: string[];
   headline: string | null;
   industry: string | null;
   interests: string[];
@@ -58,7 +60,7 @@ export default async function EventProfilePage({
   const { data: profile } = await adminClient
     .from("attendee_profiles")
     .select(
-      "avatar_url, card_visibility, company, description, full_name, headline, industry, interests, linkedin_url, phone, profile_slug, public_email_enabled, public_phone_enabled, role",
+      "avatar_url, card_visibility, company, description, full_name, goals_seeking, goals_offering, headline, industry, interests, linkedin_url, phone, profile_slug, public_email_enabled, public_phone_enabled, role",
     )
     .eq("id", registration.profile_id)
     .single<AttendeeProfile>();
@@ -67,7 +69,7 @@ export default async function EventProfilePage({
     notFound();
   }
 
-  const { industries, interests } = await getEventProfileOptions(
+  const { goals, industries, interests } = await getEventProfileOptions(
     adminClient,
     registration.event_id,
   );
@@ -236,6 +238,22 @@ export default async function EventProfilePage({
             </div>
           </fieldset>
 
+          <GoalFieldset
+            hint="Opcional. Elige hasta 3 para que te sugiramos a las personas correctas."
+            legend="¿Que buscas en este evento?"
+            name="goalsSeeking"
+            options={goals}
+            selected={profile.goals_seeking}
+          />
+
+          <GoalFieldset
+            hint="Opcional. Elige hasta 3 cosas que puedes aportar a otros asistentes."
+            legend="¿Que ofreces?"
+            name="goalsOffering"
+            options={goals}
+            selected={profile.goals_offering}
+          />
+
           <label className="mt-6 flex items-start gap-3 rounded-md border border-brand-border/60 bg-brand-surface-soft p-4">
             <input
               className="mt-1 size-4"
@@ -379,6 +397,45 @@ export default async function EventProfilePage({
         </aside>
       </section>
     </main>
+  );
+}
+
+function GoalFieldset({
+  hint,
+  legend,
+  name,
+  options,
+  selected,
+}: {
+  hint: string;
+  legend: string;
+  name: string;
+  options: string[];
+  selected: string[];
+}) {
+  return (
+    <fieldset className="mt-6">
+      <legend className="text-sm font-semibold text-brand-navy-950">
+        {legend}
+      </legend>
+      <p className="mt-1 text-sm text-brand-slate-600">{hint}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {options.map((option) => (
+          <label className="cursor-pointer" key={option}>
+            <input
+              className="peer sr-only"
+              defaultChecked={selected.includes(option)}
+              name={name}
+              type="checkbox"
+              value={option}
+            />
+            <span className="inline-flex items-center rounded-xl border border-brand-border bg-white px-3.5 py-2 text-sm font-medium text-brand-slate-600 transition hover:border-brand-cyan-500/50 peer-checked:border-brand-navy-950 peer-checked:bg-brand-navy-950 peer-checked:text-white">
+              {option}
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 

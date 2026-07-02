@@ -4,6 +4,11 @@ import { notFound } from "next/navigation";
 
 import { NetworkingNav } from "@/app/e/[slug]/_components/networking-nav";
 import { resolveEventCover } from "@/lib/event-cover";
+import {
+  formatMatchReason,
+  type MatchProfile,
+  scoreMatch,
+} from "@/lib/matchmaking";
 import { verifyRegistrationAccess } from "@/lib/registrations";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -16,6 +21,8 @@ type DirectoryProfile = {
   company_snapshot: string | null;
   industry_snapshot: string | null;
   interests: string[];
+  goals_seeking: string[];
+  goals_offering: string[];
   attendee_profiles: {
     headline: string | null;
     avatar_url: string | null;
@@ -53,7 +60,7 @@ export default async function EventDirectoryPage({
       adminClient
         .from("event_registrations")
         .select(
-          "id, full_name_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, attendee_profiles(headline, avatar_url)",
+          "id, full_name_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, goals_seeking, goals_offering, attendee_profiles(headline, avatar_url)",
         )
         .eq("event_id", viewer.event_id)
         .eq("public_profile_enabled", true)
@@ -104,18 +111,24 @@ export default async function EventDirectoryPage({
       ? viewer.attendee_profiles?.profile_slug
       : null;
   const coverUrl = resolveEventCover(viewer.events.cover_image_url);
+  // Score compuesto (spec 26): los cruces busco/ofrezco pesan mas que los
+  // intereses en comun. Sin porcentaje: se muestran las razones reales.
+  const viewerMatchProfile: MatchProfile = {
+    goalsSeeking: viewer.goals_seeking,
+    goalsOffering: viewer.goals_offering,
+    interests: viewer.interests,
+    industry: viewer.industry_snapshot,
+  };
   const suggestedMatches = (profiles ?? [])
     .filter((profile) => profile.id !== viewer.id)
     .map((profile) => ({
       profile,
-      sharedInterests: profile.interests.filter((item) =>
-        viewerInterests.has(item),
-      ),
+      match: scoreMatch(viewerMatchProfile, toMatchProfile(profile)),
     }))
-    .filter((match) => match.sharedInterests.length > 0)
+    .filter(({ match }) => match.score > 0)
     .sort(
       (a, b) =>
-        b.sharedInterests.length - a.sharedInterests.length ||
+        b.match.score - a.match.score ||
         a.profile.full_name_snapshot.localeCompare(b.profile.full_name_snapshot),
     )
     .slice(0, 4);
@@ -145,10 +158,11 @@ export default async function EventDirectoryPage({
               Sugeridos para ti
             </p>
             <p className="mt-1 text-sm leading-6 text-brand-slate-600">
-              Personas con intereses en comun contigo.
+              Personas que buscan lo que ofreces, ofrecen lo que buscas o
+              comparten intereses contigo.
             </p>
             <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {suggestedMatches.map(({ profile, sharedInterests }) => (
+              {suggestedMatches.map(({ profile, match }) => (
                 <Link
                   className="rounded-2xl border border-brand-border bg-brand-surface-soft p-4 transition hover:-translate-y-1 hover:border-brand-cyan-500/50 hover:shadow-md"
                   href={`/e/${slug}/directory/${profile.id}?${accessQuery}`}
@@ -168,13 +182,17 @@ export default async function EventDirectoryPage({
                       </p>
                     </div>
                   </div>
-                  <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-brand-mint-300/40 px-2.5 py-1 text-xs font-semibold text-brand-navy-950">
-                    <Sparkles className="size-3" aria-hidden="true" />
-                    {sharedInterests.length}{" "}
-                    {sharedInterests.length === 1
-                      ? "interes en comun"
-                      : "intereses en comun"}
-                  </span>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {match.reasons.map((reason) => (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full bg-brand-mint-300/40 px-2.5 py-1 text-xs font-semibold text-brand-navy-950"
+                        key={reason.type}
+                      >
+                        <Sparkles className="size-3" aria-hidden="true" />
+                        {formatMatchReason(reason)}
+                      </span>
+                    ))}
+                  </div>
                 </Link>
               ))}
             </div>
@@ -230,6 +248,13 @@ export default async function EventDirectoryPage({
             const shared = profile.interests.filter((item) =>
               viewerInterests.has(item),
             );
+            const hasIntentMatch =
+              profile.id !== viewer.id &&
+              scoreMatch(viewerMatchProfile, toMatchProfile(profile)).reasons.some(
+                (reason) =>
+                  reason.type === "offers_what_you_seek" ||
+                  reason.type === "seeks_what_you_offer",
+              );
 
             return (
               <Link
@@ -259,7 +284,12 @@ export default async function EventDirectoryPage({
                       </p>
                     ) : null}
                   </div>
-                  {profile.id !== viewer.id && shared.length ? (
+                  {hasIntentMatch ? (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-brand-navy-950 px-2.5 py-1 text-xs font-semibold text-white">
+                      <Sparkles className="size-3" aria-hidden="true" />
+                      Match
+                    </span>
+                  ) : profile.id !== viewer.id && shared.length ? (
                     <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-brand-mint-300/40 px-2.5 py-1 text-xs font-semibold text-brand-navy-950">
                       <Sparkles className="size-3" aria-hidden="true" />
                       {shared.length}
@@ -348,6 +378,15 @@ function initials(name: string) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+}
+
+function toMatchProfile(profile: DirectoryProfile): MatchProfile {
+  return {
+    goalsSeeking: profile.goals_seeking,
+    goalsOffering: profile.goals_offering,
+    interests: profile.interests,
+    industry: profile.industry_snapshot,
+  };
 }
 
 function unique(values: Array<string | null>) {
