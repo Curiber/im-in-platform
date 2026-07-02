@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { getAppUrl } from "@/lib/env";
@@ -13,6 +13,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-geist-mono",
 });
+
+// theme-color de la PWA (spec 28): navy de marca en la barra del sistema.
+export const viewport: Viewport = {
+  themeColor: "#071b33",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(getAppUrl()),
