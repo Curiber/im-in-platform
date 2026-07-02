@@ -1,7 +1,7 @@
-import { Bell, IdCard, UserRoundPen, Users } from "lucide-react";
+import { Bell, CalendarClock, IdCard, UserRoundPen, Users } from "lucide-react";
 import Link from "next/link";
 
-type NetworkingTab = "personas" | "conexiones" | "perfil";
+type NetworkingTab = "personas" | "conexiones" | "agenda" | "perfil";
 
 const itemBase =
   "inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition";
@@ -15,6 +15,7 @@ export function NetworkingNav({
   coverUrl,
   eventName,
   pendingCount = 0,
+  pendingMeetingsCount = 0,
   slug,
 }: {
   accessQuery: string;
@@ -23,6 +24,7 @@ export function NetworkingNav({
   coverUrl: string;
   eventName: string;
   pendingCount?: number;
+  pendingMeetingsCount?: number;
   slug: string;
 }) {
   return (
@@ -45,46 +47,26 @@ export function NetworkingNav({
             </h1>
           </div>
           <nav className="flex flex-wrap gap-2 rounded-2xl border border-white/15 bg-white/10 p-1.5 backdrop-blur">
-            {active === "personas" ? (
-              <span className={`${itemBase} ${activeClass}`}>
-                <Users className="size-4" aria-hidden="true" />
-                Personas
-              </span>
-            ) : (
-              <Link
-                className={`${itemBase} ${idleClass}`}
-                href={`/e/${slug}/directory?${accessQuery}`}
-              >
-                <Users className="size-4" aria-hidden="true" />
-                Personas
-              </Link>
-            )}
-
-            {active === "conexiones" ? (
-              <span className={`${itemBase} ${activeClass}`}>
-                <Bell className="size-4" aria-hidden="true" />
-                Conexiones
-                {pendingCount ? (
-                  <span className="rounded-full bg-brand-aqua-400 px-2 py-0.5 text-xs font-bold text-brand-navy-950">
-                    {pendingCount}
-                  </span>
-                ) : null}
-              </span>
-            ) : (
-              <Link
-                className={`${itemBase} ${idleClass}`}
-                href={`/e/${slug}/connections?${accessQuery}`}
-              >
-                <Bell className="size-4" aria-hidden="true" />
-                Conexiones
-                {pendingCount ? (
-                  <span className="rounded-full bg-brand-aqua-400 px-2 py-0.5 text-xs font-bold text-brand-navy-950">
-                    {pendingCount}
-                  </span>
-                ) : null}
-              </Link>
-            )}
-
+            <NavItem
+              active={active === "personas"}
+              href={`/e/${slug}/directory?${accessQuery}`}
+              icon={<Users className="size-4" aria-hidden="true" />}
+              label="Personas"
+            />
+            <NavItem
+              active={active === "conexiones"}
+              badge={pendingCount}
+              href={`/e/${slug}/connections?${accessQuery}`}
+              icon={<Bell className="size-4" aria-hidden="true" />}
+              label="Conexiones"
+            />
+            <NavItem
+              active={active === "agenda"}
+              badge={pendingMeetingsCount}
+              href={`/e/${slug}/meetings?${accessQuery}`}
+              icon={<CalendarClock className="size-4" aria-hidden="true" />}
+              label="Agenda"
+            />
             {cardSlug ? (
               <Link
                 className={`${itemBase} ${idleClass}`}
@@ -95,24 +77,53 @@ export function NetworkingNav({
                 Mi tarjeta
               </Link>
             ) : null}
-
-            {active === "perfil" ? (
-              <span className={`${itemBase} ${activeClass}`}>
-                <UserRoundPen className="size-4" aria-hidden="true" />
-                Mi perfil
-              </span>
-            ) : (
-              <Link
-                className={`${itemBase} ${idleClass}`}
-                href={`/e/${slug}/profile?${accessQuery}`}
-              >
-                <UserRoundPen className="size-4" aria-hidden="true" />
-                Mi perfil
-              </Link>
-            )}
+            <NavItem
+              active={active === "perfil"}
+              href={`/e/${slug}/profile?${accessQuery}`}
+              icon={<UserRoundPen className="size-4" aria-hidden="true" />}
+              label="Mi perfil"
+            />
           </nav>
         </div>
       </div>
     </header>
+  );
+}
+
+function NavItem({
+  active,
+  badge = 0,
+  href,
+  icon,
+  label,
+}: {
+  active: boolean;
+  badge?: number;
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  const badgeNode = badge ? (
+    <span className="rounded-full bg-brand-aqua-400 px-2 py-0.5 text-xs font-bold text-brand-navy-950">
+      {badge}
+    </span>
+  ) : null;
+
+  if (active) {
+    return (
+      <span className={`${itemBase} ${activeClass}`}>
+        {icon}
+        {label}
+        {badgeNode}
+      </span>
+    );
+  }
+
+  return (
+    <Link className={`${itemBase} ${idleClass}`} href={href}>
+      {icon}
+      {label}
+      {badgeNode}
+    </Link>
   );
 }

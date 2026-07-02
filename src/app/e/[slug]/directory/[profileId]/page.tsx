@@ -2,6 +2,7 @@ import {
   ArrowLeft,
   BriefcaseBusiness,
   Building2,
+  CalendarClock,
   IdCard,
   Sparkles,
   UserRoundPlus,
@@ -11,7 +12,13 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { createConnectionRequest } from "@/app/e/[slug]/connections/actions";
+import { proposeMeeting } from "@/app/e/[slug]/meetings/actions";
+import { formatDateTimeRange } from "@/lib/datetime";
 import { formatMatchReason, scoreMatch } from "@/lib/matchmaking";
+import {
+  filterUpcomingSlots,
+  generateMeetingSlots,
+} from "@/lib/meeting-slots";
 import type { ProfileCardVisibility } from "@/lib/profile-card-visibility";
 import { verifyRegistrationAccess } from "@/lib/registrations";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -79,6 +86,28 @@ export default async function EventDirectoryProfilePage({
       viewed_registration_id: profile.id,
     });
   }
+
+  // Franjas de 30 min dentro de la ventana del evento (solo futuras) + puntos
+  // de encuentro activos, para proponer una reunion 1:1 (Fase 4.2).
+  const meetingSlots =
+    profile.id !== viewer.id && viewer.events
+      ? filterUpcomingSlots(
+          generateMeetingSlots({
+            eventStartsAt: viewer.events.starts_at,
+            eventEndsAt: viewer.events.ends_at,
+          }),
+        )
+      : [];
+  const { data: meetingLocations } =
+    profile.id !== viewer.id
+      ? await adminClient
+          .from("meeting_locations")
+          .select("id, name")
+          .eq("event_id", viewer.event_id)
+          .is("archived_at", null)
+          .order("created_at", { ascending: true })
+          .returns<{ id: string; name: string }[]>()
+      : { data: null };
 
   const { data: existingConnection } = await adminClient
     .from("connection_requests")
@@ -311,6 +340,86 @@ export default async function EventDirectoryProfilePage({
                   Ver conexiones
                 </Link>
               </div>
+            ) : null}
+
+            {profile.id !== viewer.id && meetingSlots.length ? (
+              <form
+                action={proposeMeeting}
+                className="mt-8 rounded-2xl border border-brand-border bg-brand-surface-soft p-5"
+              >
+                <input name="slug" type="hidden" value={slug} />
+                <input name="registrationId" type="hidden" value={viewer.id} />
+                <input name="token" type="hidden" value={token} />
+                <input
+                  name="receiverRegistrationId"
+                  type="hidden"
+                  value={profile.id}
+                />
+                <p className="flex items-center gap-2 text-sm font-semibold text-brand-navy-950">
+                  <CalendarClock
+                    className="size-4 text-brand-cyan-500"
+                    aria-hidden="true"
+                  />
+                  Proponer una reunion 1:1
+                </p>
+                <p className="mt-1 text-sm leading-6 text-brand-slate-600">
+                  Elige una franja de 30 minutos. Si acepta, quedara en la
+                  agenda de ambos.
+                </p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="text-sm font-medium text-brand-navy-950">
+                      Franja
+                    </span>
+                    <select
+                      className="mt-2 h-11 w-full rounded-xl border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
+                      name="startsAt"
+                      required
+                    >
+                      {meetingSlots.map((slot) => (
+                        <option key={slot.startsAt} value={slot.startsAt}>
+                          {formatDateTimeRange(slot.startsAt, slot.endsAt)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="text-sm font-medium text-brand-navy-950">
+                      Punto de encuentro
+                    </span>
+                    <select
+                      className="mt-2 h-11 w-full rounded-xl border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500"
+                      defaultValue=""
+                      name="locationId"
+                    >
+                      <option value="">Por definir</option>
+                      {(meetingLocations ?? []).map((location) => (
+                        <option key={location.id} value={location.id}>
+                          {location.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <label className="mt-3 block">
+                  <span className="text-sm font-medium text-brand-navy-950">
+                    Mensaje opcional
+                  </span>
+                  <input
+                    className="mt-2 h-11 w-full rounded-xl border border-brand-border bg-white px-3.5 text-sm outline-none transition focus:border-brand-cyan-500"
+                    maxLength={280}
+                    name="message"
+                    placeholder="Cuentale de que te gustaria conversar"
+                  />
+                </label>
+                <button
+                  className="mt-4 inline-flex h-11 items-center gap-2 rounded-xl bg-brand-navy-950 px-4 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-brand-navy-900"
+                  type="submit"
+                >
+                  <CalendarClock className="size-4" aria-hidden="true" />
+                  Proponer reunion
+                </button>
+              </form>
             ) : null}
           </div>
         </article>
