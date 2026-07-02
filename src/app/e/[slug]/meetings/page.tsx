@@ -64,6 +64,10 @@ const statusMessages: Record<string, { text: string; tone: "ok" | "error" }> = {
     text: "La franja elegida no esta dentro del horario del evento.",
     tone: "error",
   },
+  expired: {
+    text: "Esa franja ya paso. Elige un horario futuro.",
+    tone: "error",
+  },
   invalid_location: {
     text: "El punto de encuentro ya no esta disponible.",
     tone: "error",

@@ -60,9 +60,13 @@ como preveia el spec 22. Todas toman el **lock de la fila del evento** (patron
   responde `conflict` y la reunion queda `pending`.
 - `cancel_meeting`: requester o receiver, sobre `pending`/`accepted`.
 
+Ambas rechazan franjas en el pasado (`p_starts_at > now()` al proponer y
+`v_meeting.starts_at > now()` al aceptar): la UI ya filtra franjas vencidas,
+pero el Server Action es invocable directo.
+
 Los estados de resultado (`ok`/`unavailable`/`invalid_slot`/`invalid_location`/
-`invalid_participant`/`conflict`/`not_found`) se traducen a mensajes en la UI
-(query param `meetingStatus`).
+`invalid_participant`/`conflict`/`expired`/`not_found`) se traducen a mensajes
+en la UI (query param `meetingStatus`).
 
 ### Franjas (`src/lib/meeting-slots.ts`, puro y testeado)
 
