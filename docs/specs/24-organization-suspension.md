@@ -42,11 +42,19 @@ Una organizacion suspendida queda **congelada**:
    validan rol (soft delete/restore, modo de inscripcion, comunicaciones)
    quedan bloqueadas sin tocarlas una a una. `is_organization_member` no
    cambia: los miembros siguen leyendo su panel.
-2. **RPCs publicas** (`register_attendee`, `activate_verified_registration`)
-   chequean la suspension bajo el lock del evento (autoritativo).
-   `transfer_organization_ownership` tambien (valida rol directo, no via
-   has_organization_role).
-3. **Helpers de actions con service_role** (`authorizeEventManager` x2,
+2. **RPCs publicas** (`register_attendee`, `activate_verified_registration`,
+   `transfer_organization_ownership`) toman `SELECT ... FOR SHARE` sobre la fila
+   de `organizations` y leen `suspended_at` bajo ese lock. Como
+   `suspend_organization` hace `UPDATE organizations` (lock exclusivo de fila),
+   FOR SHARE serializa: se cierra la carrera de "validar activa, se suspende en
+   paralelo, escribir igual" (antes lockeaban filas distintas: evento vs org).
+   Las inscripciones concurrentes no se estorban (FOR SHARE es compatible entre
+   si); solo un suspend (raro) contiende.
+3. **Outbox de comunicaciones**: `claim_communications` excluye las filas de
+   organizaciones suspendidas, asi un correo `pending`/`failed` encolado antes de
+   suspender no se despacha (ni por cron ni por el `after` inmediato); al
+   reactivar vuelve a ser reclamable.
+4. **Helpers de actions con service_role** (`authorizeEventManager` x2,
    `requireOrgManager`, check-in): validan suspension en codigo, porque el
    service_role ignora RLS.
 
