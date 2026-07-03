@@ -1,22 +1,33 @@
-// Utilidades de la API v1 (Fase 5.1, spec 30).
+// Utilidades de la API v1 (Fase 5.1, spec 30; sesion: spec 33).
 //
-// Autenticacion: `Authorization: Bearer <registrationId>:<token>` — las mismas
-// credenciales del flujo web (el QR/link del asistente), validadas con las
-// mismas reglas (`verifyRegistrationToken`). Cuando exista la sesion OTP
-// (Fase 5.2) se sumara ese esquema sin romper este.
+// Autenticacion, dos esquemas sobre el mismo header:
+//   1. `Authorization: Bearer <registrationId>:<token>` — las credenciales del
+//      link/QR del asistente, validadas con las mismas reglas de la web
+//      (`verifyRegistrationToken`).
+//   2. `Authorization: Bearer <supabase_access_token>` (+ header
+//      `X-Registration-Id` para los endpoints con contexto de inscripcion) —
+//      la sesion OTP del asistente (spec 31); la inscripcion debe haber sido
+//      reclamada por ese usuario (`verifyRegistrationOwnership`).
+//   El separador ':' desambigua: el token de inscripcion es base64url y el id
+//   un UUID (ninguno contiene ':'); un JWT tampoco.
 //
 // Envelope: exito `{ data }`; error `{ error: { code, message } }` con el
 // status HTTP correspondiente. Los mappers DTO exponen camelCase y CUIDAN LA
 // PRIVACIDAD: el email de un contacto solo viaja en conexiones aceptadas
 // (misma regla que la web).
 
+import type { User } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 
 import type { VerifiedRegistration } from "@/lib/registrations";
-import { verifyRegistrationToken } from "@/lib/registrations";
+import {
+  verifyRegistrationOwnership,
+  verifyRegistrationToken,
+} from "@/lib/registrations";
 import type { RegistrationContact } from "@/lib/services/connection-service";
 import type { DirectoryProfile } from "@/lib/services/directory-service";
 import type { MeetingRow } from "@/lib/services/meeting-service";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export function jsonData(data: unknown, init?: ResponseInit) {
   return NextResponse.json({ data }, init);
@@ -57,21 +68,61 @@ export function jsonError(code: ApiErrorCode, message?: string) {
   );
 }
 
-// Extrae y valida las credenciales del header Authorization. El token es
-// base64url y el id un UUID: ':' no aparece en ninguno.
-export async function authenticateApiRequest(
-  request: NextRequest,
-): Promise<VerifiedRegistration | null> {
+function bearerValue(request: NextRequest): string | null {
   const header = request.headers.get("authorization") ?? "";
-  const match = /^Bearer\s+([^:\s]+):([^:\s]+)$/i.exec(header);
+  const match = /^Bearer\s+(\S+)$/i.exec(header);
 
-  if (!match) {
+  return match ? match[1] : null;
+}
+
+// Resuelve el usuario de Supabase Auth desde un access token (sin cookies).
+export async function authenticateApiUser(
+  request: NextRequest,
+): Promise<User | null> {
+  const bearer = bearerValue(request);
+
+  // Un bearer con ':' son credenciales de inscripcion, no un access token.
+  if (!bearer || bearer.includes(":")) {
     return null;
   }
 
-  return verifyRegistrationToken({
-    registrationId: match[1],
-    token: match[2],
+  const {
+    data: { user },
+  } = await createSupabaseAdminClient().auth.getUser(bearer);
+
+  return user;
+}
+
+// Autenticacion con contexto de inscripcion: credenciales de inscripcion
+// (id:token) o sesion OTP (access token + X-Registration-Id de una
+// inscripcion reclamada por ese usuario).
+export async function authenticateApiRequest(
+  request: NextRequest,
+): Promise<VerifiedRegistration | null> {
+  const bearer = bearerValue(request);
+
+  if (!bearer) {
+    return null;
+  }
+
+  const credentials = /^([^:\s]+):([^:\s]+)$/.exec(bearer);
+
+  if (credentials) {
+    return verifyRegistrationToken({
+      registrationId: credentials[1],
+      token: credentials[2],
+    });
+  }
+
+  const user = await authenticateApiUser(request);
+
+  if (!user) {
+    return null;
+  }
+
+  return verifyRegistrationOwnership({
+    registrationId: request.headers.get("x-registration-id") ?? undefined,
+    userId: user.id,
   });
 }
 

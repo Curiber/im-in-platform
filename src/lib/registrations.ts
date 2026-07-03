@@ -84,6 +84,30 @@ async function loadActiveRegistration(
   return registration;
 }
 
+// Verificacion por DUEÑO (API v1 con sesion, Fase 5.2/spec 33): la inscripcion
+// debe estar activa y haber sido reclamada por ese usuario
+// (claim_attendee_identity). Sin token: la identidad ya la probo el access
+// token de Supabase que resolvio el userId.
+export async function verifyRegistrationOwnership({
+  registrationId,
+  userId,
+}: {
+  registrationId?: string;
+  userId: string;
+}): Promise<VerifiedRegistration | null> {
+  if (!registrationId) {
+    return null;
+  }
+
+  const registration = await loadActiveRegistration(registrationId);
+
+  if (!registration || registration.user_id !== userId) {
+    return null;
+  }
+
+  return registration;
+}
+
 // Verificacion por token SIN slug: la usa la API v1 (el cliente mobile conoce
 // registrationId + token, no la URL del evento). Solo token: la API no tiene
 // cookies de sesion.

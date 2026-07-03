@@ -100,7 +100,7 @@ estos codigos.
 
 - Versionado: cambios incompatibles abren `/api/v2`; v1 queda congelada
   cuando la app este publicada.
-- Cuando exista la sesion OTP (5.2), `authenticateApiRequest` aceptara ademas
-  un access token de Supabase Auth, resolviendo las inscripciones del usuario.
+- Sesion OTP: implementada en el [33-api-session-auth.md](33-api-session-auth.md)
+  (access token + X-Registration-Id, y GET /api/v1/registrations).
 - Sin rate limiting: mitigado porque toda mutacion pasa por RPCs bajo lock e
   idempotentes; agregarlo antes de publicar la app en tiendas.
