@@ -53,9 +53,16 @@ RPC `security definer` ejecutable por `authenticated`:
 - **`/mi`**: "Mis eventos" — sesion requerida (redirect a `/mi/login`),
   reclamo idempotente y grilla de inscripciones (estado, fecha, lugar) con
   entrada directa al networking. Eventos borrados o de organizaciones
-  suspendidas no se muestran. Sign-out con `next=/mi/login` (la ruta
-  `/auth/sign-out` ahora acepta un `next` seguro, mismo criterio del
-  callback).
+  suspendidas no se muestran. Sign-out con `next=/mi/login`.
+
+### Redireccion segura (`safeRedirectPath`)
+
+El `next` de `/auth/sign-out` y `/auth/callback` no se valida por prefijo de
+string: `/%5Cevil.com`, `/\evil.com` o `//evil.com` pasan un `startsWith("/")`
+pero el parser WHATWG los resuelve a otro origen (open redirect). El helper
+resuelve el `next` contra el origen de la peticion, exige que el origen
+resultante coincida y devuelve solo la ruta (pathname + query), descartando
+cualquier host colado. Testeado con los vectores de evasion.
 
 ### Puente de sesion en `verifyRegistrationAccess`
 
