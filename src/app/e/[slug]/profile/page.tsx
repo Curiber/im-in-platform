@@ -10,6 +10,7 @@ import { resolveEventCover } from "@/lib/event-cover";
 import { getEventProfileOptions } from "@/lib/event-profile-options";
 import type { ProfileCardVisibility } from "@/lib/profile-card-visibility";
 import { verifyRegistrationAccess } from "@/lib/registrations";
+import { countPendingMeetings } from "@/lib/services/meeting-service";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -78,7 +79,7 @@ export default async function EventProfilePage({
   const coverUrl = resolveEventCover(registration.events?.cover_image_url);
   const cardSlug =
     profile.card_visibility !== "private" ? profile.profile_slug : null;
-  const [{ count: pendingReceivedCount }, { count: pendingMeetingsCount }] =
+  const [{ count: pendingReceivedCount }, pendingMeetingsCount] =
     await Promise.all([
       adminClient
         .from("connection_requests")
@@ -86,12 +87,7 @@ export default async function EventProfilePage({
         .eq("event_id", registration.event_id)
         .eq("receiver_registration_id", registration.id)
         .eq("status", "pending"),
-      adminClient
-        .from("meetings")
-        .select("id", { count: "exact", head: true })
-        .eq("event_id", registration.event_id)
-        .eq("receiver_registration_id", registration.id)
-        .eq("status", "pending"),
+      countPendingMeetings(adminClient, registration),
     ]);
 
   return (
@@ -103,7 +99,7 @@ export default async function EventProfilePage({
         coverUrl={coverUrl}
         eventName={registration.events?.name ?? "Evento"}
         pendingCount={pendingReceivedCount ?? 0}
-        pendingMeetingsCount={pendingMeetingsCount ?? 0}
+        pendingMeetingsCount={pendingMeetingsCount}
         slug={slug}
       />
 

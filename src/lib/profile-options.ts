@@ -51,3 +51,36 @@ export function resolveEffectiveOptions(
 ): string[] {
   return customLabels.length > 0 ? customLabels : defaults;
 }
+
+export type ProfileSelections = {
+  industry: string;
+  interests: string[];
+  goalsSeeking: string[];
+  goalsOffering: string[];
+};
+
+export type EffectiveCatalog = {
+  industries: string[];
+  interests: string[];
+  goals: string[];
+};
+
+// Validacion server-side de lo que envia el asistente contra el catalogo
+// efectivo del evento. Los Server Actions (y la futura API) son invocables
+// directo, asi que no se confia en el formulario. Pura para testearla aislada;
+// la comparten registro, perfil y API v1.
+export function validateProfileSelections(
+  catalog: EffectiveCatalog,
+  selections: ProfileSelections,
+): boolean {
+  const allowedInterests = new Set(catalog.interests);
+  const allowedGoals = new Set(catalog.goals);
+
+  return (
+    catalog.industries.includes(selections.industry) &&
+    selections.interests.every((item) => allowedInterests.has(item)) &&
+    [...selections.goalsSeeking, ...selections.goalsOffering].every((item) =>
+      allowedGoals.has(item),
+    )
+  );
+}

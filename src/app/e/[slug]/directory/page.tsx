@@ -4,30 +4,19 @@ import { notFound } from "next/navigation";
 
 import { NetworkingNav } from "@/app/e/[slug]/_components/networking-nav";
 import { resolveEventCover } from "@/lib/event-cover";
-import {
-  formatMatchReason,
-  type MatchProfile,
-  scoreMatch,
-} from "@/lib/matchmaking";
+import { formatMatchReason, scoreMatch } from "@/lib/matchmaking";
 import { verifyRegistrationAccess } from "@/lib/registrations";
+import {
+  filterDirectoryProfiles,
+  listDirectoryProfiles,
+  rankSuggestedMatches,
+  toMatchProfile,
+  viewerMatchProfile,
+} from "@/lib/services/directory-service";
+import { countPendingMeetings } from "@/lib/services/meeting-service";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
-
-type DirectoryProfile = {
-  id: string;
-  full_name_snapshot: string;
-  role_snapshot: string | null;
-  company_snapshot: string | null;
-  industry_snapshot: string | null;
-  interests: string[];
-  goals_seeking: string[];
-  goals_offering: string[];
-  attendee_profiles: {
-    headline: string | null;
-    avatar_url: string | null;
-  } | null;
-};
 
 export default async function EventDirectoryPage({
   params,
@@ -55,65 +44,29 @@ export default async function EventDirectoryPage({
   }
 
   const adminClient = createSupabaseAdminClient();
-  const [
-    { data: profiles },
-    { count: pendingReceivedCount },
-    { count: pendingMeetingsCount },
-  ] = await Promise.all([
-    adminClient
-      .from("event_registrations")
-      .select(
-        "id, full_name_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, goals_seeking, goals_offering, attendee_profiles(headline, avatar_url)",
-      )
-      .eq("event_id", viewer.event_id)
-      .eq("public_profile_enabled", true)
-      .in("status", ["registered", "checked_in"])
-      .order("full_name_snapshot", { ascending: true })
-      .returns<DirectoryProfile[]>(),
-    adminClient
-      .from("connection_requests")
-      .select("id", { count: "exact", head: true })
-      .eq("event_id", viewer.event_id)
-      .eq("receiver_registration_id", viewer.id)
-      .eq("status", "pending"),
-    adminClient
-      .from("meetings")
-      .select("id", { count: "exact", head: true })
-      .eq("event_id", viewer.event_id)
-      .eq("receiver_registration_id", viewer.id)
-      .eq("status", "pending"),
-  ]);
+  const [profiles, { count: pendingReceivedCount }, pendingMeetingsCount] =
+    await Promise.all([
+      listDirectoryProfiles(adminClient, viewer.event_id),
+      adminClient
+        .from("connection_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", viewer.event_id)
+        .eq("receiver_registration_id", viewer.id)
+        .eq("status", "pending"),
+      countPendingMeetings(adminClient, viewer),
+    ]);
 
   const viewerInterests = new Set(viewer.interests);
-  const filteredProfiles = (profiles ?? []).filter((profile) => {
-    const query = q?.trim().toLowerCase();
-    const matchesQuery = query
-      ? [
-          profile.full_name_snapshot,
-          profile.role_snapshot,
-          profile.company_snapshot,
-          profile.industry_snapshot,
-        ]
-          .filter(Boolean)
-          .some((value) => value?.toLowerCase().includes(query))
-      : true;
-
-    const matchesIndustry = industry
-      ? profile.industry_snapshot === industry
-      : true;
-    const matchesInterest = interest
-      ? profile.interests.includes(interest)
-      : true;
-
-    return matchesQuery && matchesIndustry && matchesInterest;
+  const filteredProfiles = filterDirectoryProfiles(profiles, {
+    industry,
+    interest,
+    q,
   });
 
   const industries = unique(
-    (profiles ?? []).map((profile) => profile.industry_snapshot),
+    profiles.map((profile) => profile.industry_snapshot),
   );
-  const interests = unique(
-    (profiles ?? []).flatMap((profile) => profile.interests),
-  );
+  const interests = unique(profiles.flatMap((profile) => profile.interests));
   const accessQuery = `registrationId=${viewer.id}&token=${token}`;
   const viewerCardSlug =
     viewer.attendee_profiles?.card_visibility !== "private"
@@ -122,25 +75,8 @@ export default async function EventDirectoryPage({
   const coverUrl = resolveEventCover(viewer.events.cover_image_url);
   // Score compuesto (spec 26): los cruces busco/ofrezco pesan mas que los
   // intereses en comun. Sin porcentaje: se muestran las razones reales.
-  const viewerMatchProfile: MatchProfile = {
-    goalsSeeking: viewer.goals_seeking,
-    goalsOffering: viewer.goals_offering,
-    interests: viewer.interests,
-    industry: viewer.industry_snapshot,
-  };
-  const suggestedMatches = (profiles ?? [])
-    .filter((profile) => profile.id !== viewer.id)
-    .map((profile) => ({
-      profile,
-      match: scoreMatch(viewerMatchProfile, toMatchProfile(profile)),
-    }))
-    .filter(({ match }) => match.score > 0)
-    .sort(
-      (a, b) =>
-        b.match.score - a.match.score ||
-        a.profile.full_name_snapshot.localeCompare(b.profile.full_name_snapshot),
-    )
-    .slice(0, 4);
+  const viewerMatch = viewerMatchProfile(viewer);
+  const suggestedMatches = rankSuggestedMatches(viewerMatch, viewer.id, profiles);
 
   return (
     <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
@@ -151,7 +87,7 @@ export default async function EventDirectoryPage({
         coverUrl={coverUrl}
         eventName={viewer.events.name}
         pendingCount={pendingReceivedCount ?? 0}
-        pendingMeetingsCount={pendingMeetingsCount ?? 0}
+        pendingMeetingsCount={pendingMeetingsCount}
         slug={slug}
       />
 
@@ -260,7 +196,7 @@ export default async function EventDirectoryPage({
             );
             const hasIntentMatch =
               profile.id !== viewer.id &&
-              scoreMatch(viewerMatchProfile, toMatchProfile(profile)).reasons.some(
+              scoreMatch(viewerMatch, toMatchProfile(profile)).reasons.some(
                 (reason) =>
                   reason.type === "offers_what_you_seek" ||
                   reason.type === "seeks_what_you_offer",
@@ -388,15 +324,6 @@ function initials(name: string) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
-}
-
-function toMatchProfile(profile: DirectoryProfile): MatchProfile {
-  return {
-    goalsSeeking: profile.goals_seeking,
-    goalsOffering: profile.goals_offering,
-    interests: profile.interests,
-    industry: profile.industry_snapshot,
-  };
 }
 
 function unique(values: Array<string | null>) {

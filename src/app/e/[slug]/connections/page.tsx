@@ -18,32 +18,16 @@ import {
   rejectConnectionRequest,
 } from "@/app/e/[slug]/connections/actions";
 import { resolveEventCover } from "@/lib/event-cover";
-import type { ProfileCardVisibility } from "@/lib/profile-card-visibility";
 import { verifyRegistrationAccess } from "@/lib/registrations";
+import {
+  type ConnectionRequestRow as ConnectionRequest,
+  listConnections,
+  type RegistrationContact,
+} from "@/lib/services/connection-service";
+import { countPendingMeetings } from "@/lib/services/meeting-service";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
-
-type ConnectionRequest = {
-  id: string;
-  requester_registration_id: string;
-  receiver_registration_id: string;
-  status: "pending" | "accepted" | "rejected" | "cancelled";
-  created_at: string;
-};
-
-type RegistrationContact = {
-  id: string;
-  email: string;
-  full_name_snapshot: string;
-  role_snapshot: string | null;
-  company_snapshot: string | null;
-  attendee_profiles: {
-    avatar_url: string | null;
-    card_visibility: ProfileCardVisibility;
-    profile_slug: string | null;
-  } | null;
-};
 
 export default async function ConnectionsPage({
   params,
@@ -65,42 +49,16 @@ export default async function ConnectionsPage({
   }
 
   const adminClient = createSupabaseAdminClient();
-  const [{ data: received }, { data: sent }, { count: pendingMeetingsCount }] =
+  const [{ received, sent, contacts }, pendingMeetingsCount] =
     await Promise.all([
-      adminClient
-        .from("connection_requests")
-        .select(
-          "id, requester_registration_id, receiver_registration_id, status, created_at",
-        )
-        .eq("event_id", viewer.event_id)
-        .eq("receiver_registration_id", viewer.id)
-        .order("created_at", { ascending: false })
-        .returns<ConnectionRequest[]>(),
-      adminClient
-        .from("connection_requests")
-        .select(
-          "id, requester_registration_id, receiver_registration_id, status, created_at",
-        )
-        .eq("event_id", viewer.event_id)
-        .eq("requester_registration_id", viewer.id)
-        .order("created_at", { ascending: false })
-        .returns<ConnectionRequest[]>(),
-      adminClient
-        .from("meetings")
-        .select("id", { count: "exact", head: true })
-        .eq("event_id", viewer.event_id)
-        .eq("receiver_registration_id", viewer.id)
-        .eq("status", "pending"),
+      listConnections(adminClient, viewer),
+      countPendingMeetings(adminClient, viewer),
     ]);
 
-  const contacts = await loadContacts([
-    ...(received ?? []).map((request) => request.requester_registration_id),
-    ...(sent ?? []).map((request) => request.receiver_registration_id),
-  ]);
-
   const accessQuery = `registrationId=${viewer.id}&token=${token}`;
-  const pendingReceivedCount =
-    received?.filter((request) => request.status === "pending").length ?? 0;
+  const pendingReceivedCount = received.filter(
+    (request) => request.status === "pending",
+  ).length;
   const viewerCardSlug =
     viewer.attendee_profiles?.card_visibility !== "private"
       ? viewer.attendee_profiles?.profile_slug
@@ -116,7 +74,7 @@ export default async function ConnectionsPage({
         coverUrl={coverUrl}
         eventName={viewer.events?.name ?? "Evento"}
         pendingCount={pendingReceivedCount}
-        pendingMeetingsCount={pendingMeetingsCount ?? 0}
+        pendingMeetingsCount={pendingMeetingsCount}
         slug={slug}
       />
 
@@ -388,24 +346,3 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 
-async function loadContacts(ids: string[]) {
-  const uniqueIds = Array.from(new Set(ids));
-  const contacts = new Map<string, RegistrationContact>();
-
-  if (!uniqueIds.length) {
-    return contacts;
-  }
-
-  const adminClient = createSupabaseAdminClient();
-  const { data } = await adminClient
-    .from("event_registrations")
-    .select(
-      "id, email, full_name_snapshot, role_snapshot, company_snapshot, attendee_profiles(avatar_url, card_visibility, profile_slug)",
-    )
-    .in("id", uniqueIds)
-    .returns<RegistrationContact[]>();
-
-  data?.forEach((contact) => contacts.set(contact.id, contact));
-
-  return contacts;
-}

@@ -15,12 +15,14 @@ import { createConnectionRequest } from "@/app/e/[slug]/connections/actions";
 import { proposeMeeting } from "@/app/e/[slug]/meetings/actions";
 import { formatDateTimeRange } from "@/lib/datetime";
 import { formatMatchReason, scoreMatch } from "@/lib/matchmaking";
-import {
-  filterUpcomingSlots,
-  generateMeetingSlots,
-} from "@/lib/meeting-slots";
 import type { ProfileCardVisibility } from "@/lib/profile-card-visibility";
 import { verifyRegistrationAccess } from "@/lib/registrations";
+import {
+  recordProfileView,
+  toMatchProfile,
+  viewerMatchProfile,
+} from "@/lib/services/directory-service";
+import { getMeetingProposalOptions } from "@/lib/services/meeting-service";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -79,35 +81,18 @@ export default async function EventDirectoryProfilePage({
     notFound();
   }
 
-  if (profile.id !== viewer.id) {
-    await adminClient.from("profile_views").insert({
-      event_id: viewer.event_id,
-      viewer_registration_id: viewer.id,
-      viewed_registration_id: profile.id,
-    });
-  }
+  await recordProfileView(adminClient, {
+    eventId: viewer.event_id,
+    viewedRegistrationId: profile.id,
+    viewerRegistrationId: viewer.id,
+  });
 
   // Franjas de 30 min dentro de la ventana del evento (solo futuras) + puntos
   // de encuentro activos, para proponer una reunion 1:1 (Fase 4.2).
-  const meetingSlots =
-    profile.id !== viewer.id && viewer.events
-      ? filterUpcomingSlots(
-          generateMeetingSlots({
-            eventStartsAt: viewer.events.starts_at,
-            eventEndsAt: viewer.events.ends_at,
-          }),
-        )
-      : [];
-  const { data: meetingLocations } =
+  const { slots: meetingSlots, locations: meetingLocations } =
     profile.id !== viewer.id
-      ? await adminClient
-          .from("meeting_locations")
-          .select("id, name")
-          .eq("event_id", viewer.event_id)
-          .is("archived_at", null)
-          .order("created_at", { ascending: true })
-          .returns<{ id: string; name: string }[]>()
-      : { data: null };
+      ? await getMeetingProposalOptions(adminClient, viewer)
+      : { slots: [], locations: [] };
 
   const { data: existingConnection } = await adminClient
     .from("connection_requests")
@@ -131,20 +116,7 @@ export default async function EventDirectoryProfilePage({
   // Razones del match contra el viewer (spec 26): concretas, sin porcentaje.
   const matchReasons =
     profile.id !== viewer.id
-      ? scoreMatch(
-          {
-            goalsSeeking: viewer.goals_seeking,
-            goalsOffering: viewer.goals_offering,
-            interests: viewer.interests,
-            industry: viewer.industry_snapshot,
-          },
-          {
-            goalsSeeking: profile.goals_seeking,
-            goalsOffering: profile.goals_offering,
-            interests: profile.interests,
-            industry: profile.industry_snapshot,
-          },
-        ).reasons
+      ? scoreMatch(viewerMatchProfile(viewer), toMatchProfile(profile)).reasons
       : [];
   const cardSlug =
     profile.attendee_profiles?.card_visibility !== "private"
@@ -393,7 +365,7 @@ export default async function EventDirectoryProfilePage({
                       name="locationId"
                     >
                       <option value="">Por definir</option>
-                      {(meetingLocations ?? []).map((location) => (
+                      {meetingLocations.map((location) => (
                         <option key={location.id} value={location.id}>
                           {location.name}
                         </option>

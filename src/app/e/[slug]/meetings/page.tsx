@@ -18,36 +18,20 @@ import {
 } from "@/app/e/[slug]/meetings/actions";
 import { formatDateTimeRange } from "@/lib/datetime";
 import { resolveEventCover } from "@/lib/event-cover";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { verifyRegistrationAccess } from "@/lib/registrations";
+import {
+  loadRegistrationContacts,
+  type RegistrationContact as Contact,
+} from "@/lib/services/connection-service";
+import {
+  listMeetings,
+  loadMeetingLocations,
+  type MeetingRow,
+  type MeetingStatus,
+} from "@/lib/services/meeting-service";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
-
-type MeetingStatus =
-  | "pending"
-  | "accepted"
-  | "declined"
-  | "cancelled"
-  | "completed";
-
-type MeetingRow = {
-  id: string;
-  requester_registration_id: string;
-  receiver_registration_id: string;
-  location_id: string | null;
-  status: MeetingStatus;
-  starts_at: string;
-  ends_at: string;
-  message: string | null;
-};
-
-type Contact = {
-  id: string;
-  full_name_snapshot: string;
-  role_snapshot: string | null;
-  company_snapshot: string | null;
-  attendee_profiles: { avatar_url: string | null } | null;
-};
 
 // Mensajes para el resultado de proponer/responder/cancelar (query param
 // `meetingStatus`, seteado por las actions tras la RPC).
@@ -114,38 +98,26 @@ export default async function MeetingsPage({
   }
 
   const adminClient = createSupabaseAdminClient();
-  const [{ data: meetings }, { count: pendingReceivedCount }] =
-    await Promise.all([
-      adminClient
-        .from("meetings")
-        .select(
-          "id, requester_registration_id, receiver_registration_id, location_id, status, starts_at, ends_at, message",
-        )
-        .eq("event_id", viewer.event_id)
-        .or(
-          `requester_registration_id.eq.${viewer.id},receiver_registration_id.eq.${viewer.id}`,
-        )
-        .order("starts_at", { ascending: true })
-        .returns<MeetingRow[]>(),
-      adminClient
-        .from("connection_requests")
-        .select("id", { count: "exact", head: true })
-        .eq("event_id", viewer.event_id)
-        .eq("receiver_registration_id", viewer.id)
-        .eq("status", "pending"),
-    ]);
+  const [rows, { count: pendingReceivedCount }] = await Promise.all([
+    listMeetings(adminClient, viewer),
+    adminClient
+      .from("connection_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", viewer.event_id)
+      .eq("receiver_registration_id", viewer.id)
+      .eq("status", "pending"),
+  ]);
 
-  const rows = meetings ?? [];
   const [contacts, locations] = await Promise.all([
-    loadContacts(
-      rows.map((meeting) => counterpartId(meeting, viewer.id)),
+    loadRegistrationContacts(
       adminClient,
+      rows.map((meeting) => counterpartId(meeting, viewer.id)),
     ),
-    loadLocations(
+    loadMeetingLocations(
+      adminClient,
       rows
         .map((meeting) => meeting.location_id)
         .filter((id): id is string => Boolean(id)),
-      adminClient,
     ),
   ]);
 
@@ -518,48 +490,3 @@ function locationName(
     : null;
 }
 
-async function loadContacts(
-  ids: string[],
-  adminClient: ReturnType<typeof createSupabaseAdminClient>,
-) {
-  const uniqueIds = Array.from(new Set(ids));
-  const contacts = new Map<string, Contact>();
-
-  if (!uniqueIds.length) {
-    return contacts;
-  }
-
-  const { data } = await adminClient
-    .from("event_registrations")
-    .select(
-      "id, full_name_snapshot, role_snapshot, company_snapshot, attendee_profiles(avatar_url)",
-    )
-    .in("id", uniqueIds)
-    .returns<Contact[]>();
-
-  data?.forEach((contact) => contacts.set(contact.id, contact));
-
-  return contacts;
-}
-
-async function loadLocations(
-  ids: string[],
-  adminClient: ReturnType<typeof createSupabaseAdminClient>,
-) {
-  const uniqueIds = Array.from(new Set(ids));
-  const locations = new Map<string, string>();
-
-  if (!uniqueIds.length) {
-    return locations;
-  }
-
-  const { data } = await adminClient
-    .from("meeting_locations")
-    .select("id, name")
-    .in("id", uniqueIds)
-    .returns<{ id: string; name: string }[]>();
-
-  data?.forEach((location) => locations.set(location.id, location.name));
-
-  return locations;
-}
