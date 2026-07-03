@@ -38,15 +38,16 @@ export type VerifiedRegistration = {
   } | null;
 };
 
-export async function verifyRegistrationAccess({
+// Verificacion por token SIN slug: la usa la API v1 (el cliente mobile conoce
+// registrationId + token, no la URL del evento). Aplica exactamente las mismas
+// reglas que la web salvo la comparacion de slug.
+export async function verifyRegistrationToken({
   registrationId,
-  slug,
   token,
 }: {
   registrationId?: string;
-  slug: string;
   token?: string;
-}) {
+}): Promise<VerifiedRegistration | null> {
   if (!registrationId || !token) {
     return null;
   }
@@ -61,7 +62,7 @@ export async function verifyRegistrationAccess({
     .single()
     .returns<VerifiedRegistration>();
 
-  if (!registration || registration.events?.slug !== slug) {
+  if (!registration || !registration.events) {
     return null;
   }
 
@@ -87,6 +88,25 @@ export async function verifyRegistrationAccess({
     registration.status !== "registered" &&
     registration.status !== "checked_in"
   ) {
+    return null;
+  }
+
+  return registration;
+}
+
+export async function verifyRegistrationAccess({
+  registrationId,
+  slug,
+  token,
+}: {
+  registrationId?: string;
+  slug: string;
+  token?: string;
+}) {
+  const registration = await verifyRegistrationToken({ registrationId, token });
+
+  // El slug de la URL debe corresponder al evento de la inscripcion.
+  if (!registration || registration.events?.slug !== slug) {
     return null;
   }
 
