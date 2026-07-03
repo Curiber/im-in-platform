@@ -88,6 +88,10 @@ export async function POST(request: NextRequest) {
     return jsonError("not_found", "El receptor no esta disponible.");
   }
 
+  if (result === "error") {
+    return jsonError("internal");
+  }
+
   // "exists" es idempotente: ya hay una solicitud viva entre la pareja.
   return jsonData({ status: result }, { status: result === "created" ? 201 : 200 });
 }

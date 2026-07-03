@@ -46,6 +46,13 @@ ignora hasta que vence** (migracion `20260708120000`).
   Desde ese primer claim el snapshot queda fijo: los reintentos conservan
   set/orden y las idempotency-keys por indice siguen alineadas (propiedad del
   spec 20 intacta).
+- **Evento vivo obligatorio**: el filtro del claim exige (forma positiva) que
+  el evento exista con `deleted_at is null` y su organizacion no este
+  suspendida. Sin el chequeo de `deleted_at`, una programada seguiria
+  enviandose tras borrar (soft delete) el evento — el borrado no dispara el
+  `on delete cascade`. El re-chequeo previo al despacho (`communications.ts`)
+  tambien valida `deleted_at` como defensa en profundidad (el evento pudo
+  borrarse entre el claim y el turno de la fila).
 - `cancel_scheduled_communication` (security definer, valida rol de manager):
   solo `pending` con `scheduled_at` futuro pasa a `cancelled` (valor nuevo del
   enum). Una en vuelo o vencida responde `not_found` — el claim toma FOR
@@ -87,3 +94,7 @@ ignora hasta que vence** (migracion `20260708120000`).
   "Programada", lo que hace visible el sintoma).
 - El conteo mostrado al programar es el de ese momento; el real se fija al
   enviar (la UI lo explica).
+- Una programada de un evento soft-deleted queda `pending` inerte (excluida
+  del claim), no se cancela sola. Si el evento se restaura antes de vencer,
+  vuelve a ser despachable — comportamiento aceptable (el organizador lo
+  restauro). Cancelarla en el borrado del evento es un refinamiento futuro.
