@@ -3,14 +3,17 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { MEETING_SLOT_MINUTES } from "@/lib/meeting-slots";
 import { verifyRegistrationAccess } from "@/lib/registrations";
+import {
+  cancelMeeting as cancelMeetingService,
+  proposeMeeting as proposeMeetingService,
+  respondMeeting as respondMeetingService,
+} from "@/lib/services/meeting-service";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
-// Las escrituras de `meetings` pasan SOLO por las RPCs security definer
-// (propose/respond/cancel), que validan bajo el lock del evento (solapes,
-// capacidad, participantes). Aqui solo se autentica el token de inscripcion y
-// se traduce el resultado a mensajes para la UI.
+// Actions delgadas (Fase 5.0, spec 29): autentican el token, delegan en el
+// servicio de reuniones (las RPCs validan bajo el lock del evento) y traducen
+// el resultado al query param `meetingStatus` de la agenda.
 
 const proposeSchema = z.object({
   slug: z.string().min(1),
@@ -49,29 +52,19 @@ export async function proposeMeeting(formData: FormData) {
     redirect(fallback);
   }
 
-  // La franja del formulario solo trae el inicio; el termino es inicio + 30min
-  // (franjas fijas de v1). La RPC valida que caiga dentro del evento.
-  const startsAt = new Date(parsed.data.startsAt);
-  const endsAt = new Date(startsAt.getTime() + MEETING_SLOT_MINUTES * 60 * 1000);
-
-  const adminClient = createSupabaseAdminClient();
-  const { data, error } = await adminClient.rpc("propose_meeting", {
-    p_event_id: viewer.event_id,
-    p_requester_registration_id: viewer.id,
-    p_receiver_registration_id: parsed.data.receiverRegistrationId,
-    p_location_id: parsed.data.locationId,
-    p_starts_at: startsAt.toISOString(),
-    p_ends_at: endsAt.toISOString(),
-    p_message: parsed.data.message || null,
-  });
-
-  const status = error
-    ? "error"
-    : ((data?.[0]?.result_status as string | undefined) ?? "error");
-  const accessQuery = `registrationId=${viewer.id}&token=${parsed.data.token}`;
+  const status = await proposeMeetingService(
+    createSupabaseAdminClient(),
+    viewer,
+    {
+      locationId: parsed.data.locationId,
+      message: parsed.data.message || null,
+      startsAt: new Date(parsed.data.startsAt),
+    },
+    parsed.data.receiverRegistrationId,
+  );
 
   redirect(
-    `/e/${parsed.data.slug}/meetings?${accessQuery}&meetingStatus=${encodeURIComponent(status)}`,
+    `/e/${parsed.data.slug}/meetings?registrationId=${viewer.id}&token=${parsed.data.token}&meetingStatus=${encodeURIComponent(status)}`,
   );
 }
 
@@ -114,16 +107,13 @@ async function respondToMeeting(formData: FormData, accept: boolean) {
     redirect(`/e/${parsed.data.slug}/meetings?${accessQuery}`);
   }
 
-  const adminClient = createSupabaseAdminClient();
-  const { data, error } = await adminClient.rpc("respond_meeting", {
-    p_meeting_id: parsed.data.meetingId,
-    p_registration_id: viewer.id,
-    p_accept: accept,
-  });
+  const status = await respondMeetingService(
+    createSupabaseAdminClient(),
+    viewer,
+    parsed.data.meetingId,
+    accept,
+  );
 
-  const status = error
-    ? "error"
-    : ((data?.[0]?.result_status as string | undefined) ?? "error");
   const meetingStatus =
     status === "ok" ? (accept ? "accepted" : "declined") : status;
 
@@ -156,15 +146,12 @@ export async function cancelMeeting(formData: FormData) {
     redirect(`/e/${parsed.data.slug}/meetings?${accessQuery}`);
   }
 
-  const adminClient = createSupabaseAdminClient();
-  const { data, error } = await adminClient.rpc("cancel_meeting", {
-    p_meeting_id: parsed.data.meetingId,
-    p_registration_id: viewer.id,
-  });
+  const status = await cancelMeetingService(
+    createSupabaseAdminClient(),
+    viewer,
+    parsed.data.meetingId,
+  );
 
-  const status = error
-    ? "error"
-    : ((data?.[0]?.result_status as string | undefined) ?? "error");
   const meetingStatus = status === "ok" ? "cancelled" : status;
 
   redirect(

@@ -1,28 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { upsertAttendeeProfileFromRegistration } from "@/lib/attendee-profiles";
 import { getAppUrl } from "@/lib/env";
-import { isRegistrationTokenValid } from "@/lib/registration-token";
+import { verifyRegistration } from "@/lib/services/verification-service";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
-type VerifyRegistration = {
-  id: string;
-  email: string;
-  full_name_snapshot: string;
-  phone_snapshot: string | null;
-  role_snapshot: string | null;
-  company_snapshot: string | null;
-  industry_snapshot: string | null;
-  interests: string[];
-  goals_seeking: string[];
-  goals_offering: string[];
-  status: string;
-  qr_token_hash: string;
-  registered_at: string;
-  events: { slug: string; ends_at: string | null } | null;
-};
-
-const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
+// Route delgado (Fase 5.0, spec 29): la elegibilidad, el upsert del perfil
+// global y la activacion transaccional viven en el servicio de verificacion.
 
 export async function GET(
   request: NextRequest,
@@ -41,94 +24,18 @@ export async function GET(
     return invalid;
   }
 
-  const adminClient = createSupabaseAdminClient();
-  const { data: registration } = await adminClient
-    .from("event_registrations")
-    .select(
-      "id, email, full_name_snapshot, phone_snapshot, role_snapshot, company_snapshot, industry_snapshot, interests, goals_seeking, goals_offering, status, qr_token_hash, registered_at, events(slug, ends_at)",
-    )
-    .eq("id", registrationId)
-    .single<VerifyRegistration>();
-
-  if (
-    !registration ||
-    registration.events?.slug !== slug ||
-    !isRegistrationTokenValid(token, registration.qr_token_hash)
-  ) {
-    return invalid;
-  }
-
-  const credentialUrl = `${appUrl}/e/${slug}/registered?registrationId=${registrationId}&token=${token}`;
-
-  // Ya verificada: idempotente, llevar directo a la credencial. `pending_approval`
-  // tambien (la pagina /registered muestra el estado "en revision"); reabrir el
-  // link no debe reintentar la verificacion.
-  if (
-    registration.status === "registered" ||
-    registration.status === "checked_in" ||
-    registration.status === "pending_approval"
-  ) {
-    return NextResponse.redirect(credentialUrl);
-  }
-
-  // Cancelada / no_show: no es verificable y no debe mostrar credencial.
-  if (registration.status !== "pending_verification") {
-    return invalid;
-  }
-
-  // Evento terminado: no se verifica despues del termino (igual que no se
-  // permite inscribirse).
-  if (
-    registration.events?.ends_at &&
-    new Date(registration.events.ends_at).getTime() < Date.now()
-  ) {
-    return invalid;
-  }
-
-  // Expiracion del link (24h desde la inscripcion): se aplica aqui, no depende
-  // del cron de limpieza.
-  const ageMs = Date.now() - new Date(registration.registered_at).getTime();
-  if (ageMs > VERIFICATION_TTL_MS) {
-    return invalid;
-  }
-
-  // Verificacion confirmada: recien aqui se crea/actualiza el perfil global y se
-  // activa la inscripcion (el perfil estuvo diferido hasta probar el email).
-  const profileId = await upsertAttendeeProfileFromRegistration({
-    email: registration.email,
-    fullName: registration.full_name_snapshot,
-    phone: registration.phone_snapshot,
-    role: registration.role_snapshot ?? "",
-    company: registration.company_snapshot ?? "",
-    industry: registration.industry_snapshot ?? "",
-    interests: registration.interests ?? [],
-    goalsSeeking: registration.goals_seeking ?? [],
-    goalsOffering: registration.goals_offering ?? [],
+  const result = await verifyRegistration(createSupabaseAdminClient(), {
+    registrationId,
+    slug,
+    token,
   });
 
-  // No marcar `registered` sin perfil: dejaria la inscripcion sin poder editar
-  // perfil ni sincronizar. Si el upsert fallo, se trata como reintentnable (la
-  // inscripcion sigue pendiente; reabrir el link reintenta).
-  if (!profileId) {
-    console.error(
-      "No se pudo crear/enlazar el perfil al verificar la inscripcion",
-      registrationId,
-    );
+  if (result === "invalid") {
     return invalid;
   }
 
-  // La transicion lee el modo del evento y fija el estado destino
-  // (`registered` u `pending_approval`) bajo el lock del evento, en una sola
-  // transaccion, para serializar con el cambio de modo (ver RPC). Resolver el
-  // modo aqui (sin lock) abriria una carrera que dejaria solicitudes huerfanas.
-  const { error } = await adminClient.rpc("activate_verified_registration", {
-    p_registration_id: registrationId,
-    p_profile_id: profileId,
-  });
-
-  if (error) {
-    return invalid;
-  }
-
-  return NextResponse.redirect(credentialUrl);
+  // Verificada ahora o ya activa (idempotente): a la credencial.
+  return NextResponse.redirect(
+    `${appUrl}/e/${slug}/registered?registrationId=${registrationId}&token=${token}`,
+  );
 }

@@ -4,10 +4,14 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { getEventProfileOptions } from "@/lib/event-profile-options";
 import { profileCardVisibilityValues } from "@/lib/profile-card-visibility";
 import { verifyRegistrationAccess } from "@/lib/registrations";
+import { updateAttendeeProfile as updateProfileService } from "@/lib/services/profile-service";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+
+// Action delgada (Fase 5.0, spec 29): parseo del formulario y navegacion; la
+// validacion contra el catalogo y la persistencia doble (perfil global +
+// snapshot) viven en el servicio compartido con la API v1.
 
 const profileSchema = z.object({
   cardVisibility: z.enum(profileCardVisibilityValues),
@@ -18,8 +22,6 @@ const profileSchema = z.object({
   goalsOffering: z.array(z.string().trim()).max(3),
   headline: z.string().trim().max(120).optional(),
   industry: z.string().trim().min(2, "Selecciona tu area o industria."),
-  // La validacion contra el catalogo se hace despues, contra las opciones
-  // efectivas del evento (configurables por evento), no contra una lista fija.
   interests: z.array(z.string().trim()).min(1).max(5),
   linkedinUrl: z
     .string()
@@ -77,86 +79,31 @@ export async function updateAttendeeProfile(formData: FormData) {
     redirect(`${fallbackPath}&profileStatus=error`);
   }
 
-  const adminClient = createSupabaseAdminClient();
-
-  // Los intereses enviados deben pertenecer al catalogo efectivo del evento
-  // (opciones propias o defaults de plataforma). Evita inyectar etiquetas fuera
-  // del vocabulario configurado por el organizador.
-  const eventOptions = await getEventProfileOptions(
-    adminClient,
-    registration.event_id,
-  );
-  const allowedInterests = new Set(eventOptions.interests);
-  const allowedGoals = new Set(eventOptions.goals);
-  const industryValid = eventOptions.industries.includes(parsed.data.industry);
-  const interestsValid = parsed.data.interests.every((item) =>
-    allowedInterests.has(item),
-  );
-  const goalsValid = [
-    ...parsed.data.goalsSeeking,
-    ...parsed.data.goalsOffering,
-  ].every((item) => allowedGoals.has(item));
-
-  if (!industryValid || !interestsValid || !goalsValid) {
-    redirect(`${fallbackPath}&profileStatus=invalid`);
-  }
-
-  const { error: profileError } = await adminClient
-    .from("attendee_profiles")
-    .update({
+  const result = await updateProfileService(
+    createSupabaseAdminClient(),
+    registration,
+    {
+      cardVisibility: parsed.data.cardVisibility,
       company: parsed.data.company,
-      card_visibility: parsed.data.cardVisibility,
       description: parsed.data.description || null,
-      full_name: parsed.data.fullName,
-      goals_seeking: parsed.data.goalsSeeking,
-      goals_offering: parsed.data.goalsOffering,
+      fullName: parsed.data.fullName,
+      goalsSeeking: parsed.data.goalsSeeking,
+      goalsOffering: parsed.data.goalsOffering,
       headline: parsed.data.headline || null,
       industry: parsed.data.industry,
       interests: parsed.data.interests,
-      linkedin_url: parsed.data.linkedinUrl,
+      linkedinUrl: parsed.data.linkedinUrl,
       phone: parsed.data.phone || null,
-      public_email_enabled:
-        parsed.data.cardVisibility === "public_full" &&
-        parsed.data.publicEmailEnabled,
-      public_phone_enabled:
-        parsed.data.cardVisibility === "public_full" &&
-        parsed.data.publicPhoneEnabled,
+      publicProfileEnabled: parsed.data.publicProfileEnabled,
+      publicEmailEnabled: parsed.data.publicEmailEnabled,
+      publicPhoneEnabled: parsed.data.publicPhoneEnabled,
       role: parsed.data.role,
-    })
-    .eq("id", registration.profile_id);
+    },
+  );
 
-  if (profileError) {
-    redirect(`${fallbackPath}&profileStatus=error`);
+  if (result !== "updated") {
+    redirect(`${fallbackPath}&profileStatus=${result}`);
   }
-
-  const { error: registrationError } = await adminClient
-    .from("event_registrations")
-    .update({
-      company_snapshot: parsed.data.company,
-      full_name_snapshot: parsed.data.fullName,
-      goals_seeking: parsed.data.goalsSeeking,
-      goals_offering: parsed.data.goalsOffering,
-      industry_snapshot: parsed.data.industry,
-      interests: parsed.data.interests,
-      networking_opt_in: parsed.data.publicProfileEnabled,
-      phone_snapshot: parsed.data.phone || null,
-      public_profile_enabled: parsed.data.publicProfileEnabled,
-      role_snapshot: parsed.data.role,
-    })
-    .eq("id", registration.id);
-
-  if (registrationError) {
-    redirect(`${fallbackPath}&profileStatus=error`);
-  }
-
-  await adminClient.from("consents").insert({
-    accepted: parsed.data.cardVisibility !== "private",
-    consent_type: "public_card",
-    email: registration.email,
-    event_id: registration.event_id,
-    registration_id: registration.id,
-    version: "2026-06-12",
-  });
 
   revalidatePath(`/e/${parsed.data.slug}/profile`);
   revalidatePath(`/e/${parsed.data.slug}/directory`);
