@@ -16,6 +16,35 @@ type ConnectionAcceptedInput = {
   eventName: string;
 };
 
+type ConnectionRequestInput = {
+  receiverEmail: string;
+  receiverName: string;
+  requesterName: string;
+  eventName: string;
+  myEventsUrl: string;
+};
+
+type MeetingProposedInput = {
+  receiverEmail: string;
+  receiverName: string;
+  requesterName: string;
+  eventName: string;
+  meetingWhen: string;
+  locationName: string | null;
+  message: string | null;
+  myEventsUrl: string;
+};
+
+type MeetingAcceptedInput = {
+  requesterEmail: string;
+  requesterName: string;
+  accepterName: string;
+  eventName: string;
+  meetingWhen: string;
+  locationName: string | null;
+  myEventsUrl: string;
+};
+
 type BroadcastRecipient = {
   email: string;
   name: string;
@@ -132,6 +161,141 @@ export async function sendConnectionAcceptedEmail({
   ]);
 
   return { sent: true };
+}
+
+// Notificaciones de networking (Fase de notificaciones, spec 32). El link de
+// accion apunta a "Mis eventos" (/mi): el destinatario entra con su email
+// (OTP, spec 31) y responde desde ahi — su token del link original no es
+// recuperable (solo se guarda el hash) y no debe viajar en mas correos.
+
+export async function sendConnectionRequestEmail({
+  eventName,
+  myEventsUrl,
+  receiverEmail,
+  receiverName,
+  requesterName,
+}: ConnectionRequestInput) {
+  const apiKey = process.env.EMAIL_PROVIDER_API_KEY;
+  const from = process.env.EMAIL_FROM;
+
+  if (!apiKey || !from) {
+    return { sent: false as const };
+  }
+
+  const resend = new Resend(apiKey);
+
+  const { error } = await resend.emails.send({
+    from,
+    to: receiverEmail,
+    subject: `${requesterName} quiere conectar contigo en ${eventName}`,
+    text: [
+      `Hola ${receiverName},`,
+      "",
+      `${requesterName} te envio una solicitud de conexion en ${eventName}.`,
+      "Si la aceptas, ambos recibiran los datos de contacto del otro.",
+      "",
+      "Respondela desde el link de tu inscripcion o entrando con tu email en:",
+      myEventsUrl,
+      "",
+      "Equipo I'm IN",
+    ].join("\n"),
+  });
+
+  if (error) {
+    return { sent: false as const, error };
+  }
+
+  return { sent: true as const };
+}
+
+export async function sendMeetingProposedEmail({
+  eventName,
+  locationName,
+  meetingWhen,
+  message,
+  myEventsUrl,
+  receiverEmail,
+  receiverName,
+  requesterName,
+}: MeetingProposedInput) {
+  const apiKey = process.env.EMAIL_PROVIDER_API_KEY;
+  const from = process.env.EMAIL_FROM;
+
+  if (!apiKey || !from) {
+    return { sent: false as const };
+  }
+
+  const resend = new Resend(apiKey);
+
+  const { error } = await resend.emails.send({
+    from,
+    to: receiverEmail,
+    subject: `${requesterName} te propone una reunion en ${eventName}`,
+    text: [
+      `Hola ${receiverName},`,
+      "",
+      `${requesterName} te propuso una reunion 1:1 en ${eventName}.`,
+      `Horario: ${meetingWhen}`,
+      `Lugar: ${locationName ?? "Por definir"}`,
+      ...(message ? ["", `Mensaje: "${message}"`] : []),
+      "",
+      "Acepta o rechaza desde el link de tu inscripcion o entrando con tu",
+      "email en:",
+      myEventsUrl,
+      "",
+      "Equipo I'm IN",
+    ].join("\n"),
+  });
+
+  if (error) {
+    return { sent: false as const, error };
+  }
+
+  return { sent: true as const };
+}
+
+export async function sendMeetingAcceptedEmail({
+  accepterName,
+  eventName,
+  locationName,
+  meetingWhen,
+  myEventsUrl,
+  requesterEmail,
+  requesterName,
+}: MeetingAcceptedInput) {
+  const apiKey = process.env.EMAIL_PROVIDER_API_KEY;
+  const from = process.env.EMAIL_FROM;
+
+  if (!apiKey || !from) {
+    return { sent: false as const };
+  }
+
+  const resend = new Resend(apiKey);
+
+  const { error } = await resend.emails.send({
+    from,
+    to: requesterEmail,
+    subject: `Reunion confirmada en ${eventName}`,
+    text: [
+      `Hola ${requesterName},`,
+      "",
+      `${accepterName} acepto tu propuesta de reunion en ${eventName}.`,
+      `Horario: ${meetingWhen}`,
+      `Lugar: ${locationName ?? "Por definir"}`,
+      "",
+      "Revisa tu agenda desde el link de tu inscripcion o entrando con tu",
+      "email en:",
+      myEventsUrl,
+      "",
+      "Equipo I'm IN",
+    ].join("\n"),
+  });
+
+  if (error) {
+    return { sent: false as const, error };
+  }
+
+  return { sent: true as const };
 }
 
 export async function sendDemoRequestNotification({
