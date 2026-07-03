@@ -205,13 +205,17 @@ begin
         )
         -- Programadas: solo cuando vencen.
         and (c2.scheduled_at is null or c2.scheduled_at <= now())
-        -- Excluye organizaciones suspendidas: sus correos no se despachan.
-        and not exists (
+        -- El evento debe estar VIVO y su organizacion ACTIVA: no se despachan
+        -- correos de eventos soft-deleted (una programada seguiria enviandose
+        -- tras borrar el evento) ni de organizaciones suspendidas. Forma
+        -- positiva: la fila del evento existe (FK) y su org no esta suspendida.
+        and exists (
           select 1
           from public.events e
           join public.organizations o on o.id = e.organization_id
           where e.id = c2.event_id
-            and o.suspended_at is not null
+            and e.deleted_at is null
+            and o.suspended_at is null
         )
       order by c2.created_at
       limit p_limit
