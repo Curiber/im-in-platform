@@ -1,7 +1,8 @@
-import { Megaphone, Users } from "lucide-react";
+import { CalendarClock, Megaphone, Users, X } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 
 import { CommunicationComposer } from "@/app/admin/events/[eventId]/communications/_components/communication-composer";
+import { cancelScheduledCommunication } from "@/app/admin/events/[eventId]/communications/actions";
 import { AdminShell } from "@/app/admin/_components/admin-shell";
 import { formatDateTime } from "@/lib/datetime";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -23,7 +24,8 @@ type Communication = {
   body: string;
   recipient_count: number;
   accepted_count: number;
-  status: "pending" | "sending" | "sent" | "failed";
+  status: "pending" | "sending" | "sent" | "failed" | "cancelled";
+  scheduled_at: string | null;
   sent_by: string | null;
   created_at: string;
 };
@@ -39,7 +41,19 @@ const statusLabels: Record<Communication["status"], string> = {
   sending: "Enviando",
   sent: "Enviado",
   failed: "Con fallos",
+  cancelled: "Cancelada",
 };
+
+// Una pending con scheduled_at futuro esta "Programada" (aun no entra al
+// despacho); vencida, vuelve a leerse como "En cola" hasta que el cron la tome.
+// Devuelve la fecha programada o null.
+function scheduledFor(communication: Communication): string | null {
+  return communication.status === "pending" &&
+    communication.scheduled_at &&
+    new Date(communication.scheduled_at).getTime() > Date.now()
+    ? communication.scheduled_at
+    : null;
+}
 
 export default async function EventCommunicationsPage({
   params,
@@ -73,7 +87,7 @@ export default async function EventCommunicationsPage({
   const { data: communications } = await supabase
     .from("event_communications")
     .select(
-      "id, audience, subject, body, recipient_count, accepted_count, status, sent_by, created_at",
+      "id, audience, subject, body, recipient_count, accepted_count, status, scheduled_at, sent_by, created_at",
     )
     .eq("event_id", event.id)
     .order("created_at", { ascending: false })
@@ -144,7 +158,10 @@ export default async function EventCommunicationsPage({
           <h2 className="text-lg font-semibold">Historial de envios</h2>
           {communications?.length ? (
             <div className="mt-4 space-y-3">
-              {communications.map((communication) => (
+              {communications.map((communication) => {
+                const scheduledAt = scheduledFor(communication);
+
+                return (
                 <article
                   className="rounded-xl border border-brand-border/60 bg-brand-surface-soft p-4"
                   key={communication.id}
@@ -154,13 +171,20 @@ export default async function EventCommunicationsPage({
                       {communication.subject}
                     </p>
                     <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadgeClass(
-                          communication.status,
-                        )}`}
-                      >
-                        {statusLabels[communication.status]}
-                      </span>
+                      {scheduledAt ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-navy-950 px-2.5 py-1 text-xs font-semibold text-brand-mint-300">
+                          <CalendarClock className="size-3.5" aria-hidden="true" />
+                          Programada: {formatDateTime(scheduledAt)}
+                        </span>
+                      ) : (
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadgeClass(
+                            communication.status,
+                          )}`}
+                        >
+                          {statusLabels[communication.status]}
+                        </span>
+                      )}
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-brand-slate-600">
                         <Users className="size-3.5" aria-hidden="true" />
                         {communication.accepted_count}/
@@ -172,15 +196,35 @@ export default async function EventCommunicationsPage({
                   <p className="mt-2 whitespace-pre-line text-sm leading-6 text-brand-slate-600">
                     {communication.body}
                   </p>
-                  <p className="mt-3 text-xs text-brand-slate-600">
-                    {formatDateTime(communication.created_at)}
-                    {communication.sent_by &&
-                    senderEmails.get(communication.sent_by)
-                      ? ` · ${senderEmails.get(communication.sent_by)}`
-                      : ""}
-                  </p>
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs text-brand-slate-600">
+                      {formatDateTime(communication.created_at)}
+                      {communication.sent_by &&
+                      senderEmails.get(communication.sent_by)
+                        ? ` · ${senderEmails.get(communication.sent_by)}`
+                        : ""}
+                    </p>
+                    {scheduledAt ? (
+                      <form action={cancelScheduledCommunication}>
+                        <input name="eventId" type="hidden" value={event.id} />
+                        <input
+                          name="communicationId"
+                          type="hidden"
+                          value={communication.id}
+                        />
+                        <button
+                          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-brand-border bg-white px-2.5 text-xs font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft hover:text-red-700"
+                          type="submit"
+                        >
+                          <X className="size-3.5" aria-hidden="true" />
+                          Cancelar envio
+                        </button>
+                      </form>
+                    ) : null}
+                  </div>
                 </article>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p className="mt-4 rounded-xl border border-brand-border/60 bg-brand-surface-soft p-4 text-sm text-brand-slate-600">
@@ -200,12 +244,22 @@ function StatusBanner({
   status: string;
   total?: string;
 }) {
-  const positive = status === "queued" || status === "duplicate";
+  const positive =
+    status === "queued" ||
+    status === "duplicate" ||
+    status === "scheduled" ||
+    status === "cancelled";
   const messages: Record<string, string> = {
     queued: `En cola: enviando a ${total ?? 0} destinatario(s). El detalle de entrega aparece en el historial.`,
+    scheduled: `Programada (audiencia actual: ${total ?? 0} destinatario(s); se recalcula al enviar). Puedes cancelarla desde el historial mientras no venza.`,
+    cancelled: "Envio programado cancelado.",
+    cancel_failed:
+      "No se pudo cancelar: el envio ya vencio o esta en curso.",
     duplicate: "Esta comunicacion ya se habia enviado; evitamos duplicarla.",
     empty: "No hay inscritos en esa audiencia; no se envio nada.",
     invalid: "Revisa el asunto y el mensaje antes de enviar.",
+    invalid_schedule:
+      "La fecha programada no es valida: debe ser una hora futura (y existente).",
     forbidden: "No tienes permisos para enviar comunicaciones de este evento.",
     error: "No se pudo enviar la comunicacion. Intentalo nuevamente.",
   };
@@ -229,6 +283,9 @@ function statusBadgeClass(status: Communication["status"]) {
   }
   if (status === "failed") {
     return "bg-red-50 text-red-700";
+  }
+  if (status === "cancelled") {
+    return "bg-brand-slate-100 text-brand-slate-600";
   }
   return "bg-brand-surface-soft text-brand-slate-600";
 }
