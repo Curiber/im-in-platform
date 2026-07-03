@@ -6,6 +6,12 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { formatDateTimeRange } from "@/lib/datetime";
+import {
+  sendMeetingAcceptedEmail,
+  sendMeetingProposedEmail,
+} from "@/lib/email";
+import { getAppUrl } from "@/lib/env";
 import {
   filterUpcomingSlots,
   generateMeetingSlots,
@@ -74,7 +80,46 @@ export async function proposeMeeting(
     p_message: message,
   });
 
-  return toActionStatus(error, data);
+  const status = toActionStatus(error, data);
+
+  // Notificar al receptor (spec 32): una propuesta sin aviso puede pasar
+  // inadvertida (riesgo anotado en el spec 27). Nunca bloquea la accion.
+  if (status === "ok") {
+    try {
+      const [{ data: receiver }, locationName] = await Promise.all([
+        client
+          .from("event_registrations")
+          .select("email, full_name_snapshot")
+          .eq("id", receiverRegistrationId)
+          .single<{ email: string; full_name_snapshot: string }>(),
+        locationId
+          ? loadMeetingLocations(client, [locationId]).then(
+              (locations) => locations.get(locationId) ?? null,
+            )
+          : Promise.resolve(null),
+      ]);
+
+      if (receiver) {
+        await sendMeetingProposedEmail({
+          eventName: viewer.events?.name ?? "un evento",
+          locationName,
+          meetingWhen: formatDateTimeRange(
+            startsAt.toISOString(),
+            endsAt.toISOString(),
+          ),
+          message,
+          myEventsUrl: `${getAppUrl()}/mi`,
+          receiverEmail: receiver.email,
+          receiverName: receiver.full_name_snapshot,
+          requesterName: viewer.full_name_snapshot,
+        });
+      }
+    } catch {
+      // El email no bloquea la propuesta creada.
+    }
+  }
+
+  return status;
 }
 
 export async function respondMeeting(
@@ -89,7 +134,68 @@ export async function respondMeeting(
     p_accept: accept,
   });
 
-  return toActionStatus(error, data);
+  const status = toActionStatus(error, data);
+
+  // Al aceptar, avisar al proponente que la reunion quedo confirmada
+  // (spec 32). El rechazo no notifica (ruido). Nunca bloquea la accion.
+  if (status === "ok" && accept) {
+    try {
+      await notifyMeetingAccepted(client, viewer, meetingId);
+    } catch {
+      // El email no bloquea la reunion aceptada.
+    }
+  }
+
+  return status;
+}
+
+async function notifyMeetingAccepted(
+  client: SupabaseClient,
+  accepter: VerifiedRegistration,
+  meetingId: string,
+) {
+  const { data: meeting } = await client
+    .from("meetings")
+    .select("requester_registration_id, location_id, starts_at, ends_at")
+    .eq("id", meetingId)
+    .single<{
+      requester_registration_id: string;
+      location_id: string | null;
+      starts_at: string;
+      ends_at: string;
+    }>();
+
+  if (!meeting) {
+    return;
+  }
+
+  const meetingLocationId = meeting.location_id;
+  const [{ data: requester }, locationName] = await Promise.all([
+    client
+      .from("event_registrations")
+      .select("email, full_name_snapshot")
+      .eq("id", meeting.requester_registration_id)
+      .single<{ email: string; full_name_snapshot: string }>(),
+    meetingLocationId
+      ? loadMeetingLocations(client, [meetingLocationId]).then(
+          (locations) => locations.get(meetingLocationId) ?? null,
+        )
+      : Promise.resolve(null),
+  ]);
+
+  if (!requester) {
+    return;
+  }
+
+  await sendMeetingAcceptedEmail({
+    accepterName: accepter.full_name_snapshot,
+    eventName: accepter.events?.name ?? "un evento",
+    locationName,
+    meetingWhen: formatDateTimeRange(meeting.starts_at, meeting.ends_at),
+    myEventsUrl: `${getAppUrl()}/mi`,
+    requesterEmail: requester.email,
+    requesterName: requester.full_name_snapshot,
+  });
 }
 
 export async function cancelMeeting(

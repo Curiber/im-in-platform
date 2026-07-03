@@ -6,7 +6,11 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { sendConnectionAcceptedEmail } from "@/lib/email";
+import {
+  sendConnectionAcceptedEmail,
+  sendConnectionRequestEmail,
+} from "@/lib/email";
+import { getAppUrl } from "@/lib/env";
 import type { ProfileCardVisibility } from "@/lib/profile-card-visibility";
 import type { VerifiedRegistration } from "@/lib/registrations";
 
@@ -45,11 +49,11 @@ export async function createConnectionRequest(
   // El receptor debe ser un perfil visible del mismo evento.
   const { data: receiver } = await client
     .from("event_registrations")
-    .select("id")
+    .select("id, email, full_name_snapshot")
     .eq("id", receiverRegistrationId)
     .eq("event_id", viewer.event_id)
     .eq("public_profile_enabled", true)
-    .single<{ id: string }>();
+    .single<{ id: string; email: string; full_name_snapshot: string }>();
 
   if (!receiver) {
     return "invalid";
@@ -78,6 +82,20 @@ export async function createConnectionRequest(
     requester_registration_id: viewer.id,
     receiver_registration_id: receiver.id,
   });
+
+  // Notificar al receptor (spec 32): sin email, una solicitud puede pasar
+  // inadvertida hasta que el receptor reabra la web. Nunca bloquea la accion.
+  try {
+    await sendConnectionRequestEmail({
+      eventName: viewer.events?.name ?? "un evento",
+      myEventsUrl: `${getAppUrl()}/mi`,
+      receiverEmail: receiver.email,
+      receiverName: receiver.full_name_snapshot,
+      requesterName: viewer.full_name_snapshot,
+    });
+  } catch {
+    // El email no bloquea la solicitud creada.
+  }
 
   return "created";
 }
