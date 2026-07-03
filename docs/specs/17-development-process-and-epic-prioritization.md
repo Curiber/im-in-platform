@@ -117,18 +117,18 @@ fases 5-6 construyen la app sobre los cimientos que de todos modos se necesitan.
 
 ## 5. Priorizacion de epicas
 
-Estado a 2026-06-25. `[x]` = hecho, `[~]` = parcial, `[ ]` = pendiente.
+Estado a 2026-07-03. `[x]` = hecho, `[~]` = parcial, `[ ]` = pendiente.
 
 ### FASE 1 — Cimientos de seguridad (spec 11)
 
 | Orden | Epica | Que cierra | Estado |
 | --- | --- | --- | --- |
-| 1.0 | **Epic 27** — Entorno + Vitest | Schema completo de `env.ts`, Vitest + script `test`, primeros tests, limpieza de foto en bucket, actions admin a estado inline, reemplazo de `findAuthUserByEmail` | `[~]` (red de tests + env/boot en PR #13; faltan bucket, actions inline, `findAuthUserByEmail`) |
-| 1.1 | **Epic 24** — RLS alineada con roles | RPCs `security definer` para soft delete/restore + trigger de guardia (hoy un `event_admin` borra via PostgREST directo) | `[ ]` |
-| 1.2 | **Epic 28** — Org atomica | Creacion de organizacion transaccional (accion de platform admin, hoy no atomica) | `[ ]` |
-| 1.3 | **Epic 23** — Verificacion de email | Estado `pending_verification`, token solo por email, ruta de verificacion | `[ ]` |
-| 1.4 | **Epic 25** — Integridad inscripcion/check-in | RPC de inscripcion con capacidad atomica, guard de check-in, rechazar evento terminado | `[ ]` |
-| 1.5 | **Epic 26** — Endurecimiento salida/token | `timingSafeEqual`, `Referrer-Policy`, evaluar token en cookie de sesion | `[ ]` |
+| 1.0 | **Epic 27** — Entorno + Vitest | Schema completo de `env.ts`, Vitest + script `test`, primeros tests, limpieza de foto en bucket, actions admin a estado inline, reemplazo de `findAuthUserByEmail` | `[x]` (tests/env en PR #13; foto previa se borra al subir otra en `registered/actions`; admin con `FormState`/`ActionForm`; lookup directo `find_user_id_by_email`) |
+| 1.1 | **Epic 24** — RLS alineada con roles | RPCs `security definer` para soft delete/restore + trigger de guardia | `[x]` (migracion `20260626120000_event_soft_delete_rpcs`) |
+| 1.2 | **Epic 28** — Org atomica | Creacion de organizacion transaccional | `[x]` (RPC `create_organization_with_owner`, migracion `20260627120000`) |
+| 1.3 | **Epic 23** — Verificacion de email | Estado `pending_verification`, token solo por email, ruta de verificacion | `[x]` (migraciones `20260627140000/150000` + `/e/[slug]/verify` + cron de limpieza) |
+| 1.4 | **Epic 25** — Integridad inscripcion/check-in | RPC de inscripcion con capacidad atomica, guard de check-in, rechazar evento terminado | `[x]` (RPC `register_attendee` bajo lock, migracion `20260627130000` y sucesoras) |
+| 1.5 | **Epic 26** — Endurecimiento salida/token | `timingSafeEqual`, `Referrer-Policy`, evaluar token en cookie de sesion | `[x]` (`timingSafeEqual` en `registration-token`; `Referrer-Policy` global + `no-referrer` en `/e/*`; el token-en-cookie quedo superado por la sesion OTP del spec 31) |
 | — | Epic 22 — Privacidad tarjeta publica | Visibilidad opt-in por campo | `[x]` (commit `9ffc173`) |
 
 Razon del orden: 27 primero porque la red de tests habilita el resto con
@@ -142,7 +142,7 @@ para eventos reales.
 | --- | --- | --- | --- |
 | 2.0 | Transferencia de ownership | spec 16 (unico pendiente) / spec 10 Epic 29 | `[x]` (Epic 29: RPC atomica + indice de un solo owner + UI) |
 | 2.1 | Config de networking por evento (categorias de intereses/objetivos configurables, modo aprobacion para eventos cerrados) | spec 12 §F.3 / specs 18, 19 | `[x]` (Epic 31 categorias configurables, spec 18; Epic 32 modo aprobacion, spec 19) |
-| 2.2 | Comunicaciones: email a inscritos (confirmados/acreditados) + recordatorio pre-evento | spec 12 §F.5 / spec 20 | `[x]` (Epic 33: broadcast por audiencia + plantilla de recordatorio + historial. Falta scheduling) |
+| 2.2 | Comunicaciones: email a inscritos (confirmados/acreditados) + recordatorio pre-evento | spec 12 §F.5 / spec 20 | `[x]` (Epic 33: broadcast por audiencia + plantilla + historial; Epic 51, spec 34: envios programados con cancelacion) |
 | 2.3 | Dashboard de networking (conexiones, perfiles vistos, opt-in) + tiempo real/polling | spec 12 §F.6 / spec 21 | `[x]` (Epic 34: secciones Asistencia/Networking, tasas opt-in/aceptacion/alcance, polling suave togglable) |
 | 2.4 | Gestion de reuniones (puntos de encuentro + vista de reuniones del evento) | spec 12 §F.4 / spec 22 | `[x]` (Epic 35 admin + Epic 44 flujo del asistente, spec 27) |
 | 2.5 | Reportes post-evento (ademas del CSV) | spec 12 §F.7 / spec 23 | `[x]` (Epic 36: reporte imprimible a PDF + resumen CSV agregado, capa `getEventReport`) |
@@ -209,13 +209,18 @@ con IA/embeddings, app admin nativa. Estos esperan a tener datos y demanda real.
 
 ## 8. Proximo paso
 
-**Fase 1, Epic 27 — cerrar lo que falta.** La red de tests (Vitest + primeros
-tests), el schema de `src/lib/env.ts` y la validacion de boot en produccion ya
-estan en la PR #13. Quedan estas tres tareas del Epic 27:
+Las Fases 1-5 estan cerradas en codigo (epics 22-51, specs 11-34). Lo que
+sigue, en orden:
 
-1. Borrar la foto anterior del bucket al subir una nueva.
-2. Migrar las actions del admin de `throw` a estado de formulario inline.
-3. Reemplazar `findAuthUserByEmail` paginado por un lookup directo por email.
-
-Cerradas esas, sigue **Epic 24** (RLS alineada con roles) por tocar
-directamente las acciones destructivas del admin.
+1. **Hito de evento real**: las pruebas manuales pendientes anotadas en cada
+   spec (flujo cruzado de matchmaking, reuniones con conflicto/capacidad,
+   instalacion PWA, OTP + reclamo, API con curl, envio programado via cron) y
+   operar un evento de 100-300 personas. Requiere entorno con migraciones
+   aplicadas, Resend con dominio propio (SPF/DKIM) y `CRON_SECRET` definido.
+2. **Fase 6 — app nativa Expo**: kickoff contra la API v1 (specs 30/33 ya
+   cubren login OTP -> mis inscripciones -> operar el evento). Decision previa:
+   repo separado vs monorepo. Antes de publicar en tiendas: rate limiting de la
+   API (riesgo anotado en el spec 30).
+3. **Post-validacion** (segun demanda real): notificaciones push/digest,
+   `communication_deliveries` por destinatario, chat, sponsors, branding por
+   evento, matchmaking con feedback loop.
