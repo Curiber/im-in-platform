@@ -1,11 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { safeRedirectPath } from "@/lib/safe-redirect";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const next = getSafeNextPath(requestUrl.searchParams.get("next"));
+  // Se valida el origen resuelto (no un prefijo de string): `/%5Cevil.com` y
+  // similares pasarian un chequeo `startsWith("/")` pero resuelven a otro
+  // origen (open redirect).
+  const next = safeRedirectPath(
+    requestUrl.searchParams.get("next"),
+    request.url,
+    "/admin",
+  );
 
   if (!code) {
     return NextResponse.redirect(new URL("/login", request.url));
@@ -19,12 +27,4 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.redirect(new URL(next, request.url));
-}
-
-function getSafeNextPath(next: string | null) {
-  if (!next || !next.startsWith("/") || next.startsWith("//")) {
-    return "/admin";
-  }
-
-  return next;
 }

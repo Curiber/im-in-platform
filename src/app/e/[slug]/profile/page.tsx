@@ -53,7 +53,9 @@ export default async function EventProfilePage({
     token,
   });
 
-  if (!registration?.profile_id || !token) {
+  // Sin token igual se llega aqui con sesion de asistente (Fase 5.2):
+  // verifyRegistrationAccess ya autentico por token O por sesion.
+  if (!registration?.profile_id) {
     notFound();
   }
 

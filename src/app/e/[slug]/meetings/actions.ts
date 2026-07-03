@@ -18,7 +18,9 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 const proposeSchema = z.object({
   slug: z.string().min(1),
   registrationId: z.string().uuid(),
-  token: z.string().min(16),
+  // Vacio con sesion de asistente (Fase 5.2); la auth la resuelve
+  // verifyRegistrationAccess (token o sesion).
+  token: z.string().optional().default(""),
   receiverRegistrationId: z.string().uuid(),
   startsAt: z.string().datetime(),
   locationId: z.string().uuid().nullable(),
@@ -71,7 +73,7 @@ export async function proposeMeeting(formData: FormData) {
 const respondSchema = z.object({
   slug: z.string().min(1),
   registrationId: z.string().uuid(),
-  token: z.string().min(16),
+  token: z.string().optional().default(""),
   meetingId: z.string().uuid(),
 });
 

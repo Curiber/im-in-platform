@@ -1,11 +1,13 @@
 import type { ProfileCardVisibility } from "@/lib/profile-card-visibility";
 import { isRegistrationTokenValid } from "@/lib/registration-token";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type VerifiedRegistration = {
   id: string;
   event_id: string;
   profile_id: string | null;
+  user_id: string | null;
   email: string;
   full_name_snapshot: string;
   interests: string[];
@@ -38,25 +40,17 @@ export type VerifiedRegistration = {
   } | null;
 };
 
-// Verificacion por token SIN slug: la usa la API v1 (el cliente mobile conoce
-// registrationId + token, no la URL del evento). Aplica exactamente las mismas
-// reglas que la web salvo la comparacion de slug.
-export async function verifyRegistrationToken({
-  registrationId,
-  token,
-}: {
-  registrationId?: string;
-  token?: string;
-}): Promise<VerifiedRegistration | null> {
-  if (!registrationId || !token) {
-    return null;
-  }
-
+// Carga y valida el estado base de una inscripcion (evento vivo, organizacion
+// no suspendida, inscripcion activa). La AUTENTICACION (token o sesion) la
+// aplican los wrappers de abajo.
+async function loadActiveRegistration(
+  registrationId: string,
+): Promise<VerifiedRegistration | null> {
   const adminClient = createSupabaseAdminClient();
   const { data: registration } = await adminClient
     .from("event_registrations")
     .select(
-      "id, event_id, profile_id, email, full_name_snapshot, interests, goals_seeking, goals_offering, industry_snapshot, public_profile_enabled, status, qr_token_hash, attendee_profiles(card_visibility, profile_slug), events(id, slug, name, networking_enabled, starts_at, ends_at, deleted_at, cover_image_url, organizations(suspended_at))",
+      "id, event_id, profile_id, user_id, email, full_name_snapshot, interests, goals_seeking, goals_offering, industry_snapshot, public_profile_enabled, status, qr_token_hash, attendee_profiles(card_visibility, profile_slug), events(id, slug, name, networking_enabled, starts_at, ends_at, deleted_at, cover_image_url, organizations(suspended_at))",
     )
     .eq("id", registrationId)
     .single()
@@ -76,10 +70,6 @@ export async function verifyRegistrationToken({
     return null;
   }
 
-  if (!isRegistrationTokenValid(token, registration.qr_token_hash)) {
-    return null;
-  }
-
   // Las superficies de networking (perfil, directorio, conexiones) solo se
   // habilitan para inscripciones activas. `pending_verification` (email sin
   // verificar) y `pending_approval` (a la espera del organizador) aun no
@@ -87,6 +77,32 @@ export async function verifyRegistrationToken({
   if (
     registration.status !== "registered" &&
     registration.status !== "checked_in"
+  ) {
+    return null;
+  }
+
+  return registration;
+}
+
+// Verificacion por token SIN slug: la usa la API v1 (el cliente mobile conoce
+// registrationId + token, no la URL del evento). Solo token: la API no tiene
+// cookies de sesion.
+export async function verifyRegistrationToken({
+  registrationId,
+  token,
+}: {
+  registrationId?: string;
+  token?: string;
+}): Promise<VerifiedRegistration | null> {
+  if (!registrationId || !token) {
+    return null;
+  }
+
+  const registration = await loadActiveRegistration(registrationId);
+
+  if (
+    !registration ||
+    !isRegistrationTokenValid(token, registration.qr_token_hash)
   ) {
     return null;
   }
@@ -103,12 +119,35 @@ export async function verifyRegistrationAccess({
   slug: string;
   token?: string;
 }) {
-  const registration = await verifyRegistrationToken({ registrationId, token });
+  if (!registrationId) {
+    return null;
+  }
+
+  const registration = await loadActiveRegistration(registrationId);
 
   // El slug de la URL debe corresponder al evento de la inscripcion.
   if (!registration || registration.events?.slug !== slug) {
     return null;
   }
 
-  return registration;
+  // Con token se valida el token (flujo del link/QR). SIN token se acepta la
+  // sesion de asistente (Fase 5.2) cuando la inscripcion fue reclamada por el
+  // usuario logueado: es el puente que permite entrar desde "Mis eventos" sin
+  // el link del email. Un token presente pero invalido NUNCA cae a sesion.
+  if (token) {
+    return isRegistrationTokenValid(token, registration.qr_token_hash)
+      ? registration
+      : null;
+  }
+
+  if (!registration.user_id) {
+    return null;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return user && user.id === registration.user_id ? registration : null;
 }

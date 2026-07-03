@@ -174,7 +174,7 @@ Nota: crear organizacion + asignar owner ya existe (spec 10 Epic 21).
 | --- | --- | --- |
 | 5.0 | Extraer logica de server actions a `src/lib/services/*` (con tests) | `[x]` (Epic 46, spec 29: servicios de registro/verificacion/perfil/directorio/conexiones/reuniones con cliente inyectado + decisiones puras testeadas) |
 | 5.1 | Capa API v1 (route handlers `/api/v1/*` o RPCs) consumible por mobile | `[x]` (Epic 47, spec 30: 12 endpoints sobre los servicios del spec 29, Bearer registrationId:token) |
-| 5.2 | Auth de asistente (Supabase Auth OTP) + reclamo de perfil por email | `[ ]` |
+| 5.2 | Auth de asistente (Supabase Auth OTP) + reclamo de perfil por email | `[x]` (Epic 48, spec 31: /mi/login OTP, claim_attendee_identity idempotente, /mi con puente de sesion sin token) |
 
 ### FASE 6 — App nativa
 

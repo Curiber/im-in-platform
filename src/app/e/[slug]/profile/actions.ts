@@ -38,7 +38,9 @@ const profileSchema = z.object({
   registrationId: z.string().uuid(),
   role: z.string().trim().min(2, "Ingresa tu cargo o rol."),
   slug: z.string().min(1),
-  token: z.string().min(16),
+  // Vacio cuando se entra con sesion de asistente (Fase 5.2): la auth la
+  // resuelve verifyRegistrationAccess (token o sesion).
+  token: z.string().optional().default(""),
 });
 
 export async function updateAttendeeProfile(formData: FormData) {
