@@ -18,6 +18,7 @@ export function CommunicationComposer({
   const [audience, setAudience] = useState("all_active");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [scheduledAt, setScheduledAt] = useState("");
   // Una clave por redaccion: identifica este intento de envio para idempotencia
   // server-side (un doble submit reusa la misma clave).
   const [requestId] = useState(() => crypto.randomUUID());
@@ -90,9 +91,26 @@ export function CommunicationComposer({
         </span>
       </label>
 
+      <label className="block">
+        <span className="text-sm font-medium text-brand-navy-950">
+          Programar envio (opcional)
+        </span>
+        <input
+          className="mt-2 h-11 w-full rounded-md border border-brand-border bg-white px-3 text-sm outline-none focus:border-brand-cyan-500 sm:max-w-72"
+          name="scheduledAt"
+          onChange={(event) => setScheduledAt(event.target.value)}
+          type="datetime-local"
+          value={scheduledAt}
+        />
+        <span className="mt-1 block text-xs text-brand-slate-600">
+          Vacio = enviar ahora. La audiencia se recalcula al momento del envio,
+          asi que los inscritos de ultima hora tambien lo reciben.
+        </span>
+      </label>
+
       <SubmitButton className="inline-flex h-11 items-center gap-2 rounded-md bg-brand-navy-950 px-5 text-sm font-semibold text-white transition hover:bg-brand-navy-900 disabled:opacity-60">
         <Send className="size-4" aria-hidden="true" />
-        Enviar comunicacion
+        {scheduledAt ? "Programar comunicacion" : "Enviar comunicacion"}
       </SubmitButton>
     </form>
   );

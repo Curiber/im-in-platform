@@ -160,5 +160,6 @@ Mapean a estados de inscripcion **activos** (nunca a pending/cancelled):
 - El estado es por comunicacion, no por destinatario (`communication_deliveries`):
   se sabe si todos los lotes salieron, pero no que direccion individual rebota.
   Aceptable para v1; se agrega cuando haya volumen real.
-- Programar recordatorios (p.ej. 24h antes) requiere scheduling adicional; queda
-  para una iteracion posterior. La plantilla de recordatorio es manual.
+- Programar recordatorios: implementado en el
+  [34-communication-scheduling.md](34-communication-scheduling.md) (Epic 51,
+  `scheduled_at` sobre este mismo outbox).
