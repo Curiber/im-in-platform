@@ -30,6 +30,15 @@ Este directorio contiene la base de spec-driven development para el MVP.
 24. [23-post-event-report.md](23-post-event-report.md)
 25. [24-organization-suspension.md](24-organization-suspension.md)
 26. [25-platform-metrics.md](25-platform-metrics.md)
+27. [26-networking-goals-and-matchmaking.md](26-networking-goals-and-matchmaking.md)
+28. [27-attendee-meetings.md](27-attendee-meetings.md)
+29. [28-attendee-pwa.md](28-attendee-pwa.md)
+30. [29-attendee-services-layer.md](29-attendee-services-layer.md)
+31. [30-api-v1.md](30-api-v1.md)
+32. [31-attendee-identity.md](31-attendee-identity.md)
+33. [32-networking-notifications.md](32-networking-notifications.md)
+34. [33-api-session-auth.md](33-api-session-auth.md)
+35. [34-communication-scheduling.md](34-communication-scheduling.md)
 
 ## Criterio de spec-driven development
 
