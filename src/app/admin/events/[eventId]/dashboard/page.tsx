@@ -339,11 +339,16 @@ function Ranking({
   );
 }
 
-// Corta las reuniones aceptadas en proximas/realizadas respecto del momento
+// Corta las reuniones en aceptadas/proximas/realizadas respecto del momento
 // del render (pagina force-dynamic con polling: cada refresco recorta).
+// `completed` (cron del spec 36) cuenta como aceptada realizada; el fallback
+// por horario cubre la ventana entre el termino y la pasada del cron.
 function splitMeetings(meetings: MeetingMetric[]) {
   const now = Date.now();
-  const accepted = meetings.filter((meeting) => meeting.status === "accepted");
+  const accepted = meetings.filter(
+    (meeting) =>
+      meeting.status === "accepted" || meeting.status === "completed",
+  );
 
   return {
     accepted,
@@ -351,7 +356,9 @@ function splitMeetings(meetings: MeetingMetric[]) {
       (meeting) => new Date(meeting.starts_at).getTime() > now,
     ),
     held: accepted.filter(
-      (meeting) => new Date(meeting.ends_at).getTime() <= now,
+      (meeting) =>
+        meeting.status === "completed" ||
+        new Date(meeting.ends_at).getTime() <= now,
     ),
   };
 }

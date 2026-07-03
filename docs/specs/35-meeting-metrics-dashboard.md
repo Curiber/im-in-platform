@@ -61,5 +61,7 @@ si las incluye; el hueco era el dashboard con polling.)
 
 ## Riesgos / futuro
 
-- Cuando exista la transicion automatica a `completed` (cron), "realizadas"
-  pasa a leer ese estado sin cambiar la UI.
+- Transicion automatica a `completed`: implementada en el
+  [36-complete-past-meetings.md](36-complete-past-meetings.md) (Epic 53);
+  "realizadas" lee ese estado con fallback por horario para la ventana del
+  cron.

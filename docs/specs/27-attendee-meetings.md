@@ -119,5 +119,6 @@ la consulta fallaria. Se corrigen a los nombres de constraint reales
 - Sin notificacion por email, una propuesta puede pasar inadvertida si el
   asistente no vuelve a abrir la web: mitigado por el badge, se resolvera con
   las notificaciones (spec 12 §C.4).
-- `completed` no se setea automaticamente al pasar la hora; hoy es cosmetico
-  (el reporte post-evento no cuenta reuniones). Cron o job cuando importe.
+- `completed`: transicion automatica implementada en el
+  [36-complete-past-meetings.md](36-complete-past-meetings.md) (Epic 53,
+  pg_cron cada 15 min).
