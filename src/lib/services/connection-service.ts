@@ -35,7 +35,11 @@ export type RegistrationContact = {
   } | null;
 };
 
-export type CreateConnectionResult = "created" | "exists" | "invalid";
+export type CreateConnectionResult =
+  | "created"
+  | "exists"
+  | "invalid"
+  | "error";
 
 export async function createConnectionRequest(
   client: SupabaseClient,
@@ -77,11 +81,28 @@ export async function createConnectionRequest(
     return "exists";
   }
 
-  await client.from("connection_requests").insert({
-    event_id: viewer.event_id,
-    requester_registration_id: viewer.id,
-    receiver_registration_id: receiver.id,
-  });
+  // El pre-chequeo no es autoritativo: dos solicitudes concurrentes de la misma
+  // pareja lo pasan las dos. El indice unico parcial (event_id, least, greatest)
+  // where status in (pending, accepted) rechaza la segunda con 23505. Se maneja
+  // como "exists" (ya hay una solicitud viva), y solo se notifica DESPUES de un
+  // insert que de verdad ocurrio: sin esto, ambas enviaban email y devolvian
+  // "created".
+  const { error: insertError } = await client
+    .from("connection_requests")
+    .insert({
+      event_id: viewer.event_id,
+      requester_registration_id: viewer.id,
+      receiver_registration_id: receiver.id,
+    });
+
+  if (insertError) {
+    if (insertError.code === "23505") {
+      return "exists";
+    }
+
+    console.error("No se pudo crear la solicitud de conexion", insertError);
+    return "error";
+  }
 
   // Notificar al receptor (spec 32): sin email, una solicitud puede pasar
   // inadvertida hasta que el receptor reabra la web. Nunca bloquea la accion.
