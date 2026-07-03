@@ -32,6 +32,13 @@ type ConnectionMetric = {
   status: "pending" | "accepted" | "rejected" | "cancelled";
 };
 
+type MeetingMetric = {
+  status: "pending" | "accepted" | "declined" | "cancelled" | "completed";
+  starts_at: string;
+  ends_at: string;
+  location_id: string | null;
+};
+
 type ProfileViewStats = {
   total_views: number;
   unique_viewers: number;
@@ -65,24 +72,39 @@ export default async function EventDashboardPage({
     notFound();
   }
 
-  const [{ data: registrations }, { data: connections }, { data: viewStatsRows }] =
-    await Promise.all([
-      supabase
-        .from("event_registrations")
-        .select(
-          "status, public_profile_enabled, networking_opt_in, industry_snapshot, interests",
-        )
-        .eq("event_id", event.id)
-        .returns<RegistrationMetric[]>(),
-      supabase
-        .from("connection_requests")
-        .select("status")
-        .eq("event_id", event.id)
-        .returns<ConnectionMetric[]>(),
-      // Agregacion en la DB (count, count distinct, ranking top-8): evita bajar
-      // toda profile_views (tabla sin limite) en cada refresco.
-      supabase.rpc("event_profile_view_stats", { p_event_id: event.id }),
-    ]);
+  const [
+    { data: registrations },
+    { data: connections },
+    { data: meetings },
+    { data: locations },
+    { data: viewStatsRows },
+  ] = await Promise.all([
+    supabase
+      .from("event_registrations")
+      .select(
+        "status, public_profile_enabled, networking_opt_in, industry_snapshot, interests",
+      )
+      .eq("event_id", event.id)
+      .returns<RegistrationMetric[]>(),
+    supabase
+      .from("connection_requests")
+      .select("status")
+      .eq("event_id", event.id)
+      .returns<ConnectionMetric[]>(),
+    supabase
+      .from("meetings")
+      .select("status, starts_at, ends_at, location_id")
+      .eq("event_id", event.id)
+      .returns<MeetingMetric[]>(),
+    supabase
+      .from("meeting_locations")
+      .select("id, name")
+      .eq("event_id", event.id)
+      .returns<{ id: string; name: string }[]>(),
+    // Agregacion en la DB (count, count distinct, ranking top-8): evita bajar
+    // toda profile_views (tabla sin limite) en cada refresco.
+    supabase.rpc("event_profile_view_stats", { p_event_id: event.id }),
+  ]);
 
   const viewStats: ProfileViewStats =
     (viewStatsRows as ProfileViewStats[] | null)?.[0] ?? {
@@ -127,6 +149,27 @@ export default async function EventDashboardPage({
     : 0;
   const totalViews = viewStats.total_views;
   const uniqueViewers = viewStats.unique_viewers;
+
+  // Reuniones 1:1 (spec 27): la unidad de valor medible del networking
+  // (spec 12 §B.2). "Realizadas" = aceptadas cuyo horario ya paso (el estado
+  // `completed` no se setea automaticamente); "proximas" = aceptadas futuras.
+  const allMeetings = meetings ?? [];
+  const { accepted: acceptedMeetings, held: heldMeetings, upcoming: upcomingMeetings } =
+    splitMeetings(allMeetings);
+  const meetingAcceptanceRate = allMeetings.length
+    ? Math.round((acceptedMeetings.length / allMeetings.length) * 100)
+    : 0;
+
+  const locationNames = new Map(
+    (locations ?? []).map((location) => [location.id, location.name]),
+  );
+  const topLocations = rank(
+    acceptedMeetings.map((meeting) =>
+      meeting.location_id
+        ? (locationNames.get(meeting.location_id) ?? "Punto eliminado")
+        : "Por definir",
+    ),
+  );
 
   return (
     <AdminShell>
@@ -191,6 +234,24 @@ export default async function EventDashboardPage({
           />
         </div>
 
+        <h3 className="mt-8 text-sm font-semibold uppercase tracking-[0.16em] text-brand-slate-600">
+          Reuniones 1:1
+        </h3>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard label="Propuestas" value={allMeetings.length} />
+          <MetricCard
+            hint={`${meetingAcceptanceRate}% de aceptacion`}
+            label="Aceptadas"
+            value={acceptedMeetings.length}
+          />
+          <MetricCard label="Proximas" value={upcomingMeetings.length} />
+          <MetricCard
+            hint="aceptadas cuyo horario ya paso"
+            label="Realizadas"
+            value={heldMeetings.length}
+          />
+        </div>
+
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <Ranking
             title="Intereses frecuentes"
@@ -215,6 +276,10 @@ export default async function EventDashboardPage({
               label: item.name,
               value: item.views,
             }))}
+          />
+          <Ranking
+            title="Puntos de encuentro mas usados"
+            rows={topLocations}
           />
         </div>
       </section>
@@ -272,6 +337,23 @@ function Ranking({
       </div>
     </article>
   );
+}
+
+// Corta las reuniones aceptadas en proximas/realizadas respecto del momento
+// del render (pagina force-dynamic con polling: cada refresco recorta).
+function splitMeetings(meetings: MeetingMetric[]) {
+  const now = Date.now();
+  const accepted = meetings.filter((meeting) => meeting.status === "accepted");
+
+  return {
+    accepted,
+    upcoming: accepted.filter(
+      (meeting) => new Date(meeting.starts_at).getTime() > now,
+    ),
+    held: accepted.filter(
+      (meeting) => new Date(meeting.ends_at).getTime() <= now,
+    ),
+  };
 }
 
 function rank(values: string[]) {
