@@ -40,6 +40,7 @@ Este directorio contiene la base de spec-driven development para el MVP.
 34. [33-api-session-auth.md](33-api-session-auth.md)
 35. [34-communication-scheduling.md](34-communication-scheduling.md)
 36. [35-meeting-metrics-dashboard.md](35-meeting-metrics-dashboard.md)
+37. [36-complete-past-meetings.md](36-complete-past-meetings.md)
 
 ## Criterio de spec-driven development
 

@@ -131,7 +131,12 @@ export default async function MeetingsPage({
       meeting.status === "pending" &&
       meeting.requester_registration_id === viewer.id,
   );
-  const agenda = rows.filter((meeting) => meeting.status === "accepted");
+  // La agenda incluye las completadas (cron del spec 36): la reunion celebrada
+  // queda como historial con su badge, sin acciones.
+  const agenda = rows.filter(
+    (meeting) =>
+      meeting.status === "accepted" || meeting.status === "completed",
+  );
 
   const accessQuery = `registrationId=${viewer.id}&token=${token}`;
   const viewerCardSlug =
@@ -356,7 +361,8 @@ function MeetingCard({
         </div>
       ) : null}
 
-      {mode === "sent" || isAgenda ? (
+      {mode === "sent" ||
+      (isAgenda && meeting.status === "accepted") ? (
         <form action={cancelMeeting} className="mt-4">
           <HiddenFields
             accessQuery={accessQuery}
