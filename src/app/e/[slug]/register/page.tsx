@@ -1,10 +1,14 @@
 import { ArrowLeft, Calendar, MapPin, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { RegistrationForm } from "@/app/e/[slug]/register/registration-form";
+import {
+  getAttendeeProfile,
+  getAttendeeUser,
+} from "@/lib/attendee-account";
 import { formatDateTime } from "@/lib/datetime";
 import { resolveEventCover } from "@/lib/event-cover";
 import { getEventProfileOptions } from "@/lib/event-profile-options";
@@ -33,6 +37,14 @@ export default async function RegisterPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+
+  // Registro con cuenta (spec 29, fase 2): exige sesion. El asistente anonimo se
+  // envia a crear cuenta / iniciar sesion y vuelve a esta misma pagina.
+  const user = await getAttendeeUser();
+  if (!user) {
+    redirect(`/acceso?next=/e/${slug}/register`);
+  }
+
   const supabase = createSupabaseAdminClient();
 
   const { data: event } = await supabase
@@ -52,7 +64,21 @@ export default async function RegisterPage({
   }
 
   const coverUrl = resolveEventCover(event.cover_image_url);
-  const profileOptions = await getEventProfileOptions(supabase, event.id);
+  const [profileOptions, profile] = await Promise.all([
+    getEventProfileOptions(supabase, event.id),
+    getAttendeeProfile(user.id),
+  ]);
+
+  const prefill = {
+    fullName: profile?.full_name ?? "",
+    phone: profile?.phone ?? "",
+    role: profile?.role ?? "",
+    company: profile?.company ?? "",
+    industry: profile?.industry ?? "",
+    interests: profile?.interests ?? [],
+    goalsSeeking: profile?.goals_seeking ?? [],
+    goalsOffering: profile?.goals_offering ?? [],
+  };
 
   return (
     <main className="min-h-screen bg-brand-surface-soft text-brand-slate-900">
@@ -95,10 +121,12 @@ export default async function RegisterPage({
           </p>
           <div className="mt-7">
             <RegistrationForm
+              accountEmail={user.email ?? ""}
               eventId={event.id}
               goals={profileOptions.goals}
               industries={profileOptions.industries}
               interests={profileOptions.interests}
+              prefill={prefill}
               slug={slug}
             />
           </div>

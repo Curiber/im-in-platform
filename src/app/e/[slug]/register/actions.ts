@@ -4,6 +4,11 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { z } from "zod";
 
+import {
+  claimAttendeeIdentity,
+  getAttendeeUser,
+} from "@/lib/attendee-account";
+import { upsertAttendeeProfileFromRegistration } from "@/lib/attendee-profiles";
 import { sendRegistrationVerificationEmail } from "@/lib/email";
 import { getAppUrl } from "@/lib/env";
 import { formatDateTime } from "@/lib/datetime";
@@ -138,4 +143,146 @@ export async function registerForEvent(
   });
 
   redirect(`/e/${parsed.data.slug}/check-email`);
+}
+
+// Registro con cuenta (spec 37, fase 2). Exige sesion: la identidad es el
+// usuario autenticado y el email verificado de su cuenta, no un email del
+// formulario. Delega en el mismo servicio registerAttendee que la via anonima
+// y luego, como el email ya esta verificado, activa la inscripcion en el acto
+// (sin round-trip por email) y la reclama para la cuenta.
+export async function registerWithAccount(
+  _state: RegistrationActionState,
+  formData: FormData,
+): Promise<RegistrationActionState> {
+  const slug = String(formData.get("slug") ?? "");
+
+  const user = await getAttendeeUser();
+  if (!user) {
+    redirect(`/acceso?next=/e/${slug}/register`);
+  }
+
+  const email = user.email;
+  if (!email) {
+    return {
+      status: "error",
+      message: "Tu cuenta no tiene un email valido para inscribirte.",
+    };
+  }
+
+  const networkingOptIn = formData.get("networkingOptIn") === "on";
+  const parsed = registrationSchema.safeParse({
+    eventId: formData.get("eventId"),
+    slug,
+    fullName: formData.get("fullName"),
+    email,
+    phone: formData.get("phone"),
+    role: formData.get("role"),
+    company: formData.get("company"),
+    industry: formData.get("industry"),
+    interests: formData.getAll("interests"),
+    goalsSeeking: formData.getAll("goalsSeeking"),
+    goalsOffering: formData.getAll("goalsOffering"),
+    networkingOptIn,
+    publicProfileEnabled: networkingOptIn,
+    dataConsent: formData.get("dataConsent") === "on",
+  });
+
+  if (!parsed.success) {
+    return {
+      status: "error",
+      message:
+        parsed.error.issues[0]?.message ??
+        "Revisa los campos obligatorios de la inscripcion.",
+    };
+  }
+
+  const adminClient = createSupabaseAdminClient();
+  const result = await registerAttendee(adminClient, {
+    eventId: parsed.data.eventId,
+    slug: parsed.data.slug,
+    fullName: parsed.data.fullName,
+    email: parsed.data.email,
+    phone: parsed.data.phone || null,
+    role: parsed.data.role,
+    company: parsed.data.company,
+    industry: parsed.data.industry,
+    interests: parsed.data.interests,
+    goalsSeeking: parsed.data.goalsSeeking,
+    goalsOffering: parsed.data.goalsOffering,
+    networkingOptIn: parsed.data.networkingOptIn,
+    publicProfileEnabled: parsed.data.publicProfileEnabled,
+  });
+
+  // Duplicado: ya existe una inscripcion con este email en el evento (p. ej.
+  // una inscripcion anonima previa). Se reclama para la cuenta en vez de fallar:
+  // se recupera, se activa si estaba pendiente y aparece en /app.
+  let registrationId: string;
+  let token: string | null = null;
+  if (result.status === "duplicate") {
+    const { data: existing } = await adminClient
+      .from("event_registrations")
+      .select("id")
+      .eq("event_id", parsed.data.eventId)
+      .eq("email", parsed.data.email)
+      .maybeSingle<{ id: string }>();
+
+    if (!existing) {
+      return { status: "error", message: errorMessages.error };
+    }
+
+    registrationId = existing.id;
+  } else if (result.status === "ok") {
+    registrationId = result.registrationId;
+    token = result.token;
+  } else {
+    return {
+      status: "error",
+      message: errorMessages[result.status] ?? errorMessages.error,
+    };
+  }
+
+  // El email de la cuenta ya esta verificado: se crea/enlaza el perfil global y
+  // se activa la inscripcion en el acto (sin pending_verification).
+  const profileId = await upsertAttendeeProfileFromRegistration({
+    email: parsed.data.email,
+    fullName: parsed.data.fullName,
+    phone: parsed.data.phone || null,
+    role: parsed.data.role,
+    company: parsed.data.company,
+    industry: parsed.data.industry,
+    interests: parsed.data.interests,
+    goalsSeeking: parsed.data.goalsSeeking,
+    goalsOffering: parsed.data.goalsOffering,
+  });
+
+  if (!profileId) {
+    return {
+      status: "error",
+      message: "No pudimos preparar tu perfil. Intentalo nuevamente.",
+    };
+  }
+
+  // La transicion lee el modo del evento bajo lock y fija el estado destino
+  // (registered u pending_approval). Idempotente: si ya estaba activa, no cambia.
+  const { error: activateError } = await adminClient.rpc(
+    "activate_verified_registration",
+    { p_registration_id: registrationId, p_profile_id: profileId },
+  );
+
+  if (activateError) {
+    return { status: "error", message: errorMessages.error };
+  }
+
+  // Enlaza perfil e inscripcion a la cuenta (user_id) por email verificado.
+  await claimAttendeeIdentity();
+
+  // Inscripcion nueva: hay token en memoria para mostrar la credencial. En el
+  // caso reclamado (duplicate) no se conoce el token previo: se envia a /app.
+  if (token) {
+    redirect(
+      `/e/${slug}/registered?registrationId=${registrationId}&token=${token}`,
+    );
+  }
+
+  redirect("/app/eventos");
 }
