@@ -46,6 +46,16 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
+  // Zona del asistente: exige sesion y redirige al acceso propio (/acceso),
+  // conservando el destino para volver despues de autenticarse.
+  if (!user && request.nextUrl.pathname.startsWith("/app")) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/acceso";
+    redirectUrl.searchParams.set("next", request.nextUrl.pathname);
+
+    return NextResponse.redirect(redirectUrl);
+  }
+
   if (user && request.nextUrl.pathname === "/login") {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/admin";
@@ -58,5 +68,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/login"],
+  matcher: ["/admin/:path*", "/app/:path*", "/login"],
 };
