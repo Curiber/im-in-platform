@@ -6,7 +6,7 @@ import { useActionState } from "react";
 
 import {
   type RegistrationActionState,
-  registerForEvent,
+  registerWithAccount,
 } from "@/app/e/[slug]/register/actions";
 
 const initialState: RegistrationActionState = {
@@ -14,21 +14,36 @@ const initialState: RegistrationActionState = {
   message: "",
 };
 
+export type RegistrationPrefill = {
+  fullName: string;
+  phone: string;
+  role: string;
+  company: string;
+  industry: string;
+  interests: string[];
+  goalsSeeking: string[];
+  goalsOffering: string[];
+};
+
 export function RegistrationForm({
+  accountEmail,
   eventId,
   slug,
   goals,
   industries,
   interests,
+  prefill,
 }: {
+  accountEmail: string;
   eventId: string;
   slug: string;
   goals: string[];
   industries: string[];
   interests: string[];
+  prefill: RegistrationPrefill;
 }) {
   const [state, formAction, isPending] = useActionState(
-    registerForEvent,
+    registerWithAccount,
     initialState,
   );
 
@@ -41,20 +56,19 @@ export function RegistrationForm({
         <Field label="Nombre">
           <input
             className={inputClass}
+            defaultValue={prefill.fullName}
             name="fullName"
             placeholder="Nombre y apellido"
             required
           />
         </Field>
 
-        <Field label="Email">
+        <Field label="Email de tu cuenta">
           <input
-            autoComplete="email"
-            className={inputClass}
-            name="email"
-            placeholder="tu@email.com"
-            required
+            className={`${inputClass} bg-brand-surface-soft text-brand-slate-600`}
+            disabled
             type="email"
+            value={accountEmail}
           />
         </Field>
 
@@ -62,6 +76,7 @@ export function RegistrationForm({
           <input
             autoComplete="tel"
             className={inputClass}
+            defaultValue={prefill.phone}
             name="phone"
             placeholder="+56 9..."
           />
@@ -70,6 +85,7 @@ export function RegistrationForm({
         <Field label="Cargo o rol">
           <input
             className={inputClass}
+            defaultValue={prefill.role}
             name="role"
             placeholder="Gerente, founder, estudiante..."
             required
@@ -79,6 +95,7 @@ export function RegistrationForm({
         <Field label="Empresa u organizacion">
           <input
             className={inputClass}
+            defaultValue={prefill.company}
             name="company"
             placeholder="Empresa, UAI, comunidad..."
             required
@@ -89,7 +106,9 @@ export function RegistrationForm({
           <select
             className={inputClass}
             name="industry"
-            defaultValue=""
+            defaultValue={
+              industries.includes(prefill.industry) ? prefill.industry : ""
+            }
             required
           >
             <option value="" disabled>
@@ -116,6 +135,7 @@ export function RegistrationForm({
             <label className="cursor-pointer" key={interest}>
               <input
                 className="peer sr-only"
+                defaultChecked={prefill.interests.includes(interest)}
                 name="interests"
                 type="checkbox"
                 value={interest}
@@ -133,6 +153,7 @@ export function RegistrationForm({
         legend="¿Que buscas en este evento?"
         name="goalsSeeking"
         options={goals}
+        selected={prefill.goalsSeeking}
       />
 
       <GoalFieldset
@@ -140,6 +161,7 @@ export function RegistrationForm({
         legend="¿Que ofreces?"
         name="goalsOffering"
         options={goals}
+        selected={prefill.goalsOffering}
       />
 
       <div className="rounded-2xl border border-brand-cyan-500/30 bg-[#eef9f6] p-4">
@@ -201,11 +223,13 @@ function GoalFieldset({
   legend,
   name,
   options,
+  selected,
 }: {
   hint: string;
   legend: string;
   name: string;
   options: string[];
+  selected: string[];
 }) {
   return (
     <fieldset>
@@ -218,6 +242,7 @@ function GoalFieldset({
           <label className="cursor-pointer" key={option}>
             <input
               className="peer sr-only"
+              defaultChecked={selected.includes(option)}
               name={name}
               type="checkbox"
               value={option}
