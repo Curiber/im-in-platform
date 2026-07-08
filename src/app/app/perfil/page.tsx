@@ -2,10 +2,13 @@ import { ExternalLink, UserRound } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { ProfileEditForm } from "@/app/app/perfil/profile-edit-form";
+import { getAttendeeProfile, getAttendeeUser } from "@/lib/attendee-account";
 import {
-  getAttendeeProfile,
-  getAttendeeUser,
-} from "@/lib/attendee-account";
+  DEFAULT_GOALS,
+  DEFAULT_INDUSTRIES,
+  DEFAULT_INTERESTS,
+} from "@/lib/profile-options";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +27,8 @@ export default async function MyProfilePage() {
         Mi perfil
       </h1>
       <p className="mt-2 text-brand-slate-600">
-        Este es tu perfil global, reutilizable en cada evento.
+        Este es tu perfil global, reutilizable en cada evento. Los cambios se
+        aplican a tus proximas inscripciones.
       </p>
 
       {!profile ? (
@@ -44,69 +48,42 @@ export default async function MyProfilePage() {
           </Link>
         </div>
       ) : (
-        <div className="mt-6 rounded-2xl border border-brand-border bg-white p-6 shadow-sm">
-          <div className="flex items-center gap-4">
-            <Avatar name={profile.full_name} avatarUrl={profile.avatar_url} />
-            <div className="min-w-0">
-              <h2 className="text-xl font-semibold text-brand-navy-950">
-                {profile.full_name}
-              </h2>
-              {profile.headline ? (
-                <p className="text-sm italic text-brand-slate-600">
-                  {profile.headline}
+        <div className="mt-6 space-y-6">
+          <div className="flex items-center justify-between gap-4 rounded-2xl border border-brand-border bg-white p-6 shadow-sm">
+            <div className="flex min-w-0 items-center gap-4">
+              <Avatar name={profile.full_name} avatarUrl={profile.avatar_url} />
+              <div className="min-w-0">
+                <h2 className="truncate text-xl font-semibold text-brand-navy-950">
+                  {profile.full_name}
+                </h2>
+                <p className="truncate text-sm text-brand-slate-600">
+                  {profile.email}
                 </p>
-              ) : null}
-            </div>
-          </div>
-
-          <dl className="mt-6 grid gap-4 sm:grid-cols-2">
-            <Field label="Cargo" value={profile.role} />
-            <Field label="Empresa" value={profile.company} />
-            <Field label="Industria" value={profile.industry} />
-            <Field label="Email" value={profile.email} />
-          </dl>
-
-          {profile.interests.length ? (
-            <div className="mt-6">
-              <p className="text-sm font-semibold text-brand-navy-950">
-                Intereses
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {profile.interests.map((interest) => (
-                  <span
-                    className="rounded-full bg-brand-slate-100 px-2.5 py-1 text-xs font-semibold text-brand-navy-900"
-                    key={interest}
-                  >
-                    {interest}
-                  </span>
-                ))}
               </div>
             </div>
-          ) : null}
+            {profile.profile_slug ? (
+              <Link
+                className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-brand-cyan-500 hover:underline"
+                href={`/p/${profile.profile_slug}`}
+                target="_blank"
+              >
+                Tarjeta publica
+                <ExternalLink className="size-4" aria-hidden="true" />
+              </Link>
+            ) : null}
+          </div>
 
-          {profile.profile_slug ? (
-            <Link
-              className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-cyan-500 hover:underline"
-              href={`/p/${profile.profile_slug}`}
-            >
-              Ver mi tarjeta publica
-              <ExternalLink className="size-4" aria-hidden="true" />
-            </Link>
-          ) : null}
+          <div className="rounded-2xl border border-brand-border bg-white p-6 shadow-sm">
+            <ProfileEditForm
+              goals={DEFAULT_GOALS}
+              industries={DEFAULT_INDUSTRIES}
+              interests={DEFAULT_INTERESTS}
+              profile={profile}
+            />
+          </div>
         </div>
       )}
     </main>
-  );
-}
-
-function Field({ label, value }: { label: string; value: string | null }) {
-  return (
-    <div>
-      <dt className="text-sm text-brand-slate-600">{label}</dt>
-      <dd className="mt-0.5 font-medium text-brand-navy-950">
-        {value?.trim() ? value : "—"}
-      </dd>
-    </div>
   );
 }
 

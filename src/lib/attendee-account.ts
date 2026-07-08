@@ -9,11 +9,13 @@ export type AttendeeProfile = {
   id: string;
   full_name: string;
   headline: string | null;
+  description: string | null;
   role: string | null;
   company: string | null;
   industry: string | null;
   email: string;
   phone: string | null;
+  linkedin_url: string | null;
   avatar_url: string | null;
   interests: string[];
   goals_seeking: string[];
@@ -81,7 +83,7 @@ export const getAttendeeProfile = cache(
     const { data } = await supabase
       .from("attendee_profiles")
       .select(
-        "id, full_name, headline, role, company, industry, email, phone, avatar_url, interests, goals_seeking, goals_offering, profile_slug",
+        "id, full_name, headline, description, role, company, industry, email, phone, linkedin_url, avatar_url, interests, goals_seeking, goals_offering, profile_slug",
       )
       .eq("user_id", userId)
       .maybeSingle<AttendeeProfile>();
