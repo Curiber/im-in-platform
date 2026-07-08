@@ -22,15 +22,16 @@ export default async function ExplorePage() {
     redirect("/acceso?next=/app/explorar");
   }
 
-  // Eventos abiertos y publicados, legibles por el asistente autenticado gracias
-  // a la nueva politica RLS. El filtro por "discoverable" (opt-in del
-  // organizador) llega en una fase posterior del spec 37.
+  // Solo eventos abiertos, publicados y marcados como `discoverable` por su
+  // organizador (opt-in). Los demas siguen siendo accesibles solo por link.
+  // Legibles por el asistente autenticado gracias a la politica RLS del spec 37.
   const supabase = await createSupabaseServerClient();
   const { data: events } = await supabase
     .from("events")
     .select("slug, name, description, starts_at, location")
     .eq("status", "published")
     .eq("event_type", "open")
+    .eq("discoverable", true)
     .order("starts_at", { ascending: true })
     .returns<PublicEvent[]>();
 

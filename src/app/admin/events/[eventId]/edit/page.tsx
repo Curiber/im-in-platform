@@ -36,6 +36,7 @@ type EditableEvent = {
   registration_mode: "open" | "approval";
   modality: "in_person" | "online" | "hybrid";
   networking_enabled: boolean;
+  discoverable: boolean;
   cover_image_url: string | null;
 };
 
@@ -60,7 +61,7 @@ export default async function EditEventPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, organization_id, name, description, starts_at, arrival_starts_at, ends_at, location, capacity, event_type, registration_mode, modality, networking_enabled, cover_image_url",
+      "id, organization_id, name, description, starts_at, arrival_starts_at, ends_at, location, capacity, event_type, registration_mode, modality, networking_enabled, discoverable, cover_image_url",
     )
     .eq("id", eventId)
     .is("deleted_at", null)
@@ -325,6 +326,24 @@ export default async function EditEventPage({
               </span>
               <span className="mt-1 block text-sm leading-6 text-brand-slate-600">
                 Permite perfil publico, directorio y solicitudes de conexion.
+              </span>
+            </span>
+          </label>
+
+          <label className="flex items-start gap-3 rounded-md border border-brand-border/60 bg-brand-surface-soft p-4">
+            <input
+              className="mt-1 size-4"
+              defaultChecked={event.discoverable}
+              name="discoverable"
+              type="checkbox"
+            />
+            <span>
+              <span className="block text-sm font-semibold text-brand-navy-950">
+                Listar en Explorar
+              </span>
+              <span className="mt-1 block text-sm leading-6 text-brand-slate-600">
+                Muestra el evento en el explorador de I&apos;m IN. Desactivado,
+                el evento solo es accesible por su link.
               </span>
             </span>
           </label>
