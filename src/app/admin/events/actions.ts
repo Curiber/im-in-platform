@@ -189,6 +189,7 @@ const eventSchema = z.object({
   eventType: z.enum(["open", "closed"]),
   registrationMode: z.enum(["open", "approval"]).default("open"),
   networkingEnabled: z.boolean(),
+  discoverable: z.boolean(),
 });
 
 export async function createEvent(
@@ -217,6 +218,7 @@ export async function createEvent(
     eventType: formData.get("eventType"),
     registrationMode: formData.get("registrationMode") ?? undefined,
     networkingEnabled: formData.get("networkingEnabled") === "on",
+    discoverable: formData.get("discoverable") === "on",
   });
 
   if (!parsed.success) {
@@ -241,6 +243,7 @@ export async function createEvent(
       event_type: parsed.data.eventType,
       registration_mode: parsed.data.registrationMode,
       networking_enabled: parsed.data.networkingEnabled,
+      discoverable: parsed.data.discoverable,
       created_by: user.id,
     })
     .select("id")
@@ -281,6 +284,7 @@ export async function updateEvent(
     eventType: formData.get("eventType"),
     registrationMode: formData.get("registrationMode") ?? undefined,
     networkingEnabled: formData.get("networkingEnabled") === "on",
+    discoverable: formData.get("discoverable") === "on",
   });
 
   if (!eventId) {
@@ -307,6 +311,7 @@ export async function updateEvent(
       capacity: parsed.data.capacity,
       event_type: parsed.data.eventType,
       networking_enabled: parsed.data.networkingEnabled,
+      discoverable: parsed.data.discoverable,
     })
     .eq("id", eventId)
     .eq("organization_id", parsed.data.organizationId)

@@ -216,6 +216,20 @@ export default async function NewEventPage() {
             </span>
           </label>
 
+          <label className="flex items-start gap-3 rounded-md border border-brand-border/60 bg-brand-surface-soft p-4">
+            <input className="mt-1 size-4" name="discoverable" type="checkbox" />
+            <span>
+              <span className="block text-sm font-semibold text-brand-navy-950">
+                Listar en Explorar
+              </span>
+              <span className="mt-1 block text-sm leading-6 text-brand-slate-600">
+                Muestra el evento en el explorador de I&apos;m IN para que
+                cualquier asistente con cuenta lo descubra. Si lo dejas
+                desactivado, el evento solo es accesible por su link.
+              </span>
+            </span>
+          </label>
+
           <div className="flex justify-end gap-3">
             <Link
               className="inline-flex h-11 items-center justify-center rounded-md border border-brand-border px-4 text-sm font-semibold text-brand-navy-950 hover:bg-brand-surface-soft"
