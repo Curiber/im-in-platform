@@ -75,9 +75,15 @@ export default async function MyProfilePage() {
 
           <div className="rounded-2xl border border-brand-border bg-white p-6 shadow-sm">
             <ProfileEditForm
-              goals={DEFAULT_GOALS}
-              industries={DEFAULT_INDUSTRIES}
-              interests={DEFAULT_INTERESTS}
+              goals={mergeOptions(DEFAULT_GOALS, [
+                ...profile.goals_seeking,
+                ...profile.goals_offering,
+              ])}
+              industries={mergeOptions(
+                DEFAULT_INDUSTRIES,
+                profile.industry ? [profile.industry] : [],
+              )}
+              interests={mergeOptions(DEFAULT_INTERESTS, profile.interests)}
               profile={profile}
             />
           </div>
@@ -85,6 +91,14 @@ export default async function MyProfilePage() {
       )}
     </main>
   );
+}
+
+// Union del catalogo por defecto con los valores que ya tiene el perfil. Un
+// perfil pudo capturar industria/intereses/goals desde el catalogo custom de un
+// evento; si no se ofrecen como opciones, al guardar se perderian. Los defaults
+// van primero; los valores propios que no esten en defaults se agregan al final.
+function mergeOptions(defaults: string[], existing: string[]): string[] {
+  return Array.from(new Set([...defaults, ...existing]));
 }
 
 function Avatar({

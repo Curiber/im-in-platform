@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { getAttendeeUser } from "@/lib/attendee-account";
+import {
+  getAttendeeProfile,
+  getAttendeeUser,
+} from "@/lib/attendee-account";
 import {
   DEFAULT_GOALS,
   DEFAULT_INDUSTRIES,
@@ -69,17 +72,35 @@ export async function updateGlobalProfile(
     };
   }
 
-  // El perfil global usa el catalogo por defecto de plataforma (no hay evento).
-  // La action es invocable directo: se valida server-side, no se confia en el UI.
+  // El perfil global valida contra el catalogo por defecto de plataforma MAS los
+  // valores que el perfil ya tenia (pudieron venir del catalogo custom de un
+  // evento). Asi el asistente puede conservar esos valores custom sin que se
+  // pierdan al editar, pero no puede inyectar etiquetas arbitrarias. La action
+  // es invocable directo: se valida server-side, no se confia en el UI.
+  const current = await getAttendeeProfile(user.id);
+  const allowedIndustries = new Set([
+    ...DEFAULT_INDUSTRIES,
+    ...(current?.industry ? [current.industry] : []),
+  ]);
+  const allowedInterests = new Set([
+    ...DEFAULT_INTERESTS,
+    ...(current?.interests ?? []),
+  ]);
+  const allowedGoals = new Set([
+    ...DEFAULT_GOALS,
+    ...(current?.goals_seeking ?? []),
+    ...(current?.goals_offering ?? []),
+  ]);
+
   const industry = parsed.data.industry ?? "";
-  const industryValid = !industry || DEFAULT_INDUSTRIES.includes(industry);
+  const industryValid = !industry || allowedIndustries.has(industry);
   const interestsValid = parsed.data.interests.every((interest) =>
-    DEFAULT_INTERESTS.includes(interest),
+    allowedInterests.has(interest),
   );
   const goalsValid = [
     ...parsed.data.goalsSeeking,
     ...parsed.data.goalsOffering,
-  ].every((goal) => DEFAULT_GOALS.includes(goal));
+  ].every((goal) => allowedGoals.has(goal));
 
   if (!industryValid || !interestsValid || !goalsValid) {
     return {
