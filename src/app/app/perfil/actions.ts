@@ -12,6 +12,8 @@ import {
   DEFAULT_INDUSTRIES,
   DEFAULT_INTERESTS,
 } from "@/lib/profile-options";
+import { objectPathFromPublicUrl } from "@/lib/storage";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const schema = z.object({
@@ -134,4 +136,96 @@ export async function updateGlobalProfile(
 
   revalidatePath("/app/perfil");
   return { status: "success", message: "Perfil actualizado." };
+}
+
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+const AVATAR_BUCKET = "profile-photos";
+const allowedAvatarTypes = new Map([
+  ["image/jpeg", "jpg"],
+  ["image/png", "png"],
+  ["image/webp", "webp"],
+]);
+
+export type AvatarActionState = {
+  status: "idle" | "success" | "error";
+  message: string;
+};
+
+// Subida de la foto de perfil global desde /app (spec 37). El upload usa el
+// service role (Storage), pero el objeto y el perfil se resuelven por la sesion:
+// solo se toca el perfil del propio usuario.
+export async function uploadAvatar(
+  _state: AvatarActionState,
+  formData: FormData,
+): Promise<AvatarActionState> {
+  const user = await getAttendeeUser();
+  if (!user) {
+    return { status: "error", message: "Tu sesion expiro. Vuelve a ingresar." };
+  }
+
+  const profile = await getAttendeeProfile(user.id);
+  if (!profile) {
+    return {
+      status: "error",
+      message:
+        "Aun no tienes un perfil global. Se crea al inscribirte a tu primer evento.",
+    };
+  }
+
+  const file = formData.get("avatar");
+  if (!(file instanceof File) || file.size === 0) {
+    return { status: "error", message: "Selecciona una imagen." };
+  }
+
+  const extension = allowedAvatarTypes.get(file.type);
+  if (!extension || file.size > MAX_AVATAR_BYTES) {
+    return {
+      status: "error",
+      message: "La foto debe ser JPG, PNG o WebP y pesar maximo 5 MB.",
+    };
+  }
+
+  const adminClient = createSupabaseAdminClient();
+  const storagePath = [
+    "profiles",
+    profile.id,
+    `${Date.now()}-${crypto.randomUUID()}.${extension}`,
+  ].join("/");
+
+  const { error: uploadError } = await adminClient.storage
+    .from(AVATAR_BUCKET)
+    .upload(storagePath, file, { contentType: file.type, upsert: false });
+
+  if (uploadError) {
+    console.error("No se pudo subir la foto de perfil", uploadError);
+    return {
+      status: "error",
+      message: "No pudimos subir la foto. Intentalo nuevamente.",
+    };
+  }
+
+  const { data } = adminClient.storage
+    .from(AVATAR_BUCKET)
+    .getPublicUrl(storagePath);
+
+  const { error: updateError } = await adminClient
+    .from("attendee_profiles")
+    .update({ avatar_url: data.publicUrl })
+    .eq("id", profile.id);
+
+  if (updateError) {
+    return {
+      status: "error",
+      message: "No pudimos guardar la foto. Intentalo nuevamente.",
+    };
+  }
+
+  // Borra la foto anterior (best-effort), una vez persistida la nueva.
+  const previousPath = objectPathFromPublicUrl(profile.avatar_url, AVATAR_BUCKET);
+  if (previousPath && previousPath !== storagePath) {
+    await adminClient.storage.from(AVATAR_BUCKET).remove([previousPath]);
+  }
+
+  revalidatePath("/app/perfil");
+  return { status: "success", message: "Foto actualizada." };
 }

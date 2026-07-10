@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Las Server Actions limitan el body a 1 MB por defecto. La subida de foto
+    // de perfil admite hasta 5 MB; se eleva el limite para que archivos entre
+    // 1 y 5 MB lleguen a la action (con margen para el overhead del multipart).
+    serverActions: {
+      bodySizeLimit: "6mb",
+    },
+  },
   images: {
     remotePatterns: [
       {

@@ -2,6 +2,7 @@ import { ExternalLink, UserRound } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { AvatarUpload } from "@/app/app/perfil/avatar-upload";
 import { ProfileEditForm } from "@/app/app/perfil/profile-edit-form";
 import { getAttendeeProfile, getAttendeeUser } from "@/lib/attendee-account";
 import {
@@ -59,6 +60,9 @@ export default async function MyProfilePage() {
                 <p className="truncate text-sm text-brand-slate-600">
                   {profile.email}
                 </p>
+                <div className="mt-2">
+                  <AvatarUpload />
+                </div>
               </div>
             </div>
             {profile.profile_slug ? (
