@@ -100,3 +100,51 @@ export async function getMyConnections(): Promise<MyConnection[]> {
     a.fullName.localeCompare(b.fullName),
   );
 }
+
+export type PendingConnectionRequest = {
+  requestId: string;
+  eventName: string;
+  createdAt: string;
+  requesterName: string;
+  requesterRole: string | null;
+  requesterCompany: string | null;
+  requesterAvatarUrl: string | null;
+};
+
+type PendingRow = {
+  request_id: string;
+  event_name: string;
+  created_at: string;
+  requester_full_name: string | null;
+  requester_role: string | null;
+  requester_company: string | null;
+  requester_avatar_url: string | null;
+};
+
+// Solicitudes de conexion recibidas y pendientes (por sesion). El usuario las
+// acepta o rechaza desde el hub sin entrar a cada evento.
+export async function getMyPendingConnections(): Promise<
+  PendingConnectionRequest[]
+> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc(
+    "get_my_pending_connection_requests",
+  );
+
+  if (error) {
+    console.error("No se pudieron cargar las solicitudes pendientes", error);
+    return [];
+  }
+
+  const rows = (data as PendingRow[] | null) ?? [];
+
+  return rows.map((row) => ({
+    requestId: row.request_id,
+    eventName: row.event_name,
+    createdAt: row.created_at,
+    requesterName: row.requester_full_name ?? "Asistente",
+    requesterRole: row.requester_role,
+    requesterCompany: row.requester_company,
+    requesterAvatarUrl: row.requester_avatar_url,
+  }));
+}

@@ -1,12 +1,18 @@
-import { IdCard, Mail, Phone, Users } from "lucide-react";
+import { Check, IdCard, Mail, Phone, Users, X } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
+import {
+  acceptConnection,
+  rejectConnection,
+} from "@/app/app/conexiones/actions";
 import { getAttendeeUser } from "@/lib/attendee-account";
 import {
   getMyConnections,
+  getMyPendingConnections,
   type MyConnection,
+  type PendingConnectionRequest,
 } from "@/lib/attendee-connections";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +23,10 @@ export default async function MyConnectionsPage() {
     redirect("/acceso?next=/app/conexiones");
   }
 
-  const connections = await getMyConnections();
+  const [connections, pending] = await Promise.all([
+    getMyConnections(),
+    getMyPendingConnections(),
+  ]);
 
   return (
     <main className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8">
@@ -30,8 +39,25 @@ export default async function MyConnectionsPage() {
         informacion se mantiene al dia con su perfil.
       </p>
 
+      {pending.length ? (
+        <section className="mt-6">
+          <h2 className="text-lg font-semibold">
+            Solicitudes recibidas ({pending.length})
+          </h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {pending.map((request) => (
+              <PendingCard key={request.requestId} request={request} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       {connections.length ? (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <h2 className="mt-8 text-lg font-semibold">Conectados</h2>
+      ) : null}
+
+      {connections.length ? (
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
           {connections.map((connection) => (
             <ConnectionCard connection={connection} key={connection.key} />
           ))}
@@ -58,6 +84,54 @@ export default async function MyConnectionsPage() {
         </div>
       )}
     </main>
+  );
+}
+
+function PendingCard({ request }: { request: PendingConnectionRequest }) {
+  return (
+    <article className="rounded-2xl border border-brand-border bg-brand-surface-soft p-5 shadow-sm">
+      <div className="flex items-start gap-3">
+        <Avatar
+          avatarUrl={request.requesterAvatarUrl}
+          name={request.requesterName}
+        />
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate font-semibold text-brand-navy-950">
+            {request.requesterName}
+          </h3>
+          <p className="truncate text-sm text-brand-slate-600">
+            {request.requesterRole ?? "Rol por confirmar"}
+            {request.requesterCompany ? ` · ${request.requesterCompany}` : ""}
+          </p>
+          <p className="mt-0.5 truncate text-xs text-brand-slate-600">
+            En {request.eventName}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex gap-2">
+        <form action={acceptConnection}>
+          <input name="requestId" type="hidden" value={request.requestId} />
+          <button
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand-navy-950 px-3.5 text-sm font-semibold text-white transition hover:bg-brand-navy-900"
+            type="submit"
+          >
+            <Check className="size-4" aria-hidden="true" />
+            Aceptar
+          </button>
+        </form>
+        <form action={rejectConnection}>
+          <input name="requestId" type="hidden" value={request.requestId} />
+          <button
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-brand-border bg-white px-3.5 text-sm font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft"
+            type="submit"
+          >
+            <X className="size-4" aria-hidden="true" />
+            Rechazar
+          </button>
+        </form>
+      </div>
+    </article>
   );
 }
 
