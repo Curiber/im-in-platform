@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { EventCard } from "@/app/app/_components/event-card";
+import { CancelRegistrationButton } from "@/app/app/eventos/cancel-registration-button";
 import {
   getAttendeeRegistrations,
   getAttendeeUser,
@@ -10,6 +11,14 @@ import {
 } from "@/lib/attendee-account";
 
 export const dynamic = "force-dynamic";
+
+// Una inscripcion se puede cancelar mientras sigue activa o pendiente; ya
+// acreditada (checked_in) o cerrada (cancelled/no_show) no.
+const CANCELLABLE_STATUSES = new Set([
+  "registered",
+  "pending_approval",
+  "pending_verification",
+]);
 
 export default async function MyEventsPage() {
   const user = await getAttendeeUser();
@@ -46,7 +55,12 @@ export default async function MyEventsPage() {
           <h2 className="text-lg font-semibold">Proximos</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {upcoming.map((registration) => (
-              <EventCard key={registration.id} registration={registration} />
+              <div className="flex flex-col gap-2" key={registration.id}>
+                <EventCard registration={registration} />
+                {CANCELLABLE_STATUSES.has(registration.status) ? (
+                  <CancelRegistrationButton registrationId={registration.id} />
+                ) : null}
+              </div>
             ))}
           </div>
         </section>
