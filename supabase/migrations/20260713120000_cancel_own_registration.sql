@@ -23,11 +23,15 @@ begin
     return 'unauthenticated';
   end if;
 
+  -- FOR UPDATE bloquea la fila: serializa contra un check-in concurrente. Si el
+  -- check-in commitea antes, aqui se lee el estado nuevo (checked_in) y se
+  -- rechaza; si intenta despues, espera a que esta transaccion termine.
   select status
   into v_status
   from public.event_registrations
   where id = p_registration_id
-    and user_id = v_uid;
+    and user_id = v_uid
+  for update;
 
   if not found then
     return 'not_found';
@@ -41,10 +45,17 @@ begin
     return 'not_cancellable';
   end if;
 
+  -- El guard tambien va en el WHERE del UPDATE (defensa en profundidad): no se
+  -- sobrescribe un estado que ya no sea cancelable.
   update public.event_registrations
   set status = 'cancelled'
   where id = p_registration_id
-    and user_id = v_uid;
+    and user_id = v_uid
+    and status in ('registered', 'pending_approval', 'pending_verification');
+
+  if not found then
+    return 'not_cancellable';
+  end if;
 
   return 'cancelled';
 end;
