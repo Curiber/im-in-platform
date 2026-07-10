@@ -1,4 +1,11 @@
-import { CalendarDays, Compass, Home, Users, UserRound } from "lucide-react";
+import {
+  CalendarClock,
+  CalendarDays,
+  Compass,
+  Home,
+  Users,
+  UserRound,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -7,6 +14,7 @@ const links = [
   { href: "/app", label: "Inicio", icon: Home },
   { href: "/app/eventos", label: "Mis eventos", icon: CalendarDays },
   { href: "/app/conexiones", label: "Conexiones", icon: Users },
+  { href: "/app/reuniones", label: "Reuniones", icon: CalendarClock },
   { href: "/app/explorar", label: "Explorar", icon: Compass },
   { href: "/app/perfil", label: "Mi perfil", icon: UserRound },
 ];
