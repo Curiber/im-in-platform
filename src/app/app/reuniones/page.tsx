@@ -1,7 +1,11 @@
-import { CalendarClock, Clock, MapPin } from "lucide-react";
+import { CalendarClock, Check, Clock, MapPin, X } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import {
+  acceptMeeting,
+  declineMeeting,
+} from "@/app/app/reuniones/actions";
 import { getAttendeeUser } from "@/lib/attendee-account";
 import {
   getMyMeetings,
@@ -129,6 +133,35 @@ function MeetingCard({ meeting }: { meeting: MyMeeting }) {
           {meeting.eventName}
         </Link>
       </p>
+
+      {meeting.status === "pending" && meeting.isIncoming ? (
+        <div className="mt-4 flex gap-2">
+          <form action={acceptMeeting}>
+            <input name="meetingId" type="hidden" value={meeting.id} />
+            <button
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand-navy-950 px-3.5 text-sm font-semibold text-white transition hover:bg-brand-navy-900"
+              type="submit"
+            >
+              <Check className="size-4" aria-hidden="true" />
+              Aceptar
+            </button>
+          </form>
+          <form action={declineMeeting}>
+            <input name="meetingId" type="hidden" value={meeting.id} />
+            <button
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-brand-border bg-white px-3.5 text-sm font-semibold text-brand-navy-950 transition hover:bg-brand-surface-soft"
+              type="submit"
+            >
+              <X className="size-4" aria-hidden="true" />
+              Rechazar
+            </button>
+          </form>
+        </div>
+      ) : meeting.status === "pending" ? (
+        <p className="mt-3 text-xs italic text-brand-slate-600">
+          Esperando respuesta.
+        </p>
+      ) : null}
     </article>
   );
 }
