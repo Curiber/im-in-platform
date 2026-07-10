@@ -17,7 +17,7 @@ export default async function MyConnectionsPage() {
     redirect("/acceso?next=/app/conexiones");
   }
 
-  const connections = await getMyConnections(user.id);
+  const connections = await getMyConnections();
 
   return (
     <main className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8">

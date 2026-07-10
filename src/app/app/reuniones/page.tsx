@@ -24,7 +24,7 @@ export default async function MyMeetingsPage() {
     redirect("/acceso?next=/app/reuniones");
   }
 
-  const meetings = await getMyMeetings(user.id);
+  const meetings = await getMyMeetings();
   const { upcoming, past } = splitMeetingsByDate(meetings);
 
   return (
