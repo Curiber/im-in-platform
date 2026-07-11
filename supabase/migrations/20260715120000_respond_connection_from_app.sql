@@ -4,6 +4,32 @@
 -- por sesion: SECURITY DEFINER que derivan auth.uid() y limitan el acceso a las
 -- solicitudes de las que el usuario es RECEPTOR. Sin service_role.
 
+-- Inscripciones del usuario en un contexto OPERABLE: activas
+-- (registered/checked_in), con networking, evento vigente y organizacion no
+-- suspendida. Mismo criterio que la superficie por evento
+-- (verifyRegistrationAccess): sin esto, una inscripcion cancelada o de un evento
+-- borrado/suspendido/sin-networking podria seguir viendo/respondiendo solicitudes
+-- desde /app, eludiendo las restricciones por evento. create or replace
+-- idempotente (identico en la migracion de contadores) para no depender del
+-- orden de merge entre PRs.
+create or replace function app_private.my_active_registration_ids()
+returns setof uuid
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select r.id
+  from public.event_registrations r
+  join public.events e on e.id = r.event_id
+  join public.organizations o on o.id = e.organization_id
+  where r.user_id = auth.uid()
+    and r.status in ('registered', 'checked_in')
+    and e.deleted_at is null
+    and e.networking_enabled
+    and o.suspended_at is null;
+$$;
+
 -- Solicitudes de conexion recibidas y pendientes, con el perfil vivo de quien
 -- las envio.
 create or replace function public.get_my_pending_connection_requests()
@@ -21,9 +47,6 @@ stable
 security definer
 set search_path = public, pg_temp
 as $$
-  with my_regs as (
-    select id from public.event_registrations where user_id = auth.uid()
-  )
   select
     c.id,
     e.name,
@@ -37,7 +60,9 @@ as $$
   join public.events e on e.id = c.event_id and e.deleted_at is null
   left join public.attendee_profiles p on p.id = r.profile_id
   where c.status = 'pending'
-    and c.receiver_registration_id in (select id from my_regs)
+    and c.receiver_registration_id in (
+      select app_private.my_active_registration_ids()
+    )
   order by c.created_at desc;
 $$;
 
@@ -81,13 +106,17 @@ begin
     return;
   end if;
 
+  -- El receptor debe ser una inscripcion ACTIVA del usuario (no cancelada, en un
+  -- evento vigente/con networking y org activa): no se responde desde un contexto
+  -- inoperable.
   select c.status, c.requester_registration_id, c.receiver_registration_id,
          c.event_id
   into v_status, v_requester_id, v_receiver_id, v_event_id
   from public.connection_requests c
-  join public.event_registrations rr on rr.id = c.receiver_registration_id
   where c.id = p_request_id
-    and rr.user_id = v_uid
+    and c.receiver_registration_id in (
+      select app_private.my_active_registration_ids()
+    )
   for update of c;
 
   if not found or v_status <> 'pending' then

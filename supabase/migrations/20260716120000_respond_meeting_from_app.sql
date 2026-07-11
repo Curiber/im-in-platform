@@ -36,7 +36,11 @@ as $$
       m.ends_at,
       m.location_id,
       m.event_id,
-      m.receiver_registration_id in (select id from my_regs) as is_incoming,
+      -- Accionable (mostrar aceptar/rechazar) solo si la inscripcion receptora
+      -- del usuario esta activa; las reuniones aceptadas persisten via my_regs.
+      m.receiver_registration_id in (
+        select app_private.my_active_registration_ids()
+      ) as is_incoming,
       case
         when m.requester_registration_id in (select id from my_regs)
           then m.receiver_registration_id
@@ -109,12 +113,16 @@ begin
     return;
   end if;
 
+  -- El receptor debe ser una inscripcion ACTIVA del usuario (no cancelada, en un
+  -- evento vigente/con networking y org activa): no se responde desde un contexto
+  -- inoperable. (respond_meeting revalida ademas el evento al aceptar.)
   select m.receiver_registration_id, m.requester_registration_id, m.event_id
   into v_receiver_reg, v_requester_reg, v_event_id
   from public.meetings m
-  join public.event_registrations r on r.id = m.receiver_registration_id
   where m.id = p_meeting_id
-    and r.user_id = v_uid;
+    and m.receiver_registration_id in (
+      select app_private.my_active_registration_ids()
+    );
 
   if v_receiver_reg is null then
     return query
