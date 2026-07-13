@@ -3,6 +3,28 @@ import { cache } from "react";
 import type { ProfileCardVisibility } from "@/lib/profile-card-visibility";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+// "La cuenta tiene contrasena" NO se puede inferir de las identidades: Supabase
+// usa el provider `email` tanto para el registro con contrasena como para magic
+// link / OTP, asi que un usuario que solo entro por magic link tiene identidad
+// `email` pero sin contrasena. La unica fuente veraz es
+// auth.users.encrypted_password, que el rol authenticated no puede leer; se
+// expone via la RPC current_user_has_password (SECURITY DEFINER, scope auth.uid()).
+// Decide si el cambio de contrasena exige la actual (y re-autentica).
+export async function currentUserHasPassword(): Promise<boolean> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("current_user_has_password");
+
+  if (error) {
+    // Ante un fallo de la RPC, se asume que hay contrasena: se sigue exigiendo
+    // la actual y no se permite un cambio a ciegas (opcion segura). El peor caso
+    // es pedirsela a alguien que no la tiene, no debilitar el cambio.
+    console.error("No se pudo verificar si la cuenta tiene contrasena", error);
+    return true;
+  }
+
+  return data === true;
+}
+
 // Datos minimos del perfil global del asistente (spec 37). El perfil es
 // propiedad de la cuenta (attendee_profiles.user_id) y se reutiliza entre
 // eventos; aqui solo se leen los campos que muestra la superficie /app.
