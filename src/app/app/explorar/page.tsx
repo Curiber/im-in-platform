@@ -25,6 +25,12 @@ export default async function ExplorePage() {
   // Solo eventos abiertos, publicados y marcados como `discoverable` por su
   // organizador (opt-in). Los demas siguen siendo accesibles solo por link.
   // Legibles por el asistente autenticado gracias a la politica RLS del spec 37.
+  //
+  // Se excluyen los eventos ya terminados: explorar es para inscribirse, no
+  // tiene sentido ofrecer eventos pasados (que ademas, al ordenar por starts_at
+  // asc, aparecerian primero). "Terminado" = ends_at < ahora, o (sin ends_at)
+  // starts_at < ahora; misma definicion que splitRegistrationsByDate.
+  const nowIso = new Date().toISOString();
   const supabase = await createSupabaseServerClient();
   const { data: events } = await supabase
     .from("events")
@@ -32,6 +38,7 @@ export default async function ExplorePage() {
     .eq("status", "published")
     .eq("event_type", "open")
     .eq("discoverable", true)
+    .or(`ends_at.gte.${nowIso},and(ends_at.is.null,starts_at.gte.${nowIso})`)
     .order("starts_at", { ascending: true })
     .returns<PublicEvent[]>();
 
