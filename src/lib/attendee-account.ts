@@ -1,7 +1,18 @@
+import type { User } from "@supabase/supabase-js";
 import { cache } from "react";
 
 import type { ProfileCardVisibility } from "@/lib/profile-card-visibility";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+// Una cuenta "tiene contrasena" si entre sus identidades hay una del provider
+// `email` (Supabase crea esa identidad al registrarse con contrasena). Las
+// cuentas creadas solo por Google/LinkedIn/magic link no tienen una hasta que
+// la establecen desde Configuracion. Decide si pedimos la contrasena actual.
+export function userHasPassword(user: User): boolean {
+  return (user.identities ?? []).some(
+    (identity) => identity.provider === "email",
+  );
+}
 
 // Datos minimos del perfil global del asistente (spec 37). El perfil es
 // propiedad de la cuenta (attendee_profiles.user_id) y se reutiliza entre

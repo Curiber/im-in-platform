@@ -1,9 +1,14 @@
-import { ExternalLink, Settings, ShieldCheck } from "lucide-react";
+import { ExternalLink, KeyRound, Settings, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { PrivacyForm } from "@/app/app/configuracion/privacy-form";
-import { getAttendeeProfile, getAttendeeUser } from "@/lib/attendee-account";
+import { SecurityForm } from "@/app/app/configuracion/security-form";
+import {
+  getAttendeeProfile,
+  getAttendeeUser,
+  userHasPassword,
+} from "@/lib/attendee-account";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +19,7 @@ export default async function SettingsPage() {
   }
 
   const profile = await getAttendeeProfile(user.id);
+  const hasPassword = userHasPassword(user);
 
   return (
     <main className="mx-auto w-full max-w-3xl px-5 py-8 sm:px-8">
@@ -66,6 +72,23 @@ export default async function SettingsPage() {
             inscribas a tu primer evento con esta cuenta.
           </p>
         )}
+      </section>
+
+      <section className="mt-6 rounded-2xl border border-brand-border bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-2">
+          <KeyRound className="size-5 text-brand-cyan-500" aria-hidden="true" />
+          <h2 className="text-xl font-semibold text-brand-navy-950">
+            {hasPassword ? "Cambiar contrasena" : "Establecer contrasena"}
+          </h2>
+        </div>
+        <p className="mt-1 text-sm leading-6 text-brand-slate-600">
+          {hasPassword
+            ? "Ingresa tu contrasena actual y la nueva para cambiarla."
+            : "Tu cuenta ingresa con Google, LinkedIn o link por correo. Establece una contrasena para tambien poder entrar con email."}
+        </p>
+        <div className="mt-5">
+          <SecurityForm hasPassword={hasPassword} />
+        </div>
       </section>
     </main>
   );
