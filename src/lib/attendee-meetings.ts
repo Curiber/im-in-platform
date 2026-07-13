@@ -16,6 +16,7 @@ export type MyMeeting = {
   locationName: string | null;
   eventName: string;
   eventSlug: string;
+  isIncoming: boolean;
   other: {
     fullName: string;
     role: string | null;
@@ -36,6 +37,7 @@ type MeetingRow = {
   other_role: string | null;
   other_company: string | null;
   other_avatar_url: string | null;
+  is_incoming: boolean;
 };
 
 export async function getMyMeetings(): Promise<MyMeeting[]> {
@@ -57,6 +59,7 @@ export async function getMyMeetings(): Promise<MyMeeting[]> {
     locationName: row.location_name,
     eventName: row.event_name,
     eventSlug: row.event_slug,
+    isIncoming: row.is_incoming,
     other: {
       fullName: row.other_full_name ?? "Asistente",
       role: row.other_role,
