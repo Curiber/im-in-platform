@@ -19,11 +19,14 @@ type ProviderRow = {
   linkAction?: () => Promise<void>;
 };
 
+// El provider `email` cubre tanto contrasena como magic link/OTP, asi que su
+// descripcion depende de si la cuenta tiene una contrasena establecida (no del
+// provider). La etiqueta se mantiene neutra ("Email").
 const rows: ProviderRow[] = [
   {
     provider: "email",
-    label: "Email y contrasena",
-    description: "Ingresas con tu correo y una contrasena.",
+    label: "Email",
+    description: "",
   },
   {
     provider: "google",
@@ -39,12 +42,20 @@ const rows: ProviderRow[] = [
   },
 ];
 
+function describeEmailRow(hasPassword: boolean): string {
+  return hasPassword
+    ? "Ingresas con tu correo y contrasena."
+    : "Ingresas con link magico por correo. Puedes crear una contrasena en la seccion de arriba.";
+}
+
 export function ConnectedAccounts({
   connectedProviders,
   canUnlink,
+  hasPassword,
 }: {
   connectedProviders: string[];
   canUnlink: boolean;
+  hasPassword: boolean;
 }) {
   const [state, formAction] = useActionState(unlinkIdentity, initialState);
 
@@ -52,6 +63,10 @@ export function ConnectedAccounts({
     <div className="space-y-3">
       {rows.map((row) => {
         const connected = connectedProviders.includes(row.provider);
+        const description =
+          row.provider === "email"
+            ? describeEmailRow(hasPassword)
+            : row.description;
         return (
           <div
             className="flex items-center justify-between gap-4 rounded-xl border border-brand-border/60 bg-brand-surface-soft p-4"
@@ -70,7 +85,7 @@ export function ConnectedAccounts({
                 ) : null}
               </div>
               <p className="mt-1 text-sm leading-6 text-brand-slate-600">
-                {row.description}
+                {description}
               </p>
             </div>
 

@@ -139,6 +139,7 @@ export default async function SettingsPage({
           <ConnectedAccounts
             canUnlink={connectedProviders.length > 1}
             connectedProviders={connectedProviders}
+            hasPassword={hasPassword}
           />
         </div>
       </section>
