@@ -2,11 +2,12 @@
 
 import { useEffect } from "react";
 
-// Registra el service worker de la PWA (Fase 4.3, spec 28). Montado en el
-// layout del flujo del asistente (/e/[slug]): es la superficie que se instala
-// como app durante el evento. El scope '/' cubre toda la navegacion una vez
-// registrado. `updateViaCache: "none"` evita que el propio SW quede pegado en
-// el cache HTTP.
+// Registra el service worker de la PWA (spec 28). Se monta en las superficies
+// instalables del asistente: el flujo del evento (/e/[slug]) y el hub /app
+// (spec 37, que re-apunta la PWA a /app). El scope '/' cubre toda la navegacion
+// una vez registrado; `updateViaCache: "none"` evita que el propio SW quede
+// pegado en el cache HTTP. El SW solo cachea navegaciones /e/* (ver public/sw.js):
+// las paginas autenticadas de /app no se cachean, solo se hace instalable.
 export function ServiceWorkerRegistration() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) {

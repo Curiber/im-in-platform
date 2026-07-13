@@ -2,12 +2,20 @@
 
 ## Estado
 
-`implementado — Epic 45, Fase 4.3`
+`implementado — Epic 45, Fase 4.3` · `re-apuntado a /app — Epic 54 (spec 37)`
 
 Implementa el item 4.3 del
 [17-development-process-and-epic-prioritization.md](17-development-process-and-epic-prioritization.md):
 PWA instalable (manifest + service worker). Cierra la Fase 4 y el puente
 web/PWA del asistente previo a la app nativa (Fases 5-6).
+
+**Actualizacion (spec 37):** con las cuentas de asistente, el hub `/app` pasa a
+ser la superficie instalable. `manifest.start_url`/`id` apuntan a `/app` y el
+service worker se registra tambien en el layout de `/app`. El SW sigue cacheando
+solo navegaciones `/e/*`: las paginas autenticadas de `/app` no se cachean (van
+directo a red), asi que instalarlas no las sirve offline tras cerrar sesion.
+Esto resuelve la nota de "Riesgos / futuro" sobre respuestas autenticadas por
+cookie: la estrategia es no cachear `/app`.
 
 ## Problema
 
