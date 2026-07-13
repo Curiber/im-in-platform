@@ -5,6 +5,11 @@
 
 -- get_my_meetings + is_incoming: distingue si el usuario es el RECEPTOR de la
 -- reunion (puede responder) o el proponente (espera respuesta).
+-- Se agrega una columna al RETURNS TABLE: Postgres no permite cambiar el tipo de
+-- retorno con CREATE OR REPLACE (42P13), asi que se dropea la version previa
+-- (creada en 20260714120000) antes de recrearla.
+drop function if exists public.get_my_meetings();
+
 create or replace function public.get_my_meetings()
 returns table (
   meeting_id uuid,
