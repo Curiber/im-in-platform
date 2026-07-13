@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { getAttendeeUser, userHasPassword } from "@/lib/attendee-account";
+import {
+  currentUserHasPassword,
+  getAttendeeUser,
+} from "@/lib/attendee-account";
 import { profileCardVisibilityValues } from "@/lib/profile-card-visibility";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -85,12 +88,14 @@ const passwordSchema = z
 // Establece o cambia la contrasena de la cuenta desde /app/configuracion (spec
 // 37, "Configuracion: ... contrasena"). Corre con la sesion del usuario.
 //
-// Si la cuenta ya tiene contrasena (identidad `email`), se exige la actual y se
-// re-autentica antes de cambiarla: sin esto, cualquiera con una sesion abierta
-// (equipo compartido, sesion robada) podria cambiarla sin conocer la vigente.
-// Las cuentas solo-social/OTP aun no tienen contrasena y la establecen sin ese
-// paso: ya probaron identidad con el proveedor. El requisito se decide
-// server-side con userHasPassword, no se confia en el formulario.
+// Si la cuenta ya tiene contrasena, se exige la actual y se re-autentica antes
+// de cambiarla: sin esto, cualquiera con una sesion abierta (equipo compartido,
+// sesion robada) podria cambiarla sin conocer la vigente. Las cuentas solo
+// social / magic link aun no tienen contrasena y la establecen sin ese paso: ya
+// probaron identidad con el proveedor. Si tiene contrasena se decide server-side
+// con current_user_has_password (lee auth.users.encrypted_password), no del
+// formulario ni de las identidades (el provider `email` no distingue
+// contrasena de magic link/OTP).
 export async function changePassword(
   _state: PasswordActionState,
   formData: FormData,
@@ -114,7 +119,7 @@ export async function changePassword(
   }
 
   const supabase = await createSupabaseServerClient();
-  const hasPassword = userHasPassword(user);
+  const hasPassword = await currentUserHasPassword();
 
   if (hasPassword) {
     if (!parsed.data.currentPassword) {

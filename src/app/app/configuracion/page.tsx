@@ -5,9 +5,9 @@ import { redirect } from "next/navigation";
 import { PrivacyForm } from "@/app/app/configuracion/privacy-form";
 import { SecurityForm } from "@/app/app/configuracion/security-form";
 import {
+  currentUserHasPassword,
   getAttendeeProfile,
   getAttendeeUser,
-  userHasPassword,
 } from "@/lib/attendee-account";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export default async function SettingsPage() {
   }
 
   const profile = await getAttendeeProfile(user.id);
-  const hasPassword = userHasPassword(user);
+  const hasPassword = await currentUserHasPassword();
 
   return (
     <main className="mx-auto w-full max-w-3xl px-5 py-8 sm:px-8">
