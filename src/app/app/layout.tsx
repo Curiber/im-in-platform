@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { ServiceWorkerRegistration } from "@/app/_components/service-worker-registration";
 import { AppNav } from "@/app/app/_components/app-nav";
 import {
   getAttendeeUser,
@@ -27,6 +28,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         pendingMeetings={pending.meetings}
       />
       {children}
+      <ServiceWorkerRegistration />
     </div>
   );
 }
