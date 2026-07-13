@@ -4,12 +4,18 @@ import type { MetadataRoute } from "next";
 // 192/512 se generan desde el mark de marca (fondo blanco a sangre completa,
 // logo dentro de la zona segura, asi que sirven como `any` y `maskable`).
 //
-// start_url/id apuntan a /app: el hub del asistente con cuenta es la superficie
+// start_url apunta a /app: el hub del asistente con cuenta es la superficie
 // instalable (si no hay sesion, /app redirige a /acceso). El scope sigue en '/'
 // para que la app instalada navegue tambien las paginas publicas de eventos.
+//
+// `id` se fija en "/" a proposito: el manifest anterior no declaraba `id`, asi
+// que su identidad efectiva era su start_url de entonces ("/"). Conservar
+// id: "/" mantiene la MISMA identidad de PWA, de modo que las instalaciones
+// existentes se actualizan en vez de quedar como una app distinta duplicada.
+// Solo cambia el start_url.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    id: "/app",
+    id: "/",
     name: "I'M IN — Eventos y networking",
     short_name: "I'M IN",
     description:
