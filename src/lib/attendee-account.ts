@@ -51,6 +51,33 @@ export const getAttendeeUser = cache(async () => {
   return user;
 });
 
+export type PendingCounts = {
+  connections: number;
+  meetings: number;
+};
+
+// Solicitudes recibidas pendientes (conexiones y reuniones) para los badges de
+// la navegacion. Memoizado por render (lo usa el layout de /app).
+export const getMyPendingCounts = cache(async (): Promise<PendingCounts> => {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("get_my_pending_counts");
+
+  if (error) {
+    return { connections: 0, meetings: 0 };
+  }
+
+  const row = (
+    data as
+      | { pending_connections: number; pending_meetings: number }[]
+      | null
+  )?.[0];
+
+  return {
+    connections: row?.pending_connections ?? 0,
+    meetings: row?.pending_meetings ?? 0,
+  };
+});
+
 // Reclama el perfil y las inscripciones historicas (por email) para la cuenta
 // autenticada, reusando el RPC del spec 31 (claim_attendee_identity, que toma el
 // email del JWT y solo enlaza filas sin dueño). Idempotente y silencioso.
