@@ -1,4 +1,11 @@
-import { ArrowRight, CalendarDays, Compass, UserRound } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarClock,
+  CalendarDays,
+  Compass,
+  UserRound,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -8,6 +15,7 @@ import {
   getAttendeeProfile,
   getAttendeeRegistrations,
   getAttendeeUser,
+  getMyPendingCounts,
   splitRegistrationsByDate,
 } from "@/lib/attendee-account";
 
@@ -23,9 +31,10 @@ export default async function AppHomePage() {
   // inscripciones del email verificado hechas antes de crear la cuenta (spec 31).
   await claimAttendeeIdentity();
 
-  const [profile, registrations] = await Promise.all([
+  const [profile, registrations, pending] = await Promise.all([
     getAttendeeProfile(user.id),
     getAttendeeRegistrations(user.id),
+    getMyPendingCounts(),
   ]);
 
   const { upcoming } = splitRegistrationsByDate(registrations);
@@ -38,6 +47,35 @@ export default async function AppHomePage() {
       <p className="mt-2 text-brand-slate-600">
         Tu espacio en I&apos;m IN: tus eventos, tu perfil y tus conexiones.
       </p>
+
+      {pending.connections > 0 || pending.meetings > 0 ? (
+        <section className="mt-6 grid gap-3 sm:grid-cols-2">
+          {pending.connections > 0 ? (
+            <PendingCard
+              cta="Responder"
+              href="/app/conexiones"
+              icon={<Users className="size-5" aria-hidden="true" />}
+              label={`${pending.connections} ${
+                pending.connections === 1
+                  ? "solicitud de conexion"
+                  : "solicitudes de conexion"
+              } por responder`}
+            />
+          ) : null}
+          {pending.meetings > 0 ? (
+            <PendingCard
+              cta="Responder"
+              href="/app/reuniones"
+              icon={<CalendarClock className="size-5" aria-hidden="true" />}
+              label={`${pending.meetings} ${
+                pending.meetings === 1
+                  ? "invitacion a reunion"
+                  : "invitaciones a reunion"
+              } por responder`}
+            />
+          ) : null}
+        </section>
+      ) : null}
 
       {!profile ? (
         <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-brand-border bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
@@ -108,5 +146,37 @@ export default async function AppHomePage() {
         )}
       </section>
     </main>
+  );
+}
+
+function PendingCard({
+  cta,
+  href,
+  icon,
+  label,
+}: {
+  cta: string;
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <Link
+      className="flex items-center justify-between gap-3 rounded-2xl border border-brand-cyan-500/30 bg-brand-cyan-500/5 p-5 shadow-sm transition hover:border-brand-cyan-500/60 hover:bg-brand-cyan-500/10"
+      href={href}
+    >
+      <span className="flex min-w-0 items-center gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-brand-cyan-500/15 text-brand-cyan-500">
+          {icon}
+        </span>
+        <span className="text-sm font-semibold text-brand-navy-950">
+          {label}
+        </span>
+      </span>
+      <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-cyan-500">
+        {cta}
+        <ArrowRight className="size-4" aria-hidden="true" />
+      </span>
+    </Link>
   );
 }
