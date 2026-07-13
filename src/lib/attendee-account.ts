@@ -1,5 +1,6 @@
 import { cache } from "react";
 
+import type { ProfileCardVisibility } from "@/lib/profile-card-visibility";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 // Datos minimos del perfil global del asistente (spec 37). El perfil es
@@ -21,6 +22,9 @@ export type AttendeeProfile = {
   goals_seeking: string[];
   goals_offering: string[];
   profile_slug: string | null;
+  card_visibility: ProfileCardVisibility;
+  public_email_enabled: boolean;
+  public_phone_enabled: boolean;
 };
 
 export type AttendeeRegistration = {
@@ -110,7 +114,7 @@ export const getAttendeeProfile = cache(
     const { data } = await supabase
       .from("attendee_profiles")
       .select(
-        "id, full_name, headline, description, role, company, industry, email, phone, linkedin_url, avatar_url, interests, goals_seeking, goals_offering, profile_slug",
+        "id, full_name, headline, description, role, company, industry, email, phone, linkedin_url, avatar_url, interests, goals_seeking, goals_offering, profile_slug, card_visibility, public_email_enabled, public_phone_enabled",
       )
       .eq("user_id", userId)
       .maybeSingle<AttendeeProfile>();

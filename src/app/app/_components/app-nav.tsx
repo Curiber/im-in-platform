@@ -3,6 +3,7 @@ import {
   CalendarDays,
   Compass,
   Home,
+  Settings,
   Users,
   UserRound,
 } from "lucide-react";
@@ -17,6 +18,7 @@ const links = [
   { href: "/app/reuniones", label: "Reuniones", icon: CalendarClock },
   { href: "/app/explorar", label: "Explorar", icon: Compass },
   { href: "/app/perfil", label: "Mi perfil", icon: UserRound },
+  { href: "/app/configuracion", label: "Configuracion", icon: Settings },
 ];
 
 export function AppNav({
