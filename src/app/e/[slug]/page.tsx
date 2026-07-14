@@ -9,10 +9,11 @@ import {
   Users,
   UsersRound,
 } from "lucide-react";
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { ReactNode } from "react";
+import { cache, type ReactNode } from "react";
 
 import { formatDateTime, formatDateTimeRange } from "@/lib/datetime";
 import { resolveEventCover } from "@/lib/event-cover";
@@ -51,30 +52,88 @@ const includedItems = [
   { icon: UsersRound, label: "Solicitudes de conexion durante el evento" },
 ];
 
+// Carga del evento publico, memoizada por request con cache(): generateMetadata
+// y la pagina comparten la consulta sin duplicarla. Aplica los mismos filtros de
+// visibilidad que la pagina (no borrado, publicado/cerrado, org no suspendida).
+const loadPublicEvent = cache(
+  async (slug: string): Promise<PublicEvent | null> => {
+    const supabase = createSupabaseAdminClient();
+    const { data: event } = await supabase
+      .from("events")
+      .select(
+        "id, name, description, starts_at, location, capacity, networking_enabled, status, cover_image_url, organizations(name, suspended_at)",
+      )
+      .eq("slug", slug)
+      .is("deleted_at", null)
+      .in("status", ["published", "closed"])
+      .maybeSingle()
+      .returns<PublicEvent>();
+
+    if (!event || event.organizations?.suspended_at) {
+      return null;
+    }
+
+    return event;
+  },
+);
+
+// Metadata para compartir el evento (spec 37): al pegar el link en redes o
+// mensajeria se ve el nombre, la organizacion y la portada, no el generico del
+// sitio. Eventos no publicados/suspendidos (la pagina devuelve 404) caen al
+// generico sin filtrar datos.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const event = await loadPublicEvent(slug);
+
+  if (!event) {
+    return { title: "Evento no disponible" };
+  }
+
+  const organizer = event.organizations?.name;
+  const title = organizer ? `${event.name} — ${organizer}` : event.name;
+  const description =
+    event.description ??
+    `${formatDateTime(event.starts_at)}${
+      event.location ? ` · ${event.location}` : ""
+    }`;
+  const cover = resolveEventCover(event.cover_image_url);
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      images: [{ url: cover, alt: event.name }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [cover],
+    },
+  };
+}
+
 export default async function PublicEventPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const supabase = createSupabaseAdminClient();
+  const event = await loadPublicEvent(slug);
 
-  const { data: event } = await supabase
-    .from("events")
-    .select(
-      "id, name, description, starts_at, location, capacity, networking_enabled, status, cover_image_url, organizations(name, suspended_at)",
-    )
-    .eq("slug", slug)
-    .is("deleted_at", null)
-    .in("status", ["published", "closed"])
-    .single()
-    .returns<PublicEvent>();
-
-  // Organizacion suspendida: la pagina publica del evento deja de existir.
-  if (!event || event.organizations?.suspended_at) {
+  // Organizacion suspendida, no publicado o inexistente: no existe pagina publica.
+  if (!event) {
     notFound();
   }
 
+  const supabase = createSupabaseAdminClient();
   const { data: agendaItems } = await supabase
     .from("event_agenda_items")
     .select("id, title, description, location, starts_at, ends_at")
