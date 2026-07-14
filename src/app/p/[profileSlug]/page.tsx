@@ -7,11 +7,12 @@ import {
   Phone,
   UserRound,
 } from "lucide-react";
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import QRCode from "qrcode";
-import type { ReactNode } from "react";
+import { cache, type ReactNode } from "react";
 
 import { CopyProfileLinkButton } from "@/app/p/[profileSlug]/copy-profile-link-button";
 import {
@@ -43,20 +44,74 @@ type PublicProfile = {
   role: string | null;
 };
 
+// Carga del perfil publico, memoizada por request con cache(): generateMetadata
+// y la pagina la comparten sin duplicar la consulta a la base.
+const loadPublicProfile = cache(
+  async (profileSlug: string): Promise<PublicProfile | null> => {
+    const adminClient = createSupabaseAdminClient();
+    const { data } = await adminClient
+      .from("attendee_profiles")
+      .select(
+        "avatar_url, card_visibility, company, description, email, full_name, headline, industry, interests, linkedin_url, phone, profile_slug, public_email_enabled, public_phone_enabled, role",
+      )
+      .eq("profile_slug", profileSlug)
+      .maybeSingle<PublicProfile>();
+
+    return data ?? null;
+  },
+);
+
+// Metadata para compartir la tarjeta (spec 07/37): al pegar el link en un
+// evento, LinkedIn o WhatsApp se ve el nombre y foco de la persona, no el
+// generico del sitio. La imagen OG reusa el PNG de /p/[slug]/card. Solo se
+// expone si la tarjeta es publica; para privadas/inexistentes (la pagina
+// devuelve 404) se cae al generico para no filtrar el nombre.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ profileSlug: string }>;
+}): Promise<Metadata> {
+  const { profileSlug } = await params;
+  const profile = await loadPublicProfile(profileSlug);
+
+  if (!profile || !isProfileCardPublic(profile)) {
+    return { title: "Tarjeta no disponible" };
+  }
+
+  const title = profile.full_name;
+  const subtitle =
+    profile.headline ??
+    [profile.role, profile.company].filter(Boolean).join(" · ");
+  const description = subtitle || "Perfil profesional en I'M IN";
+  const cardImage = `/p/${profile.profile_slug}/card`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "profile",
+      images: [
+        { url: cardImage, width: 640, height: 1120, alt: profile.full_name },
+      ],
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description,
+      images: [cardImage],
+    },
+  };
+}
+
 export default async function PublicProfileCardPage({
   params,
 }: {
   params: Promise<{ profileSlug: string }>;
 }) {
   const { profileSlug } = await params;
-  const adminClient = createSupabaseAdminClient();
-  const { data: profile } = await adminClient
-    .from("attendee_profiles")
-    .select(
-      "avatar_url, card_visibility, company, description, email, full_name, headline, industry, interests, linkedin_url, phone, profile_slug, public_email_enabled, public_phone_enabled, role",
-    )
-    .eq("profile_slug", profileSlug)
-    .single<PublicProfile>();
+  const profile = await loadPublicProfile(profileSlug);
 
   if (!profile || !isProfileCardPublic(profile)) {
     notFound();
